@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+  }
+  
+  .report-card {
+    width: 50%;
+    margin: 20px auto;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .header {
+    text-align: center;
+    border-bottom: 2px solid #0071c5;
+    padding-bottom: 15px;
+  }
+  
+  .logo {
+    width: 80px;
+    margin-bottom: 10px;
+  }
+  
+  .school-info h1 {
+    font-size: 24px;
+    color: #0071c5;
+    margin: 5px 0;
+  }
+  
+  .school-info h2 {
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .student-details table,
+  .subject-skills table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .student-details td,
+  .subject-skills th,
+  .subject-skills td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .subject-skills th {
+    background-color: #0071c5;
+    color: #ffffff;
+    text-align: center;
+  }
+  
+  .grade {
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .green {
+    background-color: #b3ffb3;
+  }
+  
+  .yellow {
+    background-color: #ffffb3;
+  }
+  
+  .red {
+    background-color: #ffcccc;
+  }
+  

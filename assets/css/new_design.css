@@ -1,0 +1,329 @@
+.breadcrumb-nav {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.breadcrumb-home {
+  color: #555;
+  text-decoration: none;
+  margin-right: 0.5rem;
+}
+
+.breadcrumb-nav a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.breadcrumb-nav a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-link--disabled {
+  color: #666;
+  cursor: default;
+  pointer-events: none;
+}
+
+.breadcrumb-separator {
+  margin: 0 0.3rem;
+  color: #999;
+}
+
+.topbar-student {
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 3px solid #f0f0f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-family: "Poppins", sans-serif;
+}
+
+.topbar-student .left-group {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-student .logo {
+  margin-right: 15px;
+}
+
+.topbar-student .logo img {
+  height: 50px;
+}
+
+.topbar-student .branch-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1c1c1c;
+}
+
+.topbar-student .right-icons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.topbar-student .right-icons img {
+  height: 28px;
+  width: 28px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.topbar-student .right-icons img:hover {
+  transform: scale(1.1);
+}
+
+.header-menubox {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  z-index: 999;
+  background: #fefefe;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+  display: none;
+  min-width: 250px;
+  padding: 15px;
+  animation: slideIn 0.3s ease;
+}
+
+.header-menubox.active {
+  display: block;
+}
+
+.header-menubox .notification-title {
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #333;
+  text-align: center;
+}
+
+.header-menubox ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.header-menubox ul li {
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  background: #f9f9f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.header-menubox ul li:hover {
+  background: #e0f7fa;
+}
+
+.header-menubox ul li a {
+  text-decoration: none;
+  color: #333;
+  display: block;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* DASHBOARD DESIGN */
+
+.inner-wrapper {
+  padding: 0;
+}
+
+.page-header-back {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* === Smart Education Hub (Updated for Dynamic Menu/Submenu) === */
+.smart-education-hub {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.breadcrumb-trail {
+  font-size: 14px;
+  color: white;
+  margin: 15px 0;
+  padding-left: 10px;
+}
+.breadcrumb-trail span {
+  margin-right: 5px;
+  cursor: pointer;
+}
+.breadcrumb-trail i {
+  margin-right: 5px;
+}
+.breadcrumb-trail .breadcrumb-separator {
+  margin: 0 5px;
+  color: #ccc;
+}
+
+.hub-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+#backButton {
+  font-size: 24px;
+  color: #ffffff;
+}
+
+.student-profile-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.student-avatar img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  object-fit: cover;
+}
+
+.student-info h3 {
+  color: white;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.class-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+.menu-back-btn {
+  background: #ff9a56;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.common-card {
+  max-width: 250px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 30px 25px;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.common-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.common-card .card-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.common-card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-decoration: none;
+  z-index: 2;
+}
+
+#menuGrid:only-child,
+#menuGrid .dashboard-card:only-child {
+  max-width: 400px;
+  margin: 0 auto;
+  justify-self: center;
+}
+
+@media (max-width: 768px) {
+  .smart-education-hub {
+    padding: 15px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .student-avatar img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .student-info h3 {
+    font-size: 20px;
+  }
+}

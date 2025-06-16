@@ -1,0 +1,108 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Report Container */
+.report-container {
+    width: 50%;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 20px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.header h1 {
+    font-size: 24px;
+}
+
+.header img {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    width: 80px;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    text-align: center;
+    padding: 8px;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Student Details Table */
+.details-table th {
+    background-color: #4CAF50;
+    color: white;
+    text-align: left;
+}
+
+.details-table td {
+    text-align: left;
+    background-color: #f9f9f9;
+}
+
+/* Effort Key Table */
+.effort-key {
+    margin-top: 20px;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.effort-key th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.effort-key td {
+    text-align: center;
+    padding: 8px;
+}
+
+/* Chart Container */
+.chart-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* Special Comments */
+.special-comments {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin-top: 20px;
+}

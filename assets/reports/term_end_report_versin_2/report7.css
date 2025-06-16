@@ -1,0 +1,82 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+}
+
+.report-container {
+    width: 50%;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #9e7942;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.logo img,
+.university-logos img {
+    max-width: 100px;
+}
+
+.school-details h1 {
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+}
+
+.school-details h2 {
+    font-size: 18px;
+    color: #9e7942;
+    margin: 5px 0 0;
+}
+
+.student-details table,
+.grades-table table,
+.attendance-health table,
+.class-teacher-comments table,
+.promoted-to table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.student-details td,
+.grades-table th,
+.grades-table td,
+.attendance-health td,
+.class-teacher-comments th,
+.class-teacher-comments td,
+.promoted-to th,
+.promoted-to td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.grades-table th,
+.class-teacher-comments th,
+.promoted-to th {
+    background-color: #9e7942;
+    color: #fff;
+}
+
+.signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.signature p {
+    text-align: center;
+    margin: 0;
+}

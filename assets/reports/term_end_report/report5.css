@@ -1,0 +1,72 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+
+.report-container {
+    max-width: 850px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.logo img {
+    width: 80px;
+}
+
+.institute-details {
+    text-align: center;
+}
+
+.report-date {
+    text-align: right;
+}
+
+.student-info {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.table th {
+    background-color: #f2f2f2;
+}
+
+.signatures {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+}
+
+.teacher-comments td,
+.grade-boundaries td,
+.promotion td {
+    text-align: left;
+    padding: 15px;
+}
