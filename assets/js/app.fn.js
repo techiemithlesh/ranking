@@ -16,6 +16,7 @@
           btn.button("loading");
         },
         success: function (data) {
+          console.log("data", data);
           $(".error").html("");
           if (data.status == "fail") {
             $.each(data.error, function (index, value) {

@@ -21,15 +21,37 @@ class Classes extends Admin_Controller
     }
 
     /* class form validation rules */
-    protected function class_validation()
+    protected function class_validation($id = null)
     {
-        if (is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
-        $this->form_validation->set_rules('name', translate('name'), 'trim|required');
-        $this->form_validation->set_rules('name_numeric', translate('name_numeric'), 'trim|numeric');
-        $this->form_validation->set_rules('sections[]', translate('section'), 'trim|required');
+        $this->form_validation->set_rules('class_name', translate('name'), [
+            'trim',
+            'required',
+            [
+                'uniqueClassNameCheck',
+                function ($name) use ($id) {
+                    $this->db->where('name', $name);
+                    if ($id)
+                        $this->db->where('id !=', $id);
+                    return $this->db->get('class')->num_rows() == 0;
+                }
+            ]
+        ]);
     }
+
+
+
+    public function uniqueClassNameCheck($name = '')
+    {
+        $this->db->where('name', $name);
+        $exists = $this->db->get('class')->num_rows();
+
+        if ($exists > 0) {
+            $this->form_validation->set_message('uniqueClassNameCheck', translate('the_name_already_exists'));
+            return false;
+        }
+        return true;
+    }
+
 
     public function index()
     {
@@ -41,26 +63,15 @@ class Classes extends Admin_Controller
                 $this->class_validation();
                 if ($this->form_validation->run() !== false) {
                     $arrayClass = array(
-                        'name' => $this->input->post('name'),
-                        'name_numeric' => $this->input->post('name_numeric'),
-                        'branch_id' => $this->application_model->get_branch_id(),
+                        'name' => $this->input->post('name')
                     );
                     $this->db->insert('class', $arrayClass);
                     $class_id = $this->db->insert_id();
-                    $sections = $this->input->post('sections');
-                    foreach ($sections as $section) {
-                        $arrayData = array(
-                            'class_id' => $class_id,
-                            'section_id' => $section,
-                        );
-                        $query = $this->db->get_where("sections_allocation", $arrayData);
-                        if ($query->num_rows() == 0) {
-                            $this->db->insert('sections_allocation', $arrayData);
-                        }
+                    if ($class_id) {
+                        set_alert('success', translate('information_has_been_saved_successfully'));
+                        $url = base_url('classes');
+                        $array = array('status' => 'success', 'url' => $url, 'error' => '');
                     }
-                    set_alert('success', translate('information_has_been_saved_successfully'));
-                    $url = base_url('classes');
-                    $array = array('status' => 'success', 'url' => $url, 'error' => '');
                 } else {
                     $error = $this->form_validation->error_array();
                     $array = array('status' => 'fail', 'url' => '', 'error' => $error);
@@ -70,10 +81,7 @@ class Classes extends Admin_Controller
             }
         }
         $this->data['classlist'] = $this->app_lib->getTable('class');
-        
         $this->data['query_classes'] = $this->db->get('class');
-        // printVar($this->data['query_classes']);
-        // die;
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/index';
         $this->data['main_menu'] = 'classes';
@@ -83,40 +91,6 @@ class Classes extends Admin_Controller
 
     public function edit($id = '')
     {
-        if (!get_permission('classes', 'is_edit')) {
-            access_denied();
-        }
-        if ($_POST) {
-            $this->class_validation();
-            if ($this->form_validation->run() !== false) {
-                $id = $this->input->post('class_id');
-                $arrayClass = array(
-                    'name' => $this->input->post('name'),
-                    'name_numeric' => $this->input->post('name_numeric'),
-                    'branch_id' => $this->application_model->get_branch_id(),
-                );
-                $this->db->where('id', $id);
-                $this->db->update('class', $arrayClass);
-                $sections = $this->input->post('sections');
-                foreach ($sections as $section) {
-                    $query = $this->db->get_where("sections_allocation", array('class_id' => $id, 'section_id' => $section));
-                    if ($query->num_rows() == 0) {
-                        $this->db->insert('sections_allocation', array('class_id' => $id, 'section_id' => $section));
-                    }
-                }
-                $this->db->where_not_in('section_id', $sections);
-                $this->db->where('class_id', $id);
-                $this->db->delete('sections_allocation');
-                set_alert('success', translate('information_has_been_updated_successfully'));
-                $url = base_url('classes');
-                $array = array('status' => 'success', 'url' => $url, 'error' => '');
-            } else {
-                $error = $this->form_validation->error_array();
-                $array = array('status' => 'fail', 'url' => '', 'error' => $error);
-            }
-            echo json_encode($array);
-            exit();
-        }
         $this->data['class'] = $this->app_lib->getTable('class', array('t.id' => $id), true);
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/edit';
@@ -124,14 +98,41 @@ class Classes extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+
+    public function updateClass()
+    {
+        if ($_POST) {
+            $id = $this->input->post('class_id');
+            $this->class_validation($id);
+
+            if ($this->form_validation->run() !== false) {
+                $arrayClass = array(
+                    'name' => $this->input->post('class_name')
+                );
+
+                $this->db->where('id', $id);
+                $this->db->update('class', $arrayClass);
+                $url = base_url('classes');
+                $array = array('status' => 'success', 'url' => $url, 'error' => '');
+            } else {
+                $error = $this->form_validation->error_array();
+                $array = array('status' => 'fail', 'url' => '', 'error' => $error);
+            }
+
+            echo json_encode($array);
+            exit();
+        }
+    }
+
+
     public function delete($id = '')
     {
-        try{
+        try {
 
             if (get_permission('classes', 'is_delete')) {
                 $this->db->trans_begin();
-                $this->db->where("class_id",$id)->delete("class_books");
-    
+                $this->db->where("class_id", $id)->delete("class_books");
+
                 if (!is_superadmin_loggedin()) {
                     $this->db->where('branch_id', get_loggedin_branch_id());
                 }
@@ -141,18 +142,18 @@ class Classes extends Admin_Controller
                     $this->db->where('class_id', $id);
                     $this->db->delete('sections_allocation');
                 }
-                if($this->db->trans_status()){
+                if ($this->db->trans_status()) {
                     $this->db->trans_commit();
-                    responseMsg(true,"data Delete Successfully","");
-                }else{
+                    responseMsg(true, "data Delete Successfully", "");
+                } else {
                     $this->db->trans_rollback();
                 }
-                responseMsg(false,"data Not Delete Due To Server Error",$this->db->error());            
-            }else{
-                responseMsg(false, "Access denied", null); 
+                responseMsg(false, "data Not Delete Due To Server Error", $this->db->error());
+            } else {
+                responseMsg(false, "Access denied", null);
             }
-        }catch(Exception $e){
-            responseMsg(false, "Server Error!!!", null); 
+        } catch (Exception $e) {
+            responseMsg(false, "Server Error!!!", null);
         }
     }
 
