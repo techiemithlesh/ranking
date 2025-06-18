@@ -379,9 +379,9 @@ class App_lib
 
     public function getRolesForMsg($arra_id = [1, 6, 7])
     {
-        
+
         if (is_student_loggedin()) {
-            $this->CI->db->where_in('id', [2, 3]); 
+            $this->CI->db->where_in('id', [2, 3]);
         } else {
             if (is_admin_loggedin()) {
                 $arra_id[] = 2;
@@ -559,10 +559,10 @@ class App_lib
     {
         if (loggedin_role_id() == 3) {
             $getMode = $this->CI->db
-            ->select('teacher_restricted')
-            ->where('id', get_loggedin_branch_id())
-            ->get('branch')
-            ->row()->teacher_restricted;
+                ->select('teacher_restricted')
+                ->where('id', get_loggedin_branch_id())
+                ->get('branch')
+                ->row()->teacher_restricted;
             if ($getMode == 0) {
                 return false;
             } else {
@@ -592,5 +592,49 @@ class App_lib
         return $result;
     }
 
+
+    public function get_global_classes()
+    {
+        $CI = &get_instance();
+        $CI->db->select('id, name');
+        $CI->db->from('class');
+        $CI->db->where('created_by_branch IS NULL');
+        $CI->db->order_by('name', 'ASC');
+        return $CI->db->get()->result_array();
+    }
+
+    public function getSelectBranchGlobal($table)
+    {
+        $CI = &get_instance();
+        $output = array();
+        $CI->db->select('id, name');
+        $CI->db->from($table);
+        $CI->db->where('status', 1);
+        $CI->db->order_by('id', 'ASC');
+        $result = $CI->db->get()->result_array();
+
+        foreach ($result as $row) {
+            $output[$row['id']] = $row['name'];
+        }
+
+        return $output;
+    }
+
+    public function getSelectListGlobal($table)
+    {
+        $CI = &get_instance();
+        $output = array();
+        $CI->db->select('id, name');
+        $CI->db->from($table);
+        $CI->db->where('created_by_branch IS NULL');
+        $CI->db->order_by('name', 'ASC');
+        $result = $CI->db->get()->result_array();
+
+        foreach ($result as $row) {
+            $output[$row['id']] = $row['name'];
+        }
+
+        return $output;
+    }
 
 }

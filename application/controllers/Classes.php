@@ -90,8 +90,7 @@ class Classes extends Admin_Controller
         }
 
         $this->data['classlist'] = get_classes_by_user();
-        // printVar($this->data['classlist']);
-        // die;
+
         $this->data['query_classes'] = $this->db->get('class');
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/index';
@@ -272,12 +271,67 @@ class Classes extends Admin_Controller
         }
     }
 
-    public function classAssign(){
+    public function classAssign()
+    {
+        if ($_POST) {
+            $branch_ids = $this->input->post('branch_id', true);
+            $class_ids = $this->input->post('class_assign', true);
+
+            if (!empty($branch_ids) && !empty($class_ids)) {
+                $data = [
+                    'branch_ids' => $branch_ids,
+                    'class_ids' => $class_ids
+                ];
+                $this->classes_model->classAllocationSave($data);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Class assignment updated successfully.',
+                    'url' => base_url('classes/classAssign')
+                ]);
+
+                exit();
+            } else {
+                echo json_encode([
+                    'status' => 'fail',
+                    'message' => 'Please select at least one branch and one class.'
+                ]);
+                exit();
+            }
+        }
+
+        $this->data['global_classes'] = $this->app_lib->get_global_classes();
+
+        $this->db->select('cbm.id, b.name AS branch_name, c.name AS class_name');
+        $this->db->from('class_branch_map cbm');
+        $this->db->join('branch b', 'b.id = cbm.branch_id', 'left');
+        $this->db->join('class c', 'c.id = cbm.class_id', 'left');
+        $this->db->order_by('b.name ASC, c.name ASC');
+        $this->data['assigned_class_list'] = $this->db->get()->result_array();
 
         $this->data['title'] = translate('assign_branch_class');
         $this->data['sub_page'] = 'classes/class_allocation';
         $this->data['main_menu'] = 'classes';
         $this->load->view('layout/index', $this->data);
+    }
+
+
+    public function deleteClassAssign($id = 0)
+    {
+        if (is_superadmin_loggedin()) {
+
+            $row = $this->db->where('id', $id)->get('class_branch_map')->row();
+
+            if ($row) {
+                $this->db->where('id', $id)->delete('class_branch_map');
+
+                set_alert('success', 'Class assignment deleted successfully.');
+            } else {
+                set_alert('error', 'Invalid assignment selected.');
+            }
+
+            redirect(base_url('classes/classAssign'));
+        }
     }
 
 }

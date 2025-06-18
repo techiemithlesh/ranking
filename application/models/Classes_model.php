@@ -26,11 +26,11 @@ class Classes_model extends MY_Model
     public function teacherAllocationSave($data)
     {
         $arrayData = array(
-            'branch_id'     => $this->application_model->get_branch_id(),
-            'session_id'    => get_session_id(),
-            'class_id'      => $data['class_id'],
-            'section_id'    => $data['section_id'],
-            'teacher_id'    => $data['staff_id'],
+            'branch_id' => $this->application_model->get_branch_id(),
+            'session_id' => get_session_id(),
+            'class_id' => $data['class_id'],
+            'section_id' => $data['section_id'],
+            'teacher_id' => $data['staff_id'],
         );
         if (!isset($data['allocation_id'])) {
             if (get_permission('assign_class_teacher', 'is_add')) {
@@ -47,6 +47,24 @@ class Classes_model extends MY_Model
         unset($arrayData['teacher_id']);
         $this->db->where($arrayData);
         $this->db->update('subject_assign', array('teacher_id' => $data['staff_id']));
+    }
+
+    public function classAllocationSave($data)
+    {
+        $branch_ids = $data['branch_ids'];
+        $class_ids = $data['class_ids'];
+
+        foreach ($branch_ids as $branch_id) {
+            $this->db->where('branch_id', $branch_id)->delete('class_branch_map');
+            foreach ($class_ids as $class_id) {
+                $insert_data = [
+                    'class_id' => $class_id,
+                    'branch_id' => $branch_id,
+                    'assigned_at' => date('Y-m-d H:i:s')
+                ];
+                $this->db->insert('class_branch_map', $insert_data);
+            }
+        }
     }
 
 }

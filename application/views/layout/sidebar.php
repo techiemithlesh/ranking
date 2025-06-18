@@ -545,6 +545,16 @@
                                                         <span><?= translate('control_classes') ?></span>
                                                     </a>
                                                 </li>
+                                                <?php if (is_superadmin_loggedin()) { ?>
+                                                    <li
+                                                        class="<?php if ($sub_page == 'classes/class_allocation')
+                                                            echo 'nav-active'; ?>">
+                                                        <a href="<?= base_url('classes/classAssign') ?>">
+                                                            <span><?= translate('assign_class_to_branch') ?></span>
+                                                        </a>
+                                                    </li>
+                                                <?php } ?>
+
                                             <?php } ?>
                                             <?php if (get_permission('assign_class_teacher', 'is_view')) { ?>
                                                 <li class="<?php if ($sub_page == 'classes/teacher_allocation')
@@ -931,16 +941,16 @@
                                                     </a>
                                                 </li>
                                             <?php }
-                                             if (get_permission('generate_position', 'is_view')) { ?>
+                                            if (get_permission('generate_position', 'is_view')) { ?>
                                                 <li class="<?php if ($sub_page == 'exam/class_position')
                                                     echo 'nav-active'; ?>">
                                                     <a href="<?= base_url('exam/class_position') ?>">
                                                         <span><?= translate('generate_position') ?></span>
                                                     </a>
                                                 </li>
-                                                
+
                                             <?php }
-                                            
+
                                             if (get_permission('exam_grade', 'is_view')) { ?>
                                                 <li class="<?php if ($sub_page == 'exam/grade')
                                                     echo 'nav-active'; ?>">
@@ -1782,10 +1792,11 @@
                                 </li>
 
                                 <?php if (get_permission('online_exam_progress', 'is_view')) { ?>
-                                   
-                                     <li class="nav-parent <?php if ($main_menu == 'fees_repots')
+
+                                    <li class="nav-parent <?php if ($main_menu == 'fees_repots')
                                         echo 'nav-expanded nav-active'; ?>">
-                                        <a><i class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
+                                        <a><i
+                                                class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
                                         <ul class="nav nav-children">
                                             <li class="<?php if ($sub_page == 'report/online_exam_progress/index')
                                                 echo 'nav-active'; ?>">
@@ -1795,9 +1806,9 @@
                                             <li class="<?php if ($sub_page == 'report/online_exam_progress/subjectwise_filter')
                                                 echo 'nav-active'; ?>">
                                                 <a
-                                                    href="<?=base_url('report/online_exam_progress_subjectwise') ?>"><?= translate('progress_tracker') ?></a>
+                                                    href="<?= base_url('report/online_exam_progress_subjectwise') ?>"><?= translate('progress_tracker') ?></a>
                                             </li>
-                                            
+
                                         </ul>
                                     </li>
                                 <?php } ?>
