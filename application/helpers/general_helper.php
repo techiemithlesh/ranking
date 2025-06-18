@@ -629,9 +629,6 @@ if (!function_exists("sendWhatsAppMsg")) {
         }
     }
 
-
-    
-
 }
 
 // 3.0 STARTED
@@ -656,10 +653,32 @@ function get_classes_by_user()
         $ci->db->or_where('c.created_by_branch', $branch_id);
         $ci->db->group_by('c.id');
         $ci->db->order_by('c.name', 'ASC');
-        
+
         return $ci->db->get()->result_array();
     }
+
 }
 
+
+if (!function_exists('get_name_by_id')) {
+    function get_name_by_id($table, $id, $field = 'name')
+    {
+        $CI = &get_instance();
+
+        if (empty($id)) {
+            return '';
+        }
+
+        $CI->db->select($field);
+        $CI->db->where('id', $id);
+        $query = $CI->db->get($table);
+
+        if ($query->num_rows() > 0) {
+            return $query->row()->$field;
+        } else {
+            return '';
+        }
+    }
+}
 
 

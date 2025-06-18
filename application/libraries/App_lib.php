@@ -637,4 +637,35 @@ class App_lib
         return $output;
     }
 
+    public function getSelectClassList()
+    {
+        $CI = &get_instance();
+        $output = array();
+
+        if (is_superadmin_loggedin()) {
+            $CI->db->select('c.id, c.name');
+            $CI->db->from('class c');
+            $CI->db->order_by('c.name', 'ASC');
+            $result = $CI->db->get()->result_array();
+        } else {
+            $branch_id = get_loggedin_branch_id();
+
+            $CI->db->select('c.id, c.name');
+            $CI->db->from('class c');
+            $CI->db->join('class_branch_map cbm', 'cbm.class_id = c.id', 'left');
+            $CI->db->where('cbm.branch_id', $branch_id);
+            $CI->db->or_where('c.created_by_branch', $branch_id);
+            $CI->db->group_by('c.id');
+            $CI->db->order_by('c.name', 'ASC');
+            $result = $CI->db->get()->result_array();
+        }
+
+        foreach ($result as $row) {
+            $output[$row['id']] = $row['name'];
+        }
+
+        return $output;
+    }
+
+
 }

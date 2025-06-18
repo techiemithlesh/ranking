@@ -49,50 +49,83 @@ class Sections extends Admin_Controller
             if (is_superadmin_loggedin()) {
                 $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
             }
+
+            $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
             $this->form_validation->set_rules('name', translate('name'), 'trim|required|callback_unique_name');
             $this->form_validation->set_rules('capacity', translate('capacity'), 'trim|numeric');
+
             if ($this->form_validation->run() !== false) {
+
+                // Determine branch_id
+                if (is_superadmin_loggedin()) {
+                    $branch_id = $this->input->post('branch_id');
+                } else {
+                    $branch_id = get_loggedin_branch_id();
+                }
+
+                // Build data array
                 $arraySection = array(
+                    'class_id' => $this->input->post('class_id'),
                     'name' => $this->input->post('name'),
                     'capacity' => $this->input->post('capacity'),
-                    'branch_id' => $this->application_model->get_branch_id(),
+                    'branch_id' => $branch_id
                 );
+
                 $sectionID = $this->input->post('section_id');
+
                 if (empty($sectionID)) {
+                    // INSERT
                     if (get_permission('section', 'is_add')) {
                         $this->db->insert('section', $arraySection);
                     }
                     set_alert('success', translate('information_has_been_saved_successfully'));
+
                 } else {
+                    // UPDATE
                     if (get_permission('section', 'is_edit')) {
+
                         if (!is_superadmin_loggedin()) {
                             $this->db->where('branch_id', get_loggedin_branch_id());
                         }
+
                         $this->db->where('id', $sectionID);
                         $this->db->update('section', $arraySection);
                     }
                     set_alert('success', translate('information_has_been_updated_successfully'));
                 }
+
                 $url = base_url('sections');
                 $array = array('status' => 'success', 'url' => $url, 'error' => '');
+
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'url' => '', 'error' => $error);
             }
+
             echo json_encode($array);
         }
     }
 
-    // validate here, if the check sectio name
+
+    // validate here, if the check section name
     public function unique_name($name)
     {
         $branchID = $this->application_model->get_branch_id();
+        $classID = $this->input->post('class_id');
         $sectionID = $this->input->post('section_id');
+
         if (!empty($sectionID)) {
             $this->db->where_not_in('id', $sectionID);
         }
-        $this->db->where(array('name' => $name, 'branch_id' => $branchID));
+
+        $this->db->where(array(
+            'name' => $name,
+            'class_id' => $classID,
+            'branch_id' => $branchID
+        ));
+
         $uniform_row = $this->db->get('section')->num_rows();
+
         if ($uniform_row == 0) {
             return true;
         } else {
@@ -100,6 +133,7 @@ class Sections extends Admin_Controller
             return false;
         }
     }
+
 
     public function delete($id = '')
     {

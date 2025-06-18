@@ -38,7 +38,7 @@
 										<label class="control-label"><?= translate('class') ?> <span
 												class="required">*</span></label>
 										<?php
-										$arrayClass = $this->app_lib->getSelectList('class');
+										$arrayClass = $this->app_lib->getSelectClassList();
 										echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' data-width='100%'
 											data-plugin-selectTwo");
 										?>
@@ -85,6 +85,7 @@
 											<tr>
 												<th>#</th>
 												<th><?= translate('branch') ?></th>
+												<th><?=translate('class') ?></th>
 												<th><?= translate('section_name') ?></th>
 												<th><?= translate('capacity ') ?></th>
 												<th><?= translate('action') ?></th>
@@ -99,6 +100,7 @@
 													<tr>
 														<td><?php echo $count++; ?></td>
 														<td><?php echo $row['branch_name']; ?></td>
+														<td><?php echo get_name_by_id('class', $row['class_id'], 'name'); ?></td>
 														<td><?php echo $row['name']; ?></td>
 														<td><?php echo $row['capacity']; ?></td>
 														<td>
