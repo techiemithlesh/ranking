@@ -13,7 +13,7 @@
 		<div class="tab-content">
 			<div class="tab-pane active">
 				<div class="row">
-					<?php if (is_superadmin_loggedin()): ?>
+					<?php if (get_permission('classes', 'is_add')): ?>
 						<div class="col-md-5 pr-xs">
 							<section class="panel panel-custom">
 								<div class="panel-heading panel-heading-custom">
@@ -111,7 +111,7 @@
 
 <!-- EDIT MODAL CLASS -->
 
-<?php if (is_superadmin_loggedin()) {
+<?php if (get_permission('classes', 'is_edit')) {
 	?>
 	<div class="zoom-anim-dialog modal-block modal-block-primary mfp-hide" id="modal">
 		<section class="panel">
@@ -125,7 +125,7 @@
 
 				<div class="form-group mb-md">
 					<label class="control-label"><?= translate('Name') ?> <span class="required">*</span></label>
-					<input type="text" class="form-control" value="" name="class_name" id="class_name">
+					<input type="text" class="form-control" value="" name="name" id="class_name">
 					<span class="error"></span>
 				</div>
 

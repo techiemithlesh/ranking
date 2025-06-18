@@ -598,12 +598,6 @@ if (!function_exists("sendWhatsAppMsg")) {
         }
     }
 
-    if (!function_exists('sendWhatsappMsgOfficial')) {
-        function sendWhatsappMsgOfficial($mobileNo, $message)
-        {
-
-        }
-    }
 
 
     if (!function_exists('is_new_design')) {
@@ -639,5 +633,31 @@ if (!function_exists("sendWhatsAppMsg")) {
     
 
 }
+
+// 3.0 STARTED
+
+function get_classes_by_user()
+{
+    $ci = &get_instance();
+
+    if (is_superadmin_loggedin()) {
+        $ci->db->select('id, name');
+        $ci->db->from('class');
+        $ci->db->order_by('name', 'ASC');
+        return $ci->db->get()->result_array();
+    } else {
+        $branch_id = get_loggedin_branch_id();
+        $ci->db->select('c.id, c.name');
+        $ci->db->from('class c');
+        $ci->db->join('class_branch_map cbm', 'cbm.class_id = c.id', 'left');
+        $ci->db->where('cbm.branch_id', $branch_id);
+        $ci->db->or_where('c.created_by_branch', $branch_id);
+        $ci->db->group_by('c.id');
+        $ci->db->order_by('c.name', 'ASC');
+        
+        return $ci->db->get()->result_array();
+    }
+}
+
 
 

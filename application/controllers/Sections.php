@@ -2,13 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : Ramom school management system
- * @version : 2.0
- * @developed by : RamomCoder
- * @support : ramomcoder@yahoo.com
- * @author url : http://codecanyon.net/user/RamomCoder
- * @filename : Accounting.php
- * @copyright : Reserved RamomCoders Team
+ * @package : Schoolexcel school management system
+ * @version : 3.0
+ * @developed by : Eduprojects Gloabal Tech Pvt Ltd. 
+ * @support : techie.mithlesh@gmail.com
+ * @author url : http://codewithmithlesh.com
+ * @filename : Section.php
+ * @copyright : Reserved SchoolExcel Team
  */
 
 class Sections extends Admin_Controller
@@ -24,7 +24,6 @@ class Sections extends Admin_Controller
         if (!get_permission('section', 'is_view')) {
             access_denied();
         }
-
         $this->data['sectionlist'] = $this->app_lib->getTable('section');
         $this->data['title'] = translate('section_control');
         $this->data['sub_page'] = 'sections/index';

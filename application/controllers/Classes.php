@@ -23,7 +23,7 @@ class Classes extends Admin_Controller
     /* class form validation rules */
     protected function class_validation($id = null)
     {
-        $this->form_validation->set_rules('class_name', translate('name'), [
+        $this->form_validation->set_rules('name', translate('name'), [
             'trim',
             'required',
             [
@@ -65,8 +65,16 @@ class Classes extends Admin_Controller
                     $arrayClass = array(
                         'name' => $this->input->post('name')
                     );
+
+                    if (is_superadmin_loggedin()) {
+                        $arrayClass['created_by_branch'] = NULL;
+                    } else {
+                        $arrayClass['created_by_branch'] = get_loggedin_branch_id();
+                    }
+
                     $this->db->insert('class', $arrayClass);
                     $class_id = $this->db->insert_id();
+
                     if ($class_id) {
                         set_alert('success', translate('information_has_been_saved_successfully'));
                         $url = base_url('classes');
@@ -80,7 +88,10 @@ class Classes extends Admin_Controller
                 exit();
             }
         }
-        $this->data['classlist'] = $this->app_lib->getTable('class');
+
+        $this->data['classlist'] = get_classes_by_user();
+        // printVar($this->db->last_query());
+        // die;
         $this->data['query_classes'] = $this->db->get('class');
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/index';
@@ -107,9 +118,12 @@ class Classes extends Admin_Controller
 
             if ($this->form_validation->run() !== false) {
                 $arrayClass = array(
-                    'name' => $this->input->post('class_name')
+                    'name' => $this->input->post('name')
                 );
 
+                if (!is_superadmin_loggedin()) {
+                    $arrayClass['created_by_branch'] = get_loggedin_branch_id();
+                }
                 $this->db->where('id', $id);
                 $this->db->update('class', $arrayClass);
                 $url = base_url('classes');

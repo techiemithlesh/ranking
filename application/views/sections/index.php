@@ -35,6 +35,16 @@
 										</div>
 									<?php endif; ?>
 									<div class="form-group">
+										<label class="control-label"><?= translate('class') ?> <span
+												class="required">*</span></label>
+										<?php
+										$arrayClass = $this->app_lib->getSelectList('class');
+										echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' data-width='100%'
+											data-plugin-selectTwo");
+										?>
+										<span class="error"></span>
+									</div>
+									<div class="form-group">
 										<label class="control-label"><?= translate('name') ?><span
 												class="required">*</span></label>
 										<input type="text" class="form-control" name="name" value="" />
@@ -58,12 +68,11 @@
 							</section>
 						</div>
 					<?php endif; ?>
-					<div
-						class="col-md-<?php if (get_permission('section', 'is_add')) {
-							echo "7 pl-xs";
-						} else {
-							echo "12";
-						} ?>">
+					<div class="col-md-<?php if (get_permission('section', 'is_add')) {
+						echo "7 pl-xs";
+					} else {
+						echo "12";
+					} ?>">
 						<section class="panel panel-custom">
 							<header class="panel-heading panel-heading-custom">
 								<h4 class="panel-title"><i class="fas fa-list-ul"></i> <?= translate('section_list') ?>
@@ -126,10 +135,10 @@
 
 <script type="text/javascript">
 
-$(document).ready(function(){
-	$('.dataTable').dataTable({
-		"pagelenght": 10,
-	})
-});
+	$(document).ready(function () {
+		$('.dataTable').dataTable({
+			"pagelenght": 10,
+		})
+	});
 
 </script>
