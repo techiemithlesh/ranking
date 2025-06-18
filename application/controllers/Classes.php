@@ -90,7 +90,8 @@ class Classes extends Admin_Controller
         }
 
         $this->data['classlist'] = get_classes_by_user();
-
+        // printVar($this->data['classlist']);
+        // die;
         $this->data['query_classes'] = $this->db->get('class');
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/index';

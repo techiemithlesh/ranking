@@ -76,39 +76,56 @@
 											$count = 1;
 											if (count($classlist)) {
 												foreach ($classlist as $row):
+													$is_my_class = (is_superadmin_loggedin() || $row['class_creator'] == get_loggedin_branch_id());
 													?>
 													<tr>
-														<td><?php echo $count++; ?></td>
-														<?php if (is_superadmin_loggedin()) {
-															?>
-															<td><?php echo $row['branch_name']; ?></td>
-															<?php
-														}
-														?>
-														<td><?php echo $row['name']; ?></td>
+														<td><?= $count++; ?></td>
+
+														<?php if (is_superadmin_loggedin()) { ?>
+															<td><?= $row['branch_name']; ?></td>
+														<?php } ?>
+
+														<td><?= $row['name']; ?></td>
+
 														<td>
-															<?php if (get_permission('classes', 'is_edit')): ?>
-																<!--update link-->
+															<?php if ($is_my_class && get_permission('classes', 'is_edit')): ?>
+																<!-- Active Edit button -->
 																<a href="javascript:void(0);"
 																	class="btn btn-default btn-circle icon"
 																	data-name="<?= $row['name'] ?>" data-id="<?= $row['id'] ?>"
 																	id="editBtn">
 																	<i class="fas fa-pen-nib"></i>
 																</a>
-															<?php endif;
-															if (get_permission('classes', 'is_delete')): ?>
-																<!--delete link-->
-																<?php echo btn_delete('classes/delete/' . $row['id']); ?>
+															<?php elseif (!$is_my_class): ?>
+																<!-- Disabled Edit button with tooltip -->
+																<a href="javascript:void(0);"
+																	class="btn btn-default btn-circle icon disabled"
+																	data-toggle="tooltip" title="Cannot edit global class">
+																	<i class="fas fa-pen-nib"></i>
+																</a>
+															<?php endif; ?>
+
+															<?php if ($is_my_class && get_permission('classes', 'is_delete')): ?>
+																<!-- Active Delete button -->
+																<?= btn_delete('classes/delete/' . $row['id']); ?>
+															<?php elseif (!$is_my_class): ?>
+																<!-- Disabled Delete button with tooltip -->
+																<a href="javascript:void(0);"
+																	class="btn btn-default btn-circle icon disabled"
+																	data-toggle="tooltip" title="Cannot delete global class">
+																	<i class="fas fa-trash-alt"></i>
+																</a>
 															<?php endif; ?>
 														</td>
 													</tr>
 													<?php
 												endforeach;
 											} else {
-												echo '<tr><td colspan="6"><h5 class="text-danger text-center">' . translate('no_information_available') . '</td></tr>';
+												echo '<tr><td colspan="6"><h5 class="text-danger text-center">' . translate('no_information_available') . '</h5></td></tr>';
 											}
 											?>
 										</tbody>
+
 									</table>
 								</div>
 							</div>
@@ -166,6 +183,8 @@
 		$('.dataTable').dataTable({
 			"pagelenght": 10,
 		});
+
+		$('[data-toggle="tooltip"]').tooltip();
 
 	})
 
