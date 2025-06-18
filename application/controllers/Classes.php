@@ -90,7 +90,7 @@ class Classes extends Admin_Controller
         }
 
         $this->data['classlist'] = get_classes_by_user();
-        // printVar($this->db->last_query());
+        // printVar($this->data['classlist']);
         // die;
         $this->data['query_classes'] = $this->db->get('class');
         $this->data['title'] = translate('control_classes');
@@ -271,4 +271,13 @@ class Classes extends Admin_Controller
             }
         }
     }
+
+    public function classAssign(){
+
+        $this->data['title'] = translate('assign_branch_class');
+        $this->data['sub_page'] = 'classes/class_allocation';
+        $this->data['main_menu'] = 'classes';
+        $this->load->view('layout/index', $this->data);
+    }
+
 }

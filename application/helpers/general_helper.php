@@ -641,9 +641,11 @@ function get_classes_by_user()
     $ci = &get_instance();
 
     if (is_superadmin_loggedin()) {
-        $ci->db->select('id, name');
-        $ci->db->from('class');
+        $ci->db->select('c.id, c.name, b.name as branch_name');
+        $ci->db->from('class c');
+        $ci->db->join('branch b', 'b.id = c.created_by_branch', 'left');
         $ci->db->order_by('name', 'ASC');
+
         return $ci->db->get()->result_array();
     } else {
         $branch_id = get_loggedin_branch_id();

@@ -61,12 +61,6 @@
 										<thead>
 											<tr>
 												<th>#</th>
-												<?php if (is_superadmin_loggedin()) {
-													?>
-													<th><?= translate('branch_name') ?></th>
-													<?php
-												}
-												?>
 												<th><?= translate('class_name') ?></th>
 												<th><?= translate('action') ?></th>
 											</tr>
@@ -79,13 +73,8 @@
 													?>
 													<tr>
 														<td><?php echo $count++; ?></td>
-														<?php if (is_superadmin_loggedin()) {
-															?>
-															<td><?php echo $row['branch_name']; ?></td>
-															<?php
-														}
-														?>
 														<td><?php echo $row['name']; ?></td>
+
 														<td>
 															<?php if (get_permission('classes', 'is_edit')): ?>
 																<!--update link-->
