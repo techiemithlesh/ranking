@@ -114,16 +114,42 @@ class Ajax extends MY_Controller
         echo $html;
     }
 
+    // public function getClassByBranch()
+    // {
+    //     $html = "";
+    //     $branch_id = $this->application_model->get_branch_id();
+    //     if (!empty($branch_id)) {
+    //         $classes = $this->db->select('id,name')->where('branch_id', $branch_id)->get('class')->result_array();
+    //         if (count($classes)) {
+    //             $html .= "<option value=''>" . translate('select') . "</option>";
+    //             foreach ($classes as $row) {
+    //                 $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
+    //             }
+    //         } else {
+    //             $html .= '<option value="">' . translate('no_information_available') . '</option>';
+    //         }
+    //     } else {
+    //         $html .= '<option value="">' . translate('select_branch_first') . '</option>';
+    //     }
+    //     echo $html;
+    // }
+
     public function getClassByBranch()
     {
+        $branch_id = $this->input->post('branch_id', true);
         $html = "";
-        $branch_id = $this->application_model->get_branch_id();
+
         if (!empty($branch_id)) {
-            $classes = $this->db->select('id,name')->where('branch_id', $branch_id)->get('class')->result_array();
+            $classes = $this->app_lib->getSelectClassByBranch($branch_id);
+
+            // Select option first
+            $html .= "<option value=''>" . translate('select') . "</option>";
+
             if (count($classes)) {
-                $html .= "<option value=''>" . translate('select') . "</option>";
-                foreach ($classes as $row) {
-                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
+                foreach ($classes as $key => $value) {
+                    if ($key != '') {
+                        $html .= '<option value="' . $key . '">' . htmlspecialchars($value) . '</option>';
+                    }
                 }
             } else {
                 $html .= '<option value="">' . translate('no_information_available') . '</option>';
@@ -131,8 +157,10 @@ class Ajax extends MY_Controller
         } else {
             $html .= '<option value="">' . translate('select_branch_first') . '</option>';
         }
+
         echo $html;
     }
+
 
     public function getStudentByClass()
     {
@@ -209,42 +237,62 @@ class Ajax extends MY_Controller
     //     echo $html;
     // }
 
+    // public function getSectionByClass()
+    // {
+    //     $html = "";
+    //     $classID = $this->input->post("class_id");
+    //     $mode = $this->input->post("all");
+    //     $multi = $this->input->post("multi");
+    //     if (!empty($classID)) {
+    //         if (loggedin_role_id() == 3) {
+    //             $result = $this->db->select('teacher_allocation.section_id,section.name')
+    //                 ->from('teacher_allocation')
+    //                 ->join('section', 'section.id = teacher_allocation.section_id', 'left')
+    //                 ->where(array('teacher_allocation.class_id' => $classID, 'teacher_allocation.teacher_id' => get_loggedin_user_id(), 'teacher_allocation.session_id' => get_session_id()))
+    //                 ->get()->result_array();
+    //         } else {
+    //             $result = $this->db->select('sections_allocation.section_id,section.name')
+    //                 ->from('sections_allocation')
+    //                 ->join('section', 'section.id = sections_allocation.section_id', 'left')
+    //                 ->where('sections_allocation.class_id', $classID)
+    //                 ->get()->result_array();
+    //         }
+    //         if (count($result)) {
+    //             if ($multi == false) {
+    //                 $html .= '<option value="">' . translate('select') . '</option>';
+    //             }
+    //             if ($mode == true && loggedin_role_id() != 3) {
+    //                 $html .= '<option value="all">' . translate('all_sections') . '</option>';
+    //             }
+    //             foreach ($result as $row) {
+    //                 $html .= '<option value="' . $row['section_id'] . '">' . $row['name'] . '</option>';
+    //             }
+    //         } else {
+    //             $html .= '<option value="">' . translate('no_selection_available') . '</option>';
+    //         }
+    //     } else {
+    //         $html .= '<option value="">' . translate('select_class_first') . '</option>';
+    //     }
+    //     echo $html;
+    // }
+
     public function getSectionByClass()
     {
         $html = "";
         $classID = $this->input->post("class_id");
         $mode = $this->input->post("all");
         $multi = $this->input->post("multi");
+
         if (!empty($classID)) {
-            if (loggedin_role_id() == 3) {
-                $result = $this->db->select('teacher_allocation.section_id,section.name')
-                    ->from('teacher_allocation')
-                    ->join('section', 'section.id = teacher_allocation.section_id', 'left')
-                    ->where(array('teacher_allocation.class_id' => $classID, 'teacher_allocation.teacher_id' => get_loggedin_user_id(), 'teacher_allocation.session_id' => get_session_id()))
-                    ->get()->result_array();
-            } else {
-                $result = $this->db->select('sections_allocation.section_id,section.name')
-                    ->from('sections_allocation')
-                    ->join('section', 'section.id = sections_allocation.section_id', 'left')
-                    ->where('sections_allocation.class_id', $classID)
-                    ->get()->result_array();
-            }
-            if (count($result)) {
-                if ($multi == false) {
-                    $html .= '<option value="">' . translate('select') . '</option>';
-                }
-                if ($mode == true && loggedin_role_id() != 3) {
-                    $html .= '<option value="all">' . translate('all_sections') . '</option>';
-                }
-                foreach ($result as $row) {
-                    $html .= '<option value="' . $row['section_id'] . '">' . $row['name'] . '</option>';
-                }
-            } else {
-                $html .= '<option value="">' . translate('no_selection_available') . '</option>';
+            $sections = $this->app_lib->getSectionsByClass($classID, $mode, $multi);
+
+            foreach ($sections as $key => $value) {
+                $html .= '<option value="' . $key . '">' . htmlspecialchars($value) . '</option>';
             }
         } else {
             $html .= '<option value="">' . translate('select_class_first') . '</option>';
         }
+
         echo $html;
     }
 

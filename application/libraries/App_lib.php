@@ -205,6 +205,47 @@ class App_lib
         return $array;
     }
 
+
+    // NEW FOR 3.0 CHANGES
+    public function getSelectClassByBranch($branch_id = '')
+    {
+        $CI = &get_instance();
+
+        if (empty($branch_id)) {
+            return array('' => translate('select_branch_first'));
+        }
+
+        $array = array('' => translate('select'));
+
+        if (loggedin_role_id() == 3) {
+            // Teacher role
+            $CI->db->select('class.id, class.name');
+            $CI->db->from('teacher_allocation');
+            $CI->db->join('class', 'class.id = teacher_allocation.class_id', 'left');
+            $CI->db->where('teacher_allocation.teacher_id', get_loggedin_user_id());
+            $CI->db->where('teacher_allocation.session_id', get_session_id());
+            $result = $CI->db->get()->result();
+        } else {
+            // Admin/staff — hybrid logic (assigned + created)
+            $CI->db->select('c.id, c.name');
+            $CI->db->from('class c');
+            $CI->db->join('class_branch_map cbm', 'cbm.class_id = c.id', 'left');
+            $CI->db->where('cbm.branch_id', $branch_id);
+            $CI->db->or_where('c.created_by_branch', $branch_id);
+            $CI->db->group_by('c.id');
+            $CI->db->order_by('c.name', 'ASC');
+            $result = $CI->db->get()->result();
+        }
+
+        foreach ($result as $row) {
+            $array[$row->id] = $row->name;
+        }
+
+        return $array;
+    }
+
+
+
     public function getStudentCategory($branch_id = '')
     {
         if (empty($branch_id)) {
@@ -262,6 +303,53 @@ class App_lib
                 $array[$row->section_id] = get_type_name_by_id('section', $row->section_id);
             }
         }
+        return $array;
+    }
+
+    // NEW FOR 3.0
+    public function getSectionsByClass($class_id = '', $all = false, $multi = false)
+    {
+        $CI = &get_instance();
+
+        if (empty($class_id)) {
+            $array = array('' => translate('select_class_first'));
+        } else {
+            if (loggedin_role_id() == 3) {
+                // Teacher role
+                $result = $CI->db->select('teacher_allocation.section_id, section.name')
+                    ->from('teacher_allocation')
+                    ->join('section', 'section.id = teacher_allocation.section_id', 'left')
+                    ->where(array(
+                        'teacher_allocation.class_id' => $class_id,
+                        'teacher_allocation.teacher_id' => get_loggedin_user_id(),
+                        'teacher_allocation.session_id' => get_session_id()
+                    ))
+                    ->get()->result();
+            } else {
+                // Admin/staff — use Section table (new model)
+                $CI->db->select('id, name');
+                $CI->db->where('class_id', $class_id);
+                $CI->db->order_by('name', 'ASC');
+                $result = $CI->db->get('section')->result();
+            }
+
+            if ($multi == false) {
+                $array = array('' => translate('select'));
+            }
+
+            if ($all == true && loggedin_role_id() != 3) {
+                $array['all'] = translate('all_sections');
+            }
+
+            foreach ($result as $row) {
+                if (loggedin_role_id() == 3) {
+                    $array[$row->section_id] = $row->name;
+                } else {
+                    $array[$row->id] = $row->name;
+                }
+            }
+        }
+
         return $array;
     }
 
@@ -649,7 +737,6 @@ class App_lib
             $result = $CI->db->get()->result_array();
         } else {
             $branch_id = get_loggedin_branch_id();
-
             $CI->db->select('c.id, c.name');
             $CI->db->from('class c');
             $CI->db->join('class_branch_map cbm', 'cbm.class_id = c.id', 'left');
