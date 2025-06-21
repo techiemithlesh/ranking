@@ -26,14 +26,10 @@ class Teacher_Books extends Admin_Controller
     {
 
         $user = $this->session->userdata();
-
         $this->data['booklists'] = $this->teacherBooks_model->getTeacherBookList();
-        // get_loggedin_user_id();
-        // printVar($user);
-        // die;
         $this->data['title'] = translate('Teacher_materials');
         $this->data['sub_page'] = 'teacherbooks/index';
-        $this->data['main_menu'] = 'Teachers_book';
+        $this->data['main_menu'] = 'Teacher_materials';
         $this->data['headerelements'] = array(
             'css' => array(
                 'vendor/dropify/css/dropify.min.css',
