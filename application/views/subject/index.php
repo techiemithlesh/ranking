@@ -31,24 +31,31 @@
 							?>
 							<tr>
 								<td><?php echo $count++; ?></td>
-								<td><?php echo $row['branch_name']; ?></td>
+								<td><?php echo ($row['created_by_branch'] == NULL) ? 'Global' : get_type_name_by_id('branch', $row['created_by_branch']); ?>
+								</td>
 								<td><?php echo $row['name']; ?></td>
 								<td><?php echo $row['subject_code']; ?></td>
 								<td><?php echo $row['subject_type']; ?></td>
 								<td><?php echo $row['subject_author']; ?></td>
 								<td>
-									<?php if (get_permission('subject', 'is_edit')): ?>
-										<!-- subject update link -->
-										<a href="<?php echo base_url('subject/edit/' . $row['id']); ?>"
-											class="btn btn-circle btn-default icon">
-											<i class="fas fa-pen-nib"></i>
-										</a>
-									<?php endif;
-									if (get_permission('subject', 'is_delete')): ?>
-										<!-- delete link -->
-										<?php echo btn_delete('subject/delete/' . $row['id']); ?>
-									<?php endif; ?>
+									<?php
+									$is_global = ($row['created_by_branch'] == NULL);
+									if (get_permission('subject', 'is_edit')):
+										if (!$is_global || is_superadmin_loggedin()): ?>
+											<a href="<?php echo base_url('subject/edit/' . $row['id']); ?>"
+												class="btn btn-circle btn-default icon"
+												title="<?= !$is_global ? translate('edit') : (is_superadmin_loggedin() ? translate('edit') : translate('cannot_edit_global')) ?>"
+												<?= ($is_global && !is_superadmin_loggedin()) ? 'disabled style="pointer-events: none; opacity: 0.6;"' : '' ?>>
+												<i class="fas fa-pen-nib"></i>
+											</a>
+										<?php endif; endif;
+
+									if (get_permission('subject', 'is_delete')):
+										if (!$is_global || is_superadmin_loggedin()): ?>
+											<?php echo btn_delete('subject/delete/' . $row['id']); ?>
+										<?php endif; endif; ?>
 								</td>
+
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
@@ -57,20 +64,6 @@
 			<?php if (get_permission('subject', 'is_add')): ?>
 				<div class="tab-pane" id="create">
 					<?php echo form_open('subject/save', array('class' => 'form-horizontal form-bordered frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
-						<div class="form-group">
-							<label class="control-label col-md-3"><?= translate('branch') ?> <span
-									class="required">*</span></label>
-							<div class="col-md-6">
-								<?php
-								$arrayBranch = $this->app_lib->getSelectList('branch');
-								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' data-width='100%'
-									data-plugin-selectTwo  data-placeHolder='Search Branch'");
-								?>
-								<span class="error"></span>
-							</div>
-						</div>
-					<?php endif; ?>
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?= translate('subject_name') ?> <span
 								class="required">*</span></label>

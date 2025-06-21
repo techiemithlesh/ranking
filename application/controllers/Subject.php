@@ -25,7 +25,7 @@ class Subject extends Admin_Controller
         if (!get_permission('subject', 'is_view')) {
             access_denied();
         }
-        $this->data['subjectlist'] = $this->app_lib->getTable('subject');
+        $this->data['subjectlist'] = $this->app_lib->getTableHybrid('subject');
         $this->data['title'] = translate('subject');
         $this->data['sub_page'] = 'subject/index';
         $this->data['main_menu'] = 'subject';
@@ -39,7 +39,13 @@ class Subject extends Admin_Controller
             access_denied();
         }
 
-        $this->data['subject'] = $this->app_lib->getTable('subject', array('t.id' => $id), true);
+        $this->data['subject'] = $this->app_lib->getTableHybrid('subject', array('t.id' => $id), true);
+
+        // If subject not found (invalid id), show 404
+        if (empty($this->data['subject'])) {
+            show_404();
+        }
+
         $this->data['title'] = translate('subject');
         $this->data['sub_page'] = 'subject/edit';
         $this->data['main_menu'] = 'subject';
@@ -50,45 +56,59 @@ class Subject extends Admin_Controller
     public function save()
     {
         if ($_POST) {
-            if (is_superadmin_loggedin()) {
-                $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-            }
             $this->form_validation->set_rules('name', translate('subject_name'), 'trim|required');
             $this->form_validation->set_rules('subject_code', translate('subject_code'), 'trim|required');
             $this->form_validation->set_rules('subject_type', translate('subject_type'), 'trim|required');
+
             if ($this->form_validation->run() !== false) {
+
+                $subjectID = $this->input->post('subject_id');
+
+                // Build common subject data
                 $arraySubject = array(
                     'name' => $this->input->post('name'),
                     'subject_code' => $this->input->post('subject_code'),
                     'subject_type' => $this->input->post('subject_type'),
-                    'subject_author' => $this->input->post('subject_author'),
-                    'branch_id' => $this->application_model->get_branch_id(),
+                    'subject_author' => $this->input->post('subject_author')
                 );
-                $subjectID = $this->input->post('subject_id');
+
                 if (empty($subjectID)) {
+                    // Insert
                     if (get_permission('subject', 'is_add')) {
+                        $arraySubject['created_by_branch'] = is_superadmin_loggedin() ? NULL : get_loggedin_branch_id();
+                        $arraySubject['created_at'] = date('Y-m-d H:i:s');
                         $this->db->insert('subject', $arraySubject);
+                        set_alert('success', translate('information_has_been_saved_successfully'));
                     }
-                    set_alert('success', translate('information_has_been_saved_successfully'));
                 } else {
+                    // Update
                     if (get_permission('subject', 'is_edit')) {
+
                         if (!is_superadmin_loggedin()) {
-                            $this->db->where('branch_id', get_loggedin_branch_id());
+                            // Branch admin → can only update their own subject
+                            $this->db->where('created_by_branch', get_loggedin_branch_id());
                         }
+
                         $this->db->where('id', $subjectID);
+                        // DO NOT update created_by_branch on edit!
                         $this->db->update('subject', $arraySubject);
+
+                        set_alert('success', translate('information_has_been_updated_successfully'));
                     }
-                    set_alert('success', translate('information_has_been_updated_successfully'));
                 }
+
                 $url = base_url('subject');
                 $array = array('status' => 'success', 'url' => $url);
+
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
             }
+
             echo json_encode($array);
         }
     }
+
 
     public function delete($id = '')
     {

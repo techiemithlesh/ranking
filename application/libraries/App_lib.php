@@ -75,6 +75,36 @@ class App_lib
         return $query->$method();
     }
 
+    public function getTableHybrid($table, $where = "", $single = FALSE)
+    {
+        if ($where != NULL) {
+            $this->CI->db->where($where);
+        }
+
+        if (!is_superadmin_loggedin()) {
+            $this->CI->db->where("(created_by_branch IS NULL OR created_by_branch = " . get_loggedin_branch_id() . ")");
+        }
+
+        if ($single == TRUE) {
+            $method = "row_array";
+        } else {
+            $this->CI->db->order_by("id", "asc");
+            $method = "result_array";
+        }
+
+        $this->CI->db->select("t.*, 
+        (CASE 
+            WHEN created_by_branch IS NULL THEN 'Global' 
+            ELSE (SELECT name FROM branch WHERE id = created_by_branch) 
+        END) AS branch_name");
+
+        $this->CI->db->from("$table as t");
+
+        $query = $this->CI->db->get();
+        return $query->$method();
+    }
+
+
     public function getSubjectsByBranch($branch_id)
     {
         $this->db->select("id, name");
