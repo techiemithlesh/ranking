@@ -142,27 +142,37 @@ class Classes extends Admin_Controller
     public function delete($id = '')
     {
         try {
-
             if (get_permission('classes', 'is_delete')) {
                 $this->db->trans_begin();
-                $this->db->where("class_id", $id)->delete("class_books");
 
+                // Delete from class_books
+                $this->db->where('class_id', $id);
+                $this->db->delete('class_books');
+
+                // Delete from sections_allocation
+                $this->db->where('class_id', $id);
+                $this->db->delete('sections_allocation');
+
+                // Delete from section (sections created for this class)
+                $this->db->where('class_id', $id);
+                $this->db->delete('section');
+
+                // Now delete the class itself
                 if (!is_superadmin_loggedin()) {
                     $this->db->where('branch_id', get_loggedin_branch_id());
                 }
                 $this->db->where('id', $id);
                 $this->db->delete('class');
-                if ($this->db->affected_rows() > 0) {
-                    $this->db->where('class_id', $id);
-                    $this->db->delete('sections_allocation');
-                }
+
+                // Check if all went well
                 if ($this->db->trans_status()) {
                     $this->db->trans_commit();
-                    responseMsg(true, "data Delete Successfully", "");
+                    responseMsg(true, "Class and related data deleted successfully", "");
                 } else {
                     $this->db->trans_rollback();
+                    responseMsg(false, "Data not deleted due to server error", $this->db->error());
                 }
-                responseMsg(false, "data Not Delete Due To Server Error", $this->db->error());
+
             } else {
                 responseMsg(false, "Access denied", null);
             }
@@ -170,6 +180,7 @@ class Classes extends Admin_Controller
             responseMsg(false, "Server Error!!!", null);
         }
     }
+
 
     // class teacher allocation
     public function teacher_allocation()
