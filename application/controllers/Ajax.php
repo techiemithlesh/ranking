@@ -49,13 +49,55 @@ class Ajax extends MY_Controller
     }
 
     // get class assign modal
+    // public function getClassAssignM()
+    // {
+    //     $classID = $this->input->post('class_id');
+    //     $sectionID = $this->input->post('section_id');
+    //     $branchID = get_type_name_by_id('class', $classID, 'branch_id');
+
+    //     $html = "";
+    //     $subjects = $this->db->get_where('subject', array('branch_id' => $branchID))->result_array();
+    //     if (count($subjects)) {
+    //         foreach ($subjects as $row) {
+    //             $query_assign = $this->db->get_where("subject_assign", array(
+    //                 'class_id' => $classID,
+    //                 'section_id' => $sectionID,
+    //                 'session_id' => get_session_id(),
+    //                 'subject_id' => $row['id'],
+    //             ));
+    //             $html .= '<option value="' . $row['id'] . '"' . ($query_assign->num_rows() != 0 ? 'selected' : '') . '>' . $row['name'] . '</option>';
+    //         }
+    //     }
+    //     $data['branch_id'] = $branchID;
+    //     $data['class_id'] = $classID;
+    //     $data['section_id'] = $sectionID;
+    //     $data['subject'] = $html;
+    //     echo json_encode($data);
+    // }
+
+
     public function getClassAssignM()
     {
         $classID = $this->input->post('class_id');
         $sectionID = $this->input->post('section_id');
-        $branchID = get_type_name_by_id('class', $classID, 'branch_id');
+
+        // get branch_id from class_branch_map
+        $branchID = $this->db->select('branch_id')
+            ->where('class_id', $classID)
+            ->get('class_branch_map')
+            ->row('branch_id');
+
         $html = "";
-        $subjects = $this->db->get_where('subject', array('branch_id' => $branchID))->result_array();
+
+        // Now fetch only mapped subjects from subject_branch_map
+        $subjects = $this->db->select('s.id, s.name')
+            ->from('subject s')
+            ->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner')
+            ->where('sbm.branch_id', $branchID)
+            ->order_by('s.name', 'ASC')
+            ->get()
+            ->result_array();
+
         if (count($subjects)) {
             foreach ($subjects as $row) {
                 $query_assign = $this->db->get_where("subject_assign", array(
@@ -64,15 +106,19 @@ class Ajax extends MY_Controller
                     'session_id' => get_session_id(),
                     'subject_id' => $row['id'],
                 ));
-                $html .= '<option value="' . $row['id'] . '"' . ($query_assign->num_rows() != 0 ? 'selected' : '') . '>' . $row['name'] . '</option>';
+
+                $html .= '<option value="' . $row['id'] . '"' . ($query_assign->num_rows() != 0 ? ' selected' : '') . '>' . $row['name'] . '</option>';
             }
         }
+
         $data['branch_id'] = $branchID;
         $data['class_id'] = $classID;
         $data['section_id'] = $sectionID;
         $data['subject'] = $html;
+
         echo json_encode($data);
     }
+
 
     public function getAdvanceSalaryDetails()
     {
@@ -113,6 +159,7 @@ class Ajax extends MY_Controller
         }
         echo $html;
     }
+
 
     // public function getClassByBranch()
     // {
@@ -492,16 +539,8 @@ class Ajax extends MY_Controller
         $class_id = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
         $exam_type = $this->input->post('exam_type');
-
-        // Debug inputs
-        // log_message('debug', 'Exam Type: ' . $exam_type);
-        // log_message('debug', 'Branch ID (from POST): ' . $branchID);
-        // log_message('debug', 'Class ID: ' . $class_id);
-
-        // If branch ID is empty, get the logged-in user's branch
         if (empty($branchID)) {
             $branchID = get_loggedin_branch_id();
-            // log_message('debug', 'Using default branch ID: ' . $branchID);
         }
 
         // Ensure branch ID is not empty
@@ -548,6 +587,36 @@ class Ajax extends MY_Controller
 
         echo $html;
     }
+
+    public function getSubjectByBranch()
+    {
+        $html = "";
+        $branch_id = $this->input->post('branch_id');
+
+        if (!empty($branch_id)) {
+            $result = $this->db->select('s.id, s.name')
+                ->from('subject s')
+                ->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner')
+                ->where('sbm.branch_id', $branch_id)
+                ->order_by('s.name', 'ASC')
+                ->get()
+                ->result_array();
+
+            if (count($result)) {
+                $html .= "<option value=''>" . translate('select') . "</option>";
+                foreach ($result as $row) {
+                    $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
+                }
+            } else {
+                $html .= '<option value="">' . translate('no_information_available') . '</option>';
+            }
+        } else {
+            $html .= '<option value="">' . translate('select_branch_first') . '</option>';
+        }
+
+        echo $html;
+    }
+
 
 
 }

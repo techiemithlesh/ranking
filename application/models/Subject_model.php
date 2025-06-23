@@ -122,4 +122,21 @@ class Subject_model extends MY_Model
         }
     }
 
+    public function subjectAllocationSave($branch_ids, $subject_ids)
+    {
+        foreach ($branch_ids as $branch_id) {
+            
+            $this->db->where('branch_id', $branch_id)->delete('subject_branch_map');
+            foreach ($subject_ids as $subject_id) {
+                $insert_data = [
+                    'subject_id' => $subject_id,
+                    'branch_id' => $branch_id,
+                    'assigned_at' => date('Y-m-d H:i:s')
+                ];
+                $this->db->insert('subject_branch_map', $insert_data);
+            }
+        }
+    }
+
+
 }

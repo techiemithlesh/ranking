@@ -148,7 +148,7 @@ class Subject extends Admin_Controller
                 $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
                 $this->form_validation->set_rules('subjects[]', translate('subject'), 'trim|required');
                 if ($this->form_validation->run() !== false) {
-                    $branchID = $this->application_model->get_branch_id();
+                    $branchID = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
                     $arraySubject = array(
                         'class_id' => $this->input->post('class_id'),
                         'section_id' => $this->input->post('section_id'),
@@ -344,4 +344,47 @@ class Subject extends Admin_Controller
         }
         echo $html;
     }
+
+
+    public function subjectBranchAssign()
+    {
+        if ($_POST) {
+            if (get_permission('subject', 'is_add')) {
+                $this->form_validation->set_rules('branch_id[]', translate('branch'), 'required');
+                $this->form_validation->set_rules('subject_assign[]', translate('subject'), 'required');
+
+                if ($this->form_validation->run() !== false) {
+                    $branch_ids = $this->input->post('branch_id', true);
+                    $subject_ids = $this->input->post('subject_assign', true);
+
+                    $this->load->model('subject_model');
+                    $this->subject_model->subjectAllocationSave($branch_ids, $subject_ids);
+
+                    set_alert('success', 'Subject assignment updated successfully.');
+                    $url = base_url('subject/subjectBranchAssign');
+                    $array = array('status' => 'success', 'url' => $url, 'error' => '');
+                } else {
+                    $error = $this->form_validation->error_array();
+                    $array = array('status' => 'fail', 'url' => '', 'error' => $error);
+                }
+                echo json_encode($array);
+                exit();
+            }
+        }
+
+        $this->data['global_subjects'] = $this->app_lib->getSelectSubjectGlobal();
+
+        $this->db->select('sbm.id, b.name AS branch_name, s.name AS subject_name');
+        $this->db->from('subject_branch_map sbm');
+        $this->db->join('branch b', 'b.id = sbm.branch_id', 'left');
+        $this->db->join('subject s', 's.id = sbm.subject_id', 'left');
+        $this->db->order_by('b.name ASC, s.name ASC');
+        $this->data['assigned_subject_list'] = $this->db->get()->result_array();
+
+        $this->data['title'] = translate('assign_branch_subject');
+        $this->data['sub_page'] = 'subject/branch_allocation';
+        $this->data['main_menu'] = 'subject';
+        $this->load->view('layout/index', $this->data);
+    }
+
 }

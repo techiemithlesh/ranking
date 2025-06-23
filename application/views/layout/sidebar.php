@@ -546,15 +546,13 @@
                                                     </a>
                                                 </li>
                                                 <?php if (is_superadmin_loggedin()) { ?>
-                                                    <li
-                                                        class="<?php if ($sub_page == 'classes/class_allocation')
-                                                            echo 'nav-active'; ?>">
+                                                    <li class="<?php if ($sub_page == 'classes/class_allocation')
+                                                        echo 'nav-active'; ?>">
                                                         <a href="<?= base_url('classes/classAssign') ?>">
                                                             <span><?= translate('assign_class_to_branch') ?></span>
                                                         </a>
                                                     </li>
                                                 <?php } ?>
-
                                             <?php } ?>
                                             <?php if (get_permission('assign_class_teacher', 'is_view')) { ?>
                                                 <li class="<?php if ($sub_page == 'classes/teacher_allocation')
@@ -589,6 +587,18 @@
                                                     </a>
                                                 </li>
                                             <?php }
+
+                                            if (is_superadmin_loggedin()) {
+                                                ?>
+                                                <li class="<?php if ($sub_page == 'subject/branch_allocation')
+                                                    echo 'nav-active'; ?>">
+                                                    <a href="<?= base_url('subject/subjectBranchAssign') ?>">
+                                                        <span><?= translate('Assign_branch') ?></span>
+                                                    </a>
+                                                </li>
+                                                <?php
+                                            }
+
                                             if (get_permission('subject_class_assign', 'is_view')) { ?>
                                                 <li class="<?php if ($sub_page == 'subject/class_assign')
                                                     echo 'nav-active'; ?>">

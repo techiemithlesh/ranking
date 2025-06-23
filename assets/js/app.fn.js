@@ -403,6 +403,7 @@ function getStudentCategory(id) {
 
 // get patient category details
 function getClassAssignM(class_id, section_id) {
+  console.table(class_id, section_id);
   $.ajax({
     url: base_url + "ajax/getClassAssignM",
     type: "POST",

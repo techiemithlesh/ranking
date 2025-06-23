@@ -114,6 +114,26 @@ class App_lib
         return $query->result_array();
     }
 
+    public function getSelectSubjectGlobal()
+    {
+        $this->CI->db->select('id, name');
+        $this->CI->db->from('subject');
+        $this->CI->db->where('created_by_branch IS NULL');
+        $this->CI->db->order_by('name', 'ASC');
+
+        $result = $this->CI->db->get()->result();
+
+        $array = array();
+        foreach ($result as $row) {
+            $array[$row->id] = $row->name;
+        }
+
+        return $array;
+    }
+
+
+
+
     public function check_branch_restrictions($table, $id = '')
     {
         if (empty($id)) {

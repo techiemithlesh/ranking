@@ -70,7 +70,7 @@
 									class="required">*</span></label>
 							<div class="col-md-6">
 								<?php
-								$arrayBranch = $this->app_lib->getSelectList('branch');
+								$arrayBranch = $this->app_lib->getSelectBranchGlobal('branch');
 								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id'
 									data-width='100%' data-plugin-selectTwo  data-placeHolder='Search Branch'");
 								?>
@@ -83,7 +83,7 @@
 								class="required">*</span></label>
 						<div class="col-md-6">
 							<?php
-							$arrayClass = $this->app_lib->getClass($branch_id);
+							$arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
 							echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -111,11 +111,19 @@
 								data-plugin-options='{"placeholder": "<?= translate('select_multiple_subject') ?>"}'>
 								<?php
 								if (!empty($branch_id)):
-									$subjects = $this->db->get_where('subject', array('branch_id' => $branch_id))->result();
+									// $subjects = $this->db->get_where('subject', array('branch_id' => $branch_id))->result();
+									$this->db->select('s.id, s.name');
+									$this->db->from('subject s');
+									$this->db->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner');
+									$this->db->where('sbm.branch_id', $branch_id);
+									$this->db->order_by('s.name', 'ASC');
+									$subjects = $this->db->get()->result();
+
 									foreach ($subjects as $subject):
 										?>
 										<option value="<?= $subject->id ?>" <?= set_select('subjects[]', $subject->id) ?>>
-											<?= html_escape($subject->name) ?></option>
+											<?= html_escape($subject->name) ?>
+										</option>
 									<?php endforeach; endif; ?>
 							</select>
 							<span class="error"></span>
@@ -147,13 +155,14 @@
 			</header>
 			<?php echo form_open('subject/class_assign_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
-				<input type="hidden" name="branch_id" id="ebranch_id" value="" />
+				<input type="hidden" name="branch_id" id="ebranch_id" value=""/>
 				<input type="hidden" name="class_id" id="eclass_id" value="" />
 				<input type="hidden" name="section_id" id="esection_id" value="" />
 				<div class="form-group mt-mb mb-lg">
 					<label class="control-label"><?= translate('subject') ?> <span class="required">*</span></label>
 					<select name="subjects[]" class="form-control" data-plugin-selectTwo multiple id='esubject_holder'
-						data-width="100%" data-plugin-options='{ "placeholder": "<?= translate('select_branch_first') ?>" }'>
+						data-width="100%"
+						data-plugin-options='{ "placeholder": "<?= translate('select_branch_first') ?>" }'>
 					</select>
 					<span class="error"></span>
 				</div>
@@ -181,10 +190,9 @@
 			getClassByBranch(branchID);
 
 			$.ajax({
-				url: "<?= base_url('ajax/getDataByBranch') ?>",
+				url: "<?= base_url('ajax/getSubjectByBranch') ?>",
 				type: 'POST',
 				data: {
-					table: 'subject',
 					branch_id: branchID
 				},
 				success: function (data) {
