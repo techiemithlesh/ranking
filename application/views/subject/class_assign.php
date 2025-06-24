@@ -114,8 +114,10 @@
 									// $subjects = $this->db->get_where('subject', array('branch_id' => $branch_id))->result();
 									$this->db->select('s.id, s.name');
 									$this->db->from('subject s');
-									$this->db->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner');
-									$this->db->where('sbm.branch_id', $branch_id);
+									$this->db->group_start();
+									$this->db->where('s.created_by_branch', $branch_id);
+									$this->db->or_where('s.id IN (SELECT subject_id FROM subject_branch_map WHERE branch_id = ' . $this->db->escape($branch_id) . ')');
+									$this->db->group_end();
 									$this->db->order_by('s.name', 'ASC');
 									$subjects = $this->db->get()->result();
 
@@ -155,7 +157,7 @@
 			</header>
 			<?php echo form_open('subject/class_assign_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
-				<input type="hidden" name="branch_id" id="ebranch_id" value=""/>
+				<input type="hidden" name="branch_id" id="ebranch_id" value="" />
 				<input type="hidden" name="class_id" id="eclass_id" value="" />
 				<input type="hidden" name="section_id" id="esection_id" value="" />
 				<div class="form-group mt-mb mb-lg">

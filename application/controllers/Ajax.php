@@ -88,7 +88,7 @@ class Ajax extends MY_Controller
             ->row('branch_id');
 
         $html = "";
-        
+
         // Now fetch only mapped subjects from subject_branch_map
         $subjects = $this->db->select('s.id, s.name')
             ->from('subject s')
@@ -98,7 +98,7 @@ class Ajax extends MY_Controller
             ->get()
             ->result_array();
 
-           
+
 
         if (count($subjects)) {
             foreach ($subjects as $row) {
@@ -598,8 +598,10 @@ class Ajax extends MY_Controller
         if (!empty($branch_id)) {
             $result = $this->db->select('s.id, s.name')
                 ->from('subject s')
-                ->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner')
-                ->where('sbm.branch_id', $branch_id)
+                ->group_start()
+                ->where('s.created_by_branch', $branch_id)
+                ->or_where('s.id IN (SELECT subject_id FROM subject_branch_map WHERE branch_id = ' . $this->db->escape($branch_id) . ')')
+                ->group_end()
                 ->order_by('s.name', 'ASC')
                 ->get()
                 ->result_array();
