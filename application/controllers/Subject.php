@@ -179,6 +179,8 @@ class Subject extends Admin_Controller
         }
     }
 
+
+
     // subject assign information edit
     public function class_assign_edit()
     {
@@ -258,50 +260,120 @@ class Subject extends Admin_Controller
     }
 
     // teacher assign view page
+    // public function teacher_assign()
+    // {
+    //     if (!get_permission('subject_teacher_assign', 'is_view')) {
+    //         access_denied();
+    //     }
+    //     if ($_POST) {
+    //         if (get_permission('subject_teacher_assign', 'is_add')) {
+    //             if (is_superadmin_loggedin()) {
+    //                 $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
+    //             }
+    //             $this->form_validation->set_rules('staff_id', translate('teacher'), 'trim|required');
+    //             $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
+    //             $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
+    //             $this->form_validation->set_rules('subject_id', translate('subject'), 'trim|required');
+    //             if ($this->form_validation->run() !== false) {
+    //                 $sessionID = get_session_id();
+    //                 $branchID = $this->application_model->get_branch_id();
+    //                 $classID = $this->input->post('class_id');
+    //                 $sectionID = $this->input->post('section_id');
+    //                 $subjectID = $this->input->post('subject_id');
+    //                 $teacherID = $this->input->post('staff_id');
+    //                 $query = $this->db->get_where("subject_assign", array(
+    //                     'class_id' => $classID,
+    //                     'section_id' => $sectionID,
+    //                     'subject_id' => $subjectID,
+    //                     'session_id' => $sessionID,
+    //                     'branch_id' => $branchID,
+    //                 ));
+    //                 if ($query->num_rows() != 0) {
+    //                     $this->db->where('id', $query->row()->id);
+    //                     $this->db->update('subject_assign', array('teacher_id' => $teacherID));
+    //                 }
+    //                 set_alert('success', translate('information_has_been_updated_successfully'));
+    //                 $url = base_url('subject/teacher_assign');
+    //                 $array = array('status' => 'success', 'url' => $url, 'error' => '');
+    //             } else {
+    //                 $error = $this->form_validation->error_array();
+    //                 $array = array('status' => 'fail', 'url' => '', 'error' => $error);
+    //             }
+    //             echo json_encode($array);
+    //             exit();
+    //         }
+    //     }
+
+    //     $this->data['branch_id'] = $this->application_model->get_branch_id();
+    //     $this->data['assignlist'] = $this->subject_model->getTeacherAssignList();
+    //     $this->data['title'] = translate('teacher_assign');
+    //     $this->data['sub_page'] = 'subject/teacher_assign';
+    //     $this->data['main_menu'] = 'subject';
+    //     $this->load->view('layout/index', $this->data);
+    // }
+
     public function teacher_assign()
     {
         if (!get_permission('subject_teacher_assign', 'is_view')) {
             access_denied();
         }
+
         if ($_POST) {
             if (get_permission('subject_teacher_assign', 'is_add')) {
                 if (is_superadmin_loggedin()) {
                     $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
                 }
+
                 $this->form_validation->set_rules('staff_id', translate('teacher'), 'trim|required');
                 $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
                 $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
                 $this->form_validation->set_rules('subject_id', translate('subject'), 'trim|required');
+
                 if ($this->form_validation->run() !== false) {
                     $sessionID = get_session_id();
-                    $branchID = $this->application_model->get_branch_id();
+                    $branchID = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
+
                     $classID = $this->input->post('class_id');
                     $sectionID = $this->input->post('section_id');
                     $subjectID = $this->input->post('subject_id');
                     $teacherID = $this->input->post('staff_id');
-                    $query = $this->db->get_where("subject_assign", array(
+
+                    // Build array for subject_assign table
+                    $arrayData = array(
+                        'branch_id' => $branchID,
                         'class_id' => $classID,
                         'section_id' => $sectionID,
                         'subject_id' => $subjectID,
-                        'session_id' => $sessionID,
-                        'branch_id' => $branchID,
-                    ));
-                    if ($query->num_rows() != 0) {
+                        'session_id' => $sessionID
+                    );
+
+                    // Check if subject already assigned to this class-section
+                    $query = $this->db->get_where("subject_assign", $arrayData);
+
+                    if ($query->num_rows() == 0) {
+                        // If not assigned, insert new row
+                        $arrayData['teacher_id'] = $teacherID;
+                        $this->db->insert('subject_assign', $arrayData);
+                    } else {
+                        // If already assigned, update teacher
                         $this->db->where('id', $query->row()->id);
                         $this->db->update('subject_assign', array('teacher_id' => $teacherID));
                     }
-                    set_alert('success', translate('information_has_been_updated_successfully'));
+
+                    set_alert('success', translate('information_has_been_saved_successfully'));
                     $url = base_url('subject/teacher_assign');
                     $array = array('status' => 'success', 'url' => $url, 'error' => '');
                 } else {
                     $error = $this->form_validation->error_array();
                     $array = array('status' => 'fail', 'url' => '', 'error' => $error);
                 }
+
                 echo json_encode($array);
                 exit();
             }
         }
 
+      
         $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['assignlist'] = $this->subject_model->getTeacherAssignList();
         $this->data['title'] = translate('teacher_assign');
@@ -309,6 +381,7 @@ class Subject extends Admin_Controller
         $this->data['main_menu'] = 'subject';
         $this->load->view('layout/index', $this->data);
     }
+
 
     // teacher assign information moderator
     public function teacher_assign_delete($id = '')

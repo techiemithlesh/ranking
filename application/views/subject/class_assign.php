@@ -188,7 +188,6 @@
 		$(document).on('change', '#branch_id', function () {
 			var branchID = $(this).val();
 			getClassByBranch(branchID);
-
 			$.ajax({
 				url: "<?= base_url('ajax/getSubjectByBranch') ?>",
 				type: 'POST',

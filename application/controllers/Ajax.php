@@ -88,7 +88,7 @@ class Ajax extends MY_Controller
             ->row('branch_id');
 
         $html = "";
-
+        
         // Now fetch only mapped subjects from subject_branch_map
         $subjects = $this->db->select('s.id, s.name')
             ->from('subject s')
@@ -97,6 +97,8 @@ class Ajax extends MY_Controller
             ->order_by('s.name', 'ASC')
             ->get()
             ->result_array();
+
+           
 
         if (count($subjects)) {
             foreach ($subjects as $row) {

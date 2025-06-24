@@ -61,7 +61,7 @@
 									class="required">*</span></label>
 							<div class="col-md-6">
 								<?php
-								$arrayBranch = $this->app_lib->getSelectList('branch');
+								$arrayBranch = $this->app_lib->getSelectBranchGlobal('branch');
 								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id'
 									data-width='100%' data-plugin-selectTwo  data-placeHolder='Search Branch'");
 								?>
