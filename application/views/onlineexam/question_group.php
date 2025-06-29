@@ -8,17 +8,6 @@
 				</header>
 				<?php echo form_open($this->uri->uri_string()); ?>
 				<div class="panel-body">
-					<?php if (is_superadmin_loggedin()): ?>
-						<div class="form-group">
-							<label class="control-label"><?= translate('branch') ?> <span class="required">*</span></label>
-							<?php
-							$arrayBranch = $this->app_lib->getSelectList('branch');
-							echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id'
-							data-plugin-selectTwo data-width='100%' data-placeHolder='Select Branch'");
-							?>
-							<span class="error"><?= form_error('branch_id') ?></span>
-						</div>
-					<?php endif; ?>
 					<div class="form-group mb-md">
 						<label class="control-label"><?php echo translate('group') . " " . translate('name'); ?> <span
 								class="required">*</span></label>
@@ -64,28 +53,30 @@
 							</thead>
 							<tbody>
 								<?php
-								if (!is_superadmin_loggedin()) {
-									$this->db->where('branch_id', get_loggedin_branch_id());
-								}
-								$categorylist = $this->db->get('question_group')->result();
+
 								if (!empty($categorylist)) {
 									foreach ($categorylist as $row):
 										?>
 										<tr>
-											<td><?php echo get_type_name_by_id('branch', $row->branch_id); ?></td>
-											<td><?php echo $row->name; ?></td>
-											<td><?php echo $row->id; ?></td>
+											<td><?= $row['branch_name'] ?></td>
+											<td><?= $row['name']; ?></td>
+											<td><?= $row['id']; ?></td>
 											<td class="action">
 												<?php if (get_permission('question_group', 'is_edit')): ?>
-													<!-- update link -->
-													<a class="btn btn-default btn-circle icon" href="javascript:void(0);"
-														onclick="getQuestionGroup('<?php echo $row->id; ?>')">
-														<i class="fas fa-pen-nib"></i>
-													</a>
-												<?php endif;
-												if (get_permission('question_group', 'is_delete')): ?>
-													<!-- delete link -->
-													<?php echo btn_delete('onlineexam/question_delete/' . $row->id); ?>
+													<?php if (!$is_global || is_superadmin_loggedin()): ?>
+														<a href="javascript:void(0);" onclick="getQuestionGroup('<?= $row['id']; ?>')"
+															class="btn btn-circle btn-default icon"
+															title="<?= !$is_global ? translate('edit') : (is_superadmin_loggedin() ? translate('edit') : translate('cannot_edit_global')) ?>"
+															<?= ($is_global && !is_superadmin_loggedin()) ? 'disabled style="pointer-events: none; opacity: 0.6;"' : '' ?>>
+															<i class="fas fa-pen-nib"></i>
+														</a>
+													<?php endif; ?>
+												<?php endif; ?>
+
+												<?php if (get_permission('question_group', 'is_delete')): ?>
+													<?php if (!$is_global || is_superadmin_loggedin()): ?>
+														<?= btn_delete('onlineexam/group_delete/' . $row['id']); ?>
+													<?php endif; ?>
 												<?php endif; ?>
 											</td>
 										</tr>
@@ -114,17 +105,6 @@
 			<?php echo form_open('onlineexam/group_edit', array('class' => 'frm-submit')); ?>
 			<div class="panel-body">
 				<input type="hidden" name="group_id" id="egroup_id" value="">
-				<?php if (is_superadmin_loggedin()): ?>
-					<div class="form-group">
-						<label class="control-label"><?= translate('branch') ?> <span class="required">*</span></label>
-						<?php
-						$arrayBranch = $this->app_lib->getSelectList('branch');
-						echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='ebranch_id'
-							data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
-						?>
-						<span class="error"></span>
-					</div>
-				<?php endif; ?>
 				<div class="form-group mb-md">
 					<label class="control-label"><?php echo translate('group') . " " . translate('name'); ?> <span
 							class="required">*</span></label>

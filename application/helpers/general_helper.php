@@ -625,7 +625,7 @@ if (!function_exists("sendWhatsAppMsg")) {
             ];
 
             echo json_encode($response);
-            exit; // Stop further execution after sending JSON response
+            exit;
         }
     }
 

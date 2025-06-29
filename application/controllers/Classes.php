@@ -242,10 +242,12 @@ class Classes extends Admin_Controller
     // validate here, if the check teacher allocated for this class
     public function unique_teacherID($teacher_id)
     {
+        
         if (!empty($teacher_id)) {
             $classID = $this->input->post('class_id');
             $sectionID = $this->input->post('section_id');
             $allocationID = $this->input->post('allocation_id');
+
             if (!empty($allocationID)) {
                 $this->db->where_not_in('id', $allocationID);
             }

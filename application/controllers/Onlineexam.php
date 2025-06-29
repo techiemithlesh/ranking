@@ -146,7 +146,7 @@ class Onlineexam extends Admin_Controller
                 $branchID = $this->application_model->get_branch_id();
                 //online exam save in DB
                 $this->onlineexam_model->saveExam($post, $branchID);
-                
+
                 set_alert('success', translate('information_has_been_saved_successfully'));
                 $array = array('status' => 'success');
             } else {
@@ -186,7 +186,7 @@ class Onlineexam extends Admin_Controller
         }
     }
 
-    public function question_list($id='')
+    public function question_list($id = '')
     {
         if (!get_permission('online_exam', 'is_view')) {
             access_denied();
@@ -202,7 +202,7 @@ class Onlineexam extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function remove_question($id='')
+    public function remove_question($id = '')
     {
         if (get_permission('online_exam', 'is_edit')) {
             $this->db->select('questions_manage.id');
@@ -237,7 +237,7 @@ class Onlineexam extends Admin_Controller
     public function getQuestionListDT()
     {
         if ($_POST) {
-            $postData = $this->input->post();  
+            $postData = $this->input->post();
             echo $this->onlineexam_model->questionListDT($postData);
         }
     }
@@ -446,20 +446,21 @@ class Onlineexam extends Admin_Controller
             if (!get_permission('question_group', 'is_add')) {
                 access_denied();
             }
-            if (is_superadmin_loggedin()) {
-                $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-            }
+
             $this->form_validation->set_rules('group_name', translate('group') . " " . translate('name'), 'trim|required|callback_unique_group');
             if ($this->form_validation->run() !== false) {
+                $branch_id = is_superadmin_loggedin() ? NULL : get_loggedin_branch_id();
+
                 $arrayData = array(
                     'name' => $this->input->post('group_name'),
-                    'branch_id' => $this->application_model->get_branch_id(),
+                    'created_by_branch' => $branch_id
                 );
                 $this->db->insert('question_group', $arrayData);
                 set_alert('success', translate('information_has_been_saved_successfully'));
                 redirect(base_url('onlineexam/question_group'));
             }
         }
+        $this->data['categorylist'] = $this->app_lib->getTableHybrid('question_group');
         $this->data['title'] = translate('question') . " " . translate('group');
         $this->data['sub_page'] = 'onlineexam/question_group';
         $this->data['main_menu'] = 'onlineexam';
@@ -467,23 +468,77 @@ class Onlineexam extends Admin_Controller
     }
 
     // update existing question group
+    // public function group_edit()
+    // {
+    //     if (!get_permission('question_group', 'is_edit')) {
+    //         ajax_access_denied();
+    //     }
+
+    //     $this->form_validation->set_rules('group_name', translate('group') . " " . translate('name'), 'trim|required|callback_unique_group');
+    //     if ($this->form_validation->run() !== false) {
+
+    //         $branch_id = is_superadmin_loggedin() ? NULL : get_loggedin_branch_id();
+
+    //         $category_id = $this->input->post('group_id');
+
+    //         $arrayData = array(
+    //             'name' => $this->input->post('group_name'),
+    //             'created_by_branch' => $branch_id,
+    //         );
+
+    //         if (!is_superadmin_loggedin()) {
+    //           $this->db->where('created_by_branch', get_loggedin_branch_id());Add commentMore actions
+    //                         // Branch admin → can only update their own group
+    //                         $this->db->where('created_by_branch', get_loggedin_branch_id())
+    //         }
+
+    //           $this->db->where('id', $category_id);
+    //             $this->db->update('question_group', $arrayData);
+
+    //         set_alert('success', translate('information_has_been_updated_successfully'));
+    //         $array = array('status' => 'success');
+    //     } else {
+    //         $error = $this->form_validation->error_array();
+    //         $array = array('status' => 'fail', 'error' => $error);
+    //     }
+    //     echo json_encode($array);
+    // }
+
+
     public function group_edit()
     {
         if (!get_permission('question_group', 'is_edit')) {
             ajax_access_denied();
         }
-        if (is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
+
         $this->form_validation->set_rules('group_name', translate('group') . " " . translate('name'), 'trim|required|callback_unique_group');
+
         if ($this->form_validation->run() !== false) {
             $category_id = $this->input->post('group_id');
+            $branch_id = is_superadmin_loggedin() ? NULL : get_loggedin_branch_id();
+
+            // Check permission: branch cannot edit global group
+            if (!is_superadmin_loggedin()) {
+                $this->db->where('id', $category_id);
+                $this->db->where('created_by_branch', get_loggedin_branch_id());
+                $existing = $this->db->get('question_group')->row();
+
+                if (!$existing) {
+                    // If no record found or belongs to global, deny
+                    ajax_access_denied();
+                }
+            }
+
+            // Prepare update data
             $arrayData = array(
                 'name' => $this->input->post('group_name'),
-                'branch_id' => $this->application_model->get_branch_id(),
+                'created_by_branch' => $branch_id,
             );
+
+            // Perform update
             $this->db->where('id', $category_id);
             $this->db->update('question_group', $arrayData);
+
             set_alert('success', translate('information_has_been_updated_successfully'));
             $array = array('status' => 'success');
         } else {
@@ -493,17 +548,48 @@ class Onlineexam extends Admin_Controller
         echo json_encode($array);
     }
 
+
     // delete question group from database
+
     public function group_delete($id)
     {
-        if (get_permission('question_group', 'is_delete')) {
-            if (!is_superadmin_loggedin()) {
-                $this->db->where('branch_id', get_loggedin_branch_id());
-            }
-            $this->db->where('id', $id);
-            $this->db->delete('question_group');
+        if (!get_permission('question_group', 'is_delete')) {
+            access_denied();
         }
+
+        $group = $this->db->where('id', $id)->get('question_group')->row();
+        if (!$group) {
+            set_alert('error', translate('group_not_found'));
+            redirect(base_url('onlineexam/question_group'));
+            return;
+        }
+
+        // If not superadmin, ensure branch user cannot delete global groups
+        if (!is_superadmin_loggedin()) {
+            if ($group->created_by_branch == NULL) {
+                set_alert('error', translate('cannot_delete_global_group'));
+                redirect(base_url('onlineexam/question_group'));
+                return;
+            }
+            if ($group->created_by_branch != get_loggedin_branch_id()) {
+                access_denied();
+            }
+        }
+
+        // Perform delete
+        $this->db->where('id', $id);
+        $this->db->delete('question_group');
+        if ($this->db->affected_rows() > 0) {
+            set_alert('success', translate('information_deleted_successfully'));
+        } else {
+            set_alert('error', translate('delete_failed_try_again'));
+        }
+
+        redirect(base_url('onlineexam/question_group'));
     }
+
+
+
 
     // question group details send by ajax
     public function groupDetails()
@@ -512,7 +598,7 @@ class Onlineexam extends Admin_Controller
             $id = $this->input->post('id');
             $this->db->where('id', $id);
             if (!is_superadmin_loggedin()) {
-                $this->db->where('branch_id', get_loggedin_branch_id());
+                $this->db->where('created_by_branch', get_loggedin_branch_id());
             }
             $query = $this->db->get('question_group');
             $result = $query->row_array();
@@ -521,15 +607,47 @@ class Onlineexam extends Admin_Controller
     }
 
     /* validate here, if the check unique group name */
+    // public function unique_group($name)
+    // {
+    //     $branchID = $this->application_model->get_branch_id();
+    //     $group_id = $this->input->post('group_id');
+    //     if (!empty($group_id)) {
+    //         $this->db->where_not_in('id', $group_id);
+    //     }
+    //     $this->db->where(array('name' => $name, 'branch_id' => $branchID));
+    //     $uniform_row = $this->db->get('question_group')->num_rows();
+    //     if ($uniform_row == 0) {
+    //         return true;
+    //     } else {
+    //         $this->form_validation->set_message("unique_group", translate('already_taken'));
+    //         return false;
+    //     }
+    // }
+
     public function unique_group($name)
     {
-        $branchID = $this->application_model->get_branch_id();
         $group_id = $this->input->post('group_id');
+
+        $this->db->where('name', $name);
+
         if (!empty($group_id)) {
-            $this->db->where_not_in('id', $group_id);
+            $this->db->where('id !=', $group_id);
         }
-        $this->db->where(array('name' => $name, 'branch_id' => $branchID));
+
+        // If logged in as branch admin, check within their branch + global groups to avoid duplicates
+        if (!is_superadmin_loggedin()) {
+            $branchID = get_loggedin_branch_id();
+            $this->db->group_start();
+            $this->db->where('created_by_branch', $branchID);
+            $this->db->or_where('created_by_branch IS NULL');
+            $this->db->group_end();
+        } else {
+            // Superadmin creating global group - ensure uniqueness in global only
+            $this->db->where('created_by_branch IS NULL');
+        }
+
         $uniform_row = $this->db->get('question_group')->num_rows();
+
         if ($uniform_row == 0) {
             return true;
         } else {
@@ -537,6 +655,7 @@ class Onlineexam extends Admin_Controller
             return false;
         }
     }
+
 
     public function exam_status()
     {
@@ -569,7 +688,7 @@ class Onlineexam extends Admin_Controller
                     $row['attempt'] = $onlineExam->limits_participation;
                     $row['passing_mark'] = $onlineExam->passing_mark . $percent;
                     $row['exam_fee'] = $exam_fee;
-                   /* $this->sms_model->sendOnlineExam($row);*/
+                    /* $this->sms_model->sendOnlineExam($row);*/
                     $this->email_model->onlineExamPublish($row);
                 }
             }
@@ -657,7 +776,7 @@ class Onlineexam extends Admin_Controller
                 $position_order = 1;
             }
             $this->data['result'] = $this->onlineexam_model->examReport($examID, $classID, $branchID, $position_order);
-         
+
         }
         $this->data['branch_id'] = $branchID;
         $this->data['title'] = translate('online_exam') . " " . translate('result');
@@ -705,7 +824,7 @@ class Onlineexam extends Admin_Controller
             if ($this->form_validation->run() == true) {
                 $examID = $this->input->post('exam_id');
                 foreach ($remark as $key => $value) {
-                    $array = array(); 
+                    $array = array();
                     if (!empty($value['position'])) {
                         $array['position'] = $value['position'];
                     }
