@@ -244,7 +244,7 @@ class Onlineexam_model extends MY_Model
     // questions save and update function
     public function saveQuestions()
     {
-        $branchID = $this->application_model->get_branch_id();
+        $branchId = is_superadmin_loggedin() ? NULL : get_loggedin_branch_id();
         $questionType = $this->input->post('question_type');
         if ($questionType == 2) {
             $answer = json_encode($this->input->post('answer'));
@@ -280,11 +280,9 @@ class Onlineexam_model extends MY_Model
         if (!empty($subjectID)) {
             $questionsExam['subject_id'] = $subjectID;
         }
-        if (!empty($branchID)) {
-            $questionsExam['branch_id'] = $branchID;
-        }
+        
         if (empty($questionID)) {
-            $questionsExam['created_by'] = get_loggedin_user_id();
+            $questionsExam['created_by_branch'] = $branchId;
             $this->db->insert('questions', $questionsExam);
         } else {
             $this->db->where('id', $questionID);
@@ -312,20 +310,40 @@ class Onlineexam_model extends MY_Model
         return $arrayLevel;
     }
 
-    public function question_group($branch_id = '')
+    // public function question_group($branch_id = '')
+    // {
+    //     if (empty($branch_id)) {
+    //         $array = array('' => translate('select_branch_first'));
+    //     } else {
+    //         $this->db->where('branch_id', $branch_id);
+    //         $result = $this->db->get('question_group')->result();
+    //         $array = array('' => translate('select'));
+    //         foreach ($result as $row) {
+    //             $array[$row->id] = $row->name;
+    //         }
+    //     }
+    //     return $array;
+    // }
+
+    public function question_group()
     {
-        if (empty($branch_id)) {
-            $array = array('' => translate('select_branch_first'));
-        } else {
-            $this->db->where('branch_id', $branch_id);
-            $result = $this->db->get('question_group')->result();
-            $array = array('' => translate('select'));
-            foreach ($result as $row) {
-                $array[$row->id] = $row->name;
-            }
+        $this->db->select('id,name,created_by_branch')
+            ->from('question_group');
+        if (!is_superadmin_loggedin()) {
+            // $this->db->where('created_by_branch', get_loggedin_branch_id());
         }
-        return $array;
+        $rows = $this->db->order_by('name', 'asc')->get()->result();
+        $list = ['' => translate('select')];
+        foreach ($rows as $r) {
+            $label = $r->created_by_branch === NULL
+                ? 'Global — ' . $r->name
+                : get_type_name_by_id('branch', $r->created_by_branch) . ' — ' . $r->name;
+            $list[$r->id] = $label;
+        }
+        return $list;
     }
+
+
 
     public function question_type()
     {
@@ -657,7 +675,7 @@ class Onlineexam_model extends MY_Model
     {
         $sql = "SELECT `questions_manage`.*, `questions`.`id` as `qus_id`, `questions`.*, `online_exam_answer`.`answer` as `sb_ans`, `online_exam_answer`.`id` as `ans_id` FROM `questions_manage` INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` LEFT JOIN `online_exam_answer` ON `online_exam_answer`.`online_exam_id` = `questions_manage`.`onlineexam_id` and `online_exam_answer`.`question_id` = `questions`.`id` and `online_exam_answer`.`student_id` = " . $this->db->escape($studentID) . " WHERE `questions_manage`.`onlineexam_id` = " . $this->db->escape($onlineexamID) . " ORDER BY `questions_manage`.`id` ASC";
         $query = $this->db->query($sql);
-       
+
         return $query->result();
     }
 

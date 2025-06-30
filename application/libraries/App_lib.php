@@ -132,8 +132,6 @@ class App_lib
     }
 
 
-
-
     public function check_branch_restrictions($table, $id = '')
     {
         if (empty($id)) {
@@ -266,7 +264,6 @@ class App_lib
         }
 
         $array = array('' => translate('select'));
-
         if (loggedin_role_id() == 3) {
             // Teacher role
             $CI->db->select('class.id, class.name');

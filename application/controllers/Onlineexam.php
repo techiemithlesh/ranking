@@ -247,7 +247,6 @@ class Onlineexam extends Admin_Controller
         if (!get_permission('question_bank', 'is_add')) {
             access_denied();
         }
-        $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['title'] = translate('question');
         $this->data['sub_page'] = 'onlineexam/question_add';
         $this->data['main_menu'] = 'onlineexam';

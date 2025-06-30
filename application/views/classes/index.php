@@ -97,7 +97,6 @@
 																	<i class="fas fa-pen-nib"></i>
 																</a>
 															<?php elseif (!$is_my_class): ?>
-																<!-- Disabled Edit button with tooltip -->
 																<a href="javascript:void(0);"
 																	class="btn btn-default btn-circle icon disabled"
 																	data-toggle="tooltip" title="Cannot edit global class">
