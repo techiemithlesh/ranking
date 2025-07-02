@@ -280,7 +280,7 @@ class Onlineexam_model extends MY_Model
         if (!empty($subjectID)) {
             $questionsExam['subject_id'] = $subjectID;
         }
-        
+
         if (empty($questionID)) {
             $questionsExam['created_by_branch'] = $branchId;
             $this->db->insert('questions', $questionsExam);
@@ -871,4 +871,174 @@ class Onlineexam_model extends MY_Model
             is_array($a) && is_array($b) && count($a) == count($b) && array_diff($a, $b) === array_diff($b, $a)
         );
     }
+
+    public function getQuestionsFilteredDT($postData)
+    {
+        $response = array();
+
+        // Read DataTable params
+        $draw = $postData['draw'];
+        $start = $postData['start'];
+        $rowperpage = $postData['length'];
+        $searchValue = $postData['search']['value'];
+
+        // Filters
+        $classId = $postData['class_id'];
+        $sectionId = $postData['section_id'];
+        $subjectId = $postData['subject_id'];
+
+        // Order
+        $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column'];
+        $columnSortOrder = empty($postData['order'][0]['dir']) ? 'ASC' : $postData['order'][0]['dir'];
+        $column_order = array('questions.id', 'questions.question', 'question_group.name', 'class.name', 'subject.name', 'questions.type', 'questions.level');
+
+        // Search
+        $searchQuery = "";
+        if ($searchValue != '') {
+            $searchQuery = "(questions.question LIKE '%" . $searchValue . "%')";
+        }
+
+        // Total records without filtering
+        $this->db->from('questions');
+        $this->db->where('class_id', $classId);
+        if (!empty($sectionId)) {
+            $this->db->where('section_id', $sectionId);
+        }
+        if (!empty($subjectId)) {
+            $this->db->where('subject_id', $subjectId);
+        }
+        $this->db->where('questions.created_by_branch IS NULL', null, false);
+        $totalRecords = $this->db->count_all_results();
+
+        // Total records with filtering
+        $this->db->from('questions');
+        $this->db->join('question_group', 'question_group.id = questions.group_id', 'left');
+        $this->db->join('class', 'class.id = questions.class_id', 'left');
+        $this->db->join('section', 'section.id = questions.section_id', 'left');
+        $this->db->join('subject', 'subject.id = questions.subject_id', 'left');
+        $this->db->where('questions.class_id', $classId);
+        if (!empty($sectionId)) {
+            $this->db->where('questions.section_id', $sectionId);
+        }
+        if (!empty($subjectId)) {
+            $this->db->where('questions.subject_id', $subjectId);
+        }
+        $this->db->where('questions.created_by_branch IS NULL', null, false);
+        if (!empty($searchQuery)) {
+            $this->db->where($searchQuery, null, false);
+        }
+        $totalRecordwithFilter = $this->db->count_all_results();
+
+        // Fetch records
+        $this->db->select('
+        questions.id,
+        questions.question,
+        questions.type,
+        questions.level,
+        subject.name as subject_name,
+        class.name as class_name,
+        section.name as section_name,
+        question_group.name as group_name
+    ');
+        $this->db->from('questions');
+        $this->db->join('question_group', 'question_group.id = questions.group_id', 'left');
+        $this->db->join('class', 'class.id = questions.class_id', 'left');
+        $this->db->join('section', 'section.id = questions.section_id', 'left');
+        $this->db->join('subject', 'subject.id = questions.subject_id', 'left');
+        $this->db->where('questions.class_id', $classId);
+        if (!empty($sectionId)) {
+            $this->db->where('questions.section_id', $sectionId);
+        }
+        if (!empty($subjectId)) {
+            $this->db->where('questions.subject_id', $subjectId);
+        }
+        $this->db->where('questions.created_by_branch IS NULL', null, false);
+        if (!empty($searchQuery)) {
+            $this->db->where($searchQuery, null, false);
+        }
+        $this->db->order_by($column_order[$columnIndex], $columnSortOrder);
+        $this->db->limit($rowperpage, $start);
+        $records = $this->db->get()->result();
+
+        // Prepare data
+        $data = array();
+        $count = $start + 1;
+        $question_type = $this->onlineexam_model->question_type();
+        $arrayLevel = $this->onlineexam_model->question_level();
+
+        foreach ($records as $record) {
+            $row = array();
+
+            // Checkbox in Action column
+            $checkbox = '<div class="material-switch ml-xs">
+                        <input class="question-assign" id="qassign_' . $record->id . '" data-id="' . $record->id . '" name="question_assign[' . $record->id . ']" type="checkbox" />
+                        <label for="qassign_' . $record->id . '" class="label-primary"></label>
+                    </div>';
+
+            // SL
+            $row[] = $count++;
+
+            // Question preview
+            $questionContent = $record->question;
+            $hasImage = preg_match('/<img[^>]+src="([^">]+)"/', $questionContent, $imgMatch);
+            $hasIframe = preg_match('/<iframe[^>]+src="([^">]+)"/', $questionContent, $iframeMatch);
+
+            $preview = '';
+            if ($hasImage) {
+                $preview .= '<img src="' . htmlspecialchars($imgMatch[1]) . '" style="max-height:200px; width: 200px;"> ';
+            }
+            if ($hasIframe) {
+                $iframe = preg_replace('/width="[^"]*"|height="[^"]*"/i', '', $iframeMatch[0]);
+                $preview .= '<div style="max-width:300px; max-height:180px;">' . str_replace('<iframe', '<iframe width="300" height="180"', $iframe) . '</div>';
+            }
+            $textOnly = trim(strip_tags($questionContent));
+            if ($textOnly) {
+                $preview .= '<br><small>' . htmlspecialchars($textOnly) . '</small>';
+            }
+            $row[] = $preview;
+
+            // Other columns
+            $row[] = $record->group_name;
+            $row[] = $record->class_name . " (" . $record->section_name . ")";
+            $row[] = $record->subject_name;
+            $row[] = $question_type[$record->type];
+            $row[] = $arrayLevel[$record->level];
+
+            // Action column (checkbox only)
+            $row[] = $checkbox;
+
+            $data[] = $row;
+        }
+
+        // Final response
+        $response = array(
+            "draw" => intval($draw),
+            "recordsTotal" => $totalRecords,
+            "recordsFiltered" => $totalRecordwithFilter,
+            "data" => $data,
+        );
+        return $response;
+    }
+
+
+
+    public function assignQuestionToBranch($question_id, $branch_id, $created_by = null)
+    {
+        $data = [
+            'question_id' => $question_id,
+            'branch_id' => $branch_id,
+            'created_by' => $created_by,
+        ];
+
+        // Check if already assigned to avoid duplicates
+        $exists = $this->db->get_where('question_assignments', [
+            'question_id' => $question_id,
+            'branch_id' => $branch_id
+        ])->num_rows();
+
+        if ($exists == 0) {
+            $this->db->insert('question_assignments', $data);
+        }
+    }
+
 }

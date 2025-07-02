@@ -615,7 +615,6 @@ if (!function_exists("sendWhatsAppMsg")) {
     if (!function_exists("responseMsg")) {
         function responseMsg($status, $message, $data = null)
         {
-            // Optional: Set header if not already set
             header('Content-Type: application/json');
 
             $response = [

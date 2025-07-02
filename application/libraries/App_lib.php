@@ -772,10 +772,12 @@ class App_lib
         return $output;
     }
 
+    
+
     public function getSelectClassList()
     {
         $CI = &get_instance();
-        $output = array();
+        $output = ["select"];
 
         if (is_superadmin_loggedin()) {
             $CI->db->select('c.id, c.name');

@@ -346,6 +346,53 @@ class Onlineexam extends Admin_Controller
         }
     }
 
+    public function question_branch_assign()
+    {
+
+        if (!is_superadmin_loggedin()) {
+            redirect()->back();
+        }
+
+        $this->data['title'] = translate('assign_question');
+        $this->data['sub_page'] = 'onlineexam/branch_assign';
+        $this->data['main_menu'] = 'onlineexam';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function getQuestionsForAssignmentDT()
+{
+    if ($_POST) {
+        $postData = $this->input->post();
+        $data = $this->onlineexam_model->getQuestionsFilteredDT($postData);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+}
+
+
+
+
+
+    public function assign_question()
+    {
+        if (!get_permission('question_bank', 'is_add')) {
+            ajax_access_denied();
+        }
+
+        $question_id = $this->input->post('question_id');
+        $branch_id = $this->input->post('branch_id');
+
+        if ($question_id && $branch_id) {
+            $this->onlineexam_model->assignQuestionToBranch($question_id, $branch_id, get_loggedin_user_id());
+            $array = array('status' => 'success', 'message' => 'Question assigned successfully.');
+        } else {
+            $array = array('status' => 'fail', 'message' => 'Invalid input.');
+        }
+        echo json_encode($array);
+    }
+
+
     public function manage_question($examid = '')
     {
         if (!get_permission('add_questions', 'is_add')) {
