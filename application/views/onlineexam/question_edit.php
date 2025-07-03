@@ -9,7 +9,7 @@
 		z-index: 1150;
 	}
 </style>
-<?php $widget = (is_superadmin_loggedin() ? 3 : 4); ?>
+<?php $widget = (is_superadmin_loggedin() ? 4 : 4); ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -24,24 +24,13 @@
 			</header>
 			<div class="panel-body">
 				<div class="row mb-sm">
-					<?php if (is_superadmin_loggedin()): ?>
-					<div class="col-md-3 mb-sm">
-						<div class="form-group">
-							<label class="control-label"><?=translate('branch')?> <span class="required">*</span></label>
-							<?php
-								$arrayBranch = $this->app_lib->getSelectList('branch');
-								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id', $questions['branch_id']), "class='form-control' id='branch_id'
-								required data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'");
-							?>
-						</div>
-					</div>
-					<?php endif; ?>
+
 
 					<div class="col-md-<?php echo $widget; ?> mb-sm">
 						<div class="form-group">
 							<label class="control-label"><?=translate('class')?> <span class="required">*</span></label>
 							<?php
-								$arrayClass = $this->app_lib->getClass($questions['branch_id']);
+								$arrayClass = $this->app_lib->getSelectClassList();
 								echo form_dropdown("class_id", $arrayClass, set_value('class_id', $questions['class_id']), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 								required data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -123,7 +112,6 @@
 							}
 						?>
 							<input type="hidden" name="question_id" value="<?php echo $questions['id'] ?>">
-							<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
 							<input type="hidden" name="class_id" value="<?php echo set_value('class_id') ?>">
 							<input type="hidden" name="section_id" value="<?php echo set_value('section_id') ?>">
 							<input type="hidden" name="subject_id" value="<?php echo set_value('subject_id') ?>">
@@ -234,7 +222,6 @@
 							}
 						?>
 							<input type="hidden" name="question_id" value="<?php echo $questions['id'] ?>">
-							<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
 							<input type="hidden" name="class_id" value="<?php echo set_value('class_id') ?>">
 							<input type="hidden" name="section_id" value="<?php echo set_value('section_id') ?>">
 							<input type="hidden" name="subject_id" value="<?php echo set_value('subject_id') ?>">
@@ -335,7 +322,6 @@
 					<div class="tab-pane box <?php echo $questions['type'] == 3 ? 'active' : ''; ?>" id="true_false">
 						<?php echo form_open_multipart('onlineexam/question_edit_save', array('class' => 'form-bordered form-horizontal frm-submit-data'));?>
 							<input type="hidden" name="question_id" value="<?php echo $questions['id'] ?>">
-							<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
 							<input type="hidden" name="class_id" value="<?php echo set_value('class_id') ?>">
 							<input type="hidden" name="section_id" value="<?php echo set_value('section_id') ?>">
 							<input type="hidden" name="subject_id" value="<?php echo set_value('subject_id') ?>">
@@ -413,7 +399,6 @@
 							}
 						?>
 							<input type="hidden" name="question_id" value="<?php echo $questions['id'] ?>">
-							<input type="hidden" name="branch_id" value="<?php echo $branch_id ?>">
 							<input type="hidden" name="class_id" value="<?php echo set_value('class_id') ?>">
 							<input type="hidden" name="section_id" value="<?php echo set_value('section_id') ?>">
 							<input type="hidden" name="subject_id" value="<?php echo set_value('subject_id') ?>">

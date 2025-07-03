@@ -258,13 +258,31 @@ class Onlineexam extends Admin_Controller
         if (!get_permission('question_bank', 'is_edit')) {
             access_denied();
         }
-        $this->data['branch_id'] = $this->application_model->get_branch_id();
-        $this->data['questions'] = $this->app_lib->getTable('questions', array('t.id' => $id), true);
+
+        $question = $this->app_lib->getTableHybrid('questions', array('t.id' => $id), true);
+
+        if (empty($question)) {
+            set_alert('error', 'Question not found.');
+            redirect($_SERVER['HTTP_REFERER']);
+        }
+
+        // Restrict branch users from editing global questions
+        if (!is_superadmin_loggedin()) {
+            $loggedin_branch_id = get_loggedin_branch_id();
+
+            if (empty($question['created_by_branch']) || $question['created_by_branch'] != $loggedin_branch_id) {
+                set_alert('error', 'You are not allowed to edit this global question.');
+                redirect($_SERVER['HTTP_REFERER']);
+            }
+        }
+
+        $this->data['questions'] = $question;
         $this->data['title'] = translate('question_edit');
         $this->data['sub_page'] = 'onlineexam/question_edit';
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
+
 
     public function question_edit_save($id = '')
     {
