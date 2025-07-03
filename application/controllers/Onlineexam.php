@@ -440,9 +440,6 @@ class Onlineexam extends Admin_Controller
         responseMsg('success', 'Questions assigned to branches successfully.');
     }
 
-
-
-
     public function assign_question()
     {
         if (!get_permission('question_bank', 'is_add')) {

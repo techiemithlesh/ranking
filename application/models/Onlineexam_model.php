@@ -515,121 +515,251 @@ class Onlineexam_model extends MY_Model
         return json_encode($response);
     }
 
+    // public function questionListDT($postData)
+    // {
+    //     $response = array();
+
+    //     // read value
+    //     $draw = $postData['draw'];
+    //     $start = $postData['start'];
+    //     $rowperpage = $postData['length']; // Rows display per page
+    //     $searchValue = $postData['search']['value']; // Search value
+
+    //     // order
+    //     $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column']; // Column index
+    //     $columnSortOrder = empty($postData['order'][0]['dir']) ? 'asc' : $postData['order'][0]['dir']; // asc or desc
+    //     $column_order = array('`questions`.`id`');
+
+    //     $search_arr = array();
+    //     $searchQuery = "";
+    //     if ($searchValue != '') {
+    //         $search_arr[] = " (`questions`.`question` like '%" . $searchValue . "%') ";
+    //     }
+
+    //     if (!is_superadmin_loggedin()) {
+    //         $showOwnquestion = $this->app_lib->getSchoolConfig('', 'show_own_question');
+    //         $branch_id = $this->db->escape(get_loggedin_branch_id());
+    //         $search_arr[] = " `questions`.`branch_id` = $branch_id ";
+    //         if (!empty($showOwnquestion->show_own_question) && $showOwnquestion->show_own_question == 1) {
+    //             $search_arr[] = " `questions`.`created_by` = " . $this->db->escape(get_loggedin_user_id());
+    //         }
+    //     } else {
+    //         $column_order[] = '`questions`.`branch_id`';
+    //     }
+
+    //     // order
+    //     $column_order[] = '`questions`.`question`';
+    //     $column_order[] = '`group_name`';
+    //     $column_order[] = '`class`.`id`';
+    //     $column_order[] = '`subject`.`id`';
+    //     $column_order[] = '`questions`.`type`';
+    //     $column_order[] = '`questions`.`level`';
+
+    //     if (count($search_arr) > 0) {
+    //         $searchQuery = implode("AND", $search_arr);
+    //     }
+
+    //     // Total number of records without filtering
+    //     if (is_superadmin_loggedin()) {
+    //         $sql = "SELECT `questions`.`id` FROM `questions`";
+    //     } else {
+    //         $branchID = $this->db->escape(get_loggedin_branch_id());
+    //         $sql = "SELECT `questions`.`id` FROM `questions` WHERE `questions`.`branch_id` = $branchID";
+    //         if (!empty($showOwnquestion->show_own_question) && $showOwnquestion->show_own_question == 1) {
+    //             $sql .= " AND `questions`.`created_by` = " . $this->db->escape(get_loggedin_user_id());
+    //         }
+    //     }
+    //     $records = $this->db->query($sql)->result();
+    //     $totalRecords = count($records);
+
+    //     // Total number of record with filtering
+    //     $sql = "SELECT `questions`.`id` FROM `questions`";
+    //     if (!empty($searchQuery)) {
+    //         $sql .= " WHERE " . $searchQuery;
+    //     }
+    //     $records = $this->db->query($sql)->result();
+    //     $totalRecordwithFilter = count($records);
+
+    //     // Fetch records
+    //     $sql = "SELECT `questions`.`id`, `questions`.`question`, `questions`.`type`, `questions`.`level`, `branch`.`name`, `subject`.`name` as `subject_name`, `class`.`name` as `class_name`, `section`.`name` as `section_name`, `question_group`.`name` as `group_name` FROM `questions` INNER JOIN `branch` ON `branch`.`id` = `questions`.`branch_id` LEFT JOIN `class` ON `class`.`id` = `questions`.`class_id` LEFT JOIN `section` ON `section`.`id` = `questions`.`section_id` LEFT JOIN `subject` ON `subject`.`id` = `questions`.`subject_id` LEFT JOIN `question_group` ON `question_group`.`id` = `questions`.`group_id`";
+    //     if (!empty($searchQuery)) {
+    //         $sql .= " WHERE " . $searchQuery;
+    //     }
+    //     $sql .= " ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder LIMIT $start, $rowperpage";
+    //     $records = $this->db->query($sql)->result();
+
+    //     $data = array();
+    //     $count = $start + 1;
+    //     $question_type = $this->onlineexam_model->question_type();
+    //     $arrayLevel = $this->onlineexam_model->question_level();
+    //     foreach ($records as $record) {
+
+    //         $row = array();
+    //         $action = "";
+    //         $action .= '<button data-loading-text="<i class=' . "'fas fa-spinner fa-spin'" . '></i>" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . '" onclick="getQuestion(' . $this->db->escape($record->id) . ', this);"><i class="fas fa-bars"></i></button>';
+    //         $action .= '<a href="' . base_url('onlineexam/question_edit/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('edit') . '"><i class="fas fa-pen-nib"></i></a>';
+    //         $action .= btn_delete('onlineexam/question_delete/' . $record->id);
+
+    //         $row[] = $count++;
+    //         if (is_superadmin_loggedin()) {
+    //             $row[] = $record->name;
+    //         }
+    //         // $row[] = strip_tags($record->question);
+
+    //         // Question preview logic
+    //         $questionContent = $record->question;
+    //         $hasImage = preg_match('/<img[^>]+src="([^">]+)"/', $questionContent, $imgMatch);
+    //         $hasIframe = preg_match('/<iframe[^>]+src="([^">]+)"/', $questionContent, $iframeMatch);
+
+    //         $preview = '';
+    //         if ($hasImage) {
+    //             $preview .= '<img src="' . htmlspecialchars($imgMatch[1]) . '" style="max-height:200px; width: 200px;"> ';
+    //         }
+
+    //         if ($hasIframe) {
+    //             $iframe = preg_replace(
+    //                 '/width="[^"]*"|height="[^"]*"/i',
+    //                 '',
+    //                 $iframeMatch[0]
+    //             );
+    //             $preview .= '<div style="max-width:300px; max-height:180px;">' . str_replace('<iframe', '<iframe width="300" height="180"', $iframe) . '</div>';
+    //         }
+
+    //         $textOnly = trim(strip_tags($questionContent));
+    //         if ($textOnly) {
+    //             $preview .= '<br><small>' . htmlspecialchars($textOnly) . '</small>';
+    //         }
+
+
+    //         $row[] = $preview;
+    //         $row[] = $record->group_name;
+    //         $row[] = $record->class_name . " (" . $record->section_name . ")";
+    //         $row[] = $record->subject_name;
+    //         $row[] = $question_type[$record->type];
+    //         $row[] = $arrayLevel[$record->level];
+    //         $row[] = $action;
+    //         $data[] = $row;
+    //     }
+
+    //     // Response
+    //     $response = array(
+    //         "draw" => intval($draw),
+    //         "recordsTotal" => $totalRecords,
+    //         "recordsFiltered" => $totalRecordwithFilter,
+    //         "data" => $data,
+    //     );
+    //     return json_encode($response);
+    // }
+
     public function questionListDT($postData)
     {
         $response = array();
 
-        // read value
         $draw = $postData['draw'];
         $start = $postData['start'];
-        $rowperpage = $postData['length']; // Rows display per page
-        $searchValue = $postData['search']['value']; // Search value
+        $rowperpage = $postData['length'];
+        $searchValue = $postData['search']['value'];
 
-        // order
-        $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column']; // Column index
-        $columnSortOrder = empty($postData['order'][0]['dir']) ? 'asc' : $postData['order'][0]['dir']; // asc or desc
-        $column_order = array('`questions`.`id`');
+        $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column'];
+        $columnSortOrder = empty($postData['order'][0]['dir']) ? 'asc' : $postData['order'][0]['dir'];
+
+        // Default order columns
+        $column_order = array('questions.id', 'questions.question', 'question_group.name', 'class.name', 'subject.name', 'questions.type', 'questions.level');
 
         $search_arr = array();
-        $searchQuery = "";
         if ($searchValue != '') {
-            $search_arr[] = " (`questions`.`question` like '%" . $searchValue . "%') ";
+            $search_arr[] = " (questions.question LIKE '%" . $searchValue . "%') ";
         }
+        $searchQuery = count($search_arr) > 0 ? implode(" AND ", $search_arr) : "";
 
-        if (!is_superadmin_loggedin()) {
-            $showOwnquestion = $this->app_lib->getSchoolConfig('', 'show_own_question');
-            $branch_id = $this->db->escape(get_loggedin_branch_id());
-            $search_arr[] = " `questions`.`branch_id` = $branch_id ";
-            if (!empty($showOwnquestion->show_own_question) && $showOwnquestion->show_own_question == 1) {
-                $search_arr[] = " `questions`.`created_by` = " . $this->db->escape(get_loggedin_user_id());
-            }
-        } else {
-            $column_order[] = '`questions`.`branch_id`';
-        }
-
-        // order
-        $column_order[] = '`questions`.`question`';
-        $column_order[] = '`group_name`';
-        $column_order[] = '`class`.`id`';
-        $column_order[] = '`subject`.`id`';
-        $column_order[] = '`questions`.`type`';
-        $column_order[] = '`questions`.`level`';
-
-        if (count($search_arr) > 0) {
-            $searchQuery = implode("AND", $search_arr);
-        }
-
-        // Total number of records without filtering
+        // Fetch data based on role
         if (is_superadmin_loggedin()) {
-            $sql = "SELECT `questions`.`id` FROM `questions`";
-        } else {
-            $branchID = $this->db->escape(get_loggedin_branch_id());
-            $sql = "SELECT `questions`.`id` FROM `questions` WHERE `questions`.`branch_id` = $branchID";
-            if (!empty($showOwnquestion->show_own_question) && $showOwnquestion->show_own_question == 1) {
-                $sql .= " AND `questions`.`created_by` = " . $this->db->escape(get_loggedin_user_id());
+            // Super Admin: Fetch global questions
+            $this->db->select('questions.id, questions.question, questions.type, questions.level, 
+            "Global" as branch_name, subject.name as subject_name, class.name as class_name, 
+            section.name as section_name, question_group.name as group_name');
+            $this->db->from('questions');
+            $this->db->join('class', 'class.id = questions.class_id', 'left');
+            $this->db->join('section', 'section.id = questions.section_id', 'left');
+            $this->db->join('subject', 'subject.id = questions.subject_id', 'left');
+            $this->db->join('question_group', 'question_group.id = questions.group_id', 'left');
+            $this->db->where('questions.created_by_branch IS NULL', null, false);
+
+            if (!empty($searchQuery)) {
+                $this->db->where($searchQuery, null, false);
             }
-        }
-        $records = $this->db->query($sql)->result();
-        $totalRecords = count($records);
 
-        // Total number of record with filtering
-        $sql = "SELECT `questions`.`id` FROM `questions`";
-        if (!empty($searchQuery)) {
-            $sql .= " WHERE " . $searchQuery;
-        }
-        $records = $this->db->query($sql)->result();
-        $totalRecordwithFilter = count($records);
+            $totalRecords = $this->db->count_all_results('', false);
+            $totalRecordwithFilter = $totalRecords;
 
-        // Fetch records
-        $sql = "SELECT `questions`.`id`, `questions`.`question`, `questions`.`type`, `questions`.`level`, `branch`.`name`, `subject`.`name` as `subject_name`, `class`.`name` as `class_name`, `section`.`name` as `section_name`, `question_group`.`name` as `group_name` FROM `questions` INNER JOIN `branch` ON `branch`.`id` = `questions`.`branch_id` LEFT JOIN `class` ON `class`.`id` = `questions`.`class_id` LEFT JOIN `section` ON `section`.`id` = `questions`.`section_id` LEFT JOIN `subject` ON `subject`.`id` = `questions`.`subject_id` LEFT JOIN `question_group` ON `question_group`.`id` = `questions`.`group_id`";
-        if (!empty($searchQuery)) {
-            $sql .= " WHERE " . $searchQuery;
-        }
-        $sql .= " ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder LIMIT $start, $rowperpage";
-        $records = $this->db->query($sql)->result();
+            $this->db->order_by($column_order[$columnIndex], $columnSortOrder);
+            $this->db->limit($rowperpage, $start);
+            $records = $this->db->get()->result();
 
+        } else {
+            // Branch user: Fetch assigned questions
+            $branchID = get_loggedin_branch_id();
+
+            $this->db->select('questions.id, questions.question, questions.type, questions.level, 
+            branch.name as branch_name, subject.name as subject_name, class.name as class_name, 
+            section.name as section_name, question_group.name as group_name');
+            $this->db->from('question_assignments');
+            $this->db->join('questions', 'questions.id = question_assignments.question_id', 'inner');
+            $this->db->join('branch', 'branch.id = question_assignments.branch_id', 'inner');
+            $this->db->join('class', 'class.id = questions.class_id', 'left');
+            $this->db->join('section', 'section.id = questions.section_id', 'left');
+            $this->db->join('subject', 'subject.id = questions.subject_id', 'left');
+            $this->db->join('question_group', 'question_group.id = questions.group_id', 'left');
+            $this->db->where('question_assignments.branch_id', $branchID);
+
+            if (!empty($searchQuery)) {
+                $this->db->where($searchQuery, null, false);
+            }
+
+            $totalRecords = $this->db->count_all_results('', false);
+            $totalRecordwithFilter = $totalRecords;
+
+            $this->db->order_by($column_order[$columnIndex], $columnSortOrder);
+            $this->db->limit($rowperpage, $start);
+            $records = $this->db->get()->result();
+        }
+
+        // Prepare data
         $data = array();
         $count = $start + 1;
         $question_type = $this->onlineexam_model->question_type();
         $arrayLevel = $this->onlineexam_model->question_level();
-        foreach ($records as $record) {
 
+        foreach ($records as $record) {
             $row = array();
+
             $action = "";
-            $action .= '<button data-loading-text="<i class=' . "'fas fa-spinner fa-spin'" . '></i>" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . '" onclick="getQuestion(' . $this->db->escape($record->id) . ', this);"><i class="fas fa-bars"></i></button>';
-            $action .= '<a href="' . base_url('onlineexam/question_edit/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('edit') . '"><i class="fas fa-pen-nib"></i></a>';
+            $action .= '<button data-loading-text="<i class=\'fas fa-spinner fa-spin\'></i>" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="View" onclick="getQuestion(' . $record->id . ', this);"><i class="fas fa-bars"></i></button>';
+            $action .= '<a href="' . base_url('onlineexam/question_edit/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="Edit"><i class="fas fa-pen-nib"></i></a>';
             $action .= btn_delete('onlineexam/question_delete/' . $record->id);
 
             $row[] = $count++;
             if (is_superadmin_loggedin()) {
-                $row[] = $record->name;
+                $row[] = $record->branch_name;
             }
-            // $row[] = strip_tags($record->question);
 
-            // Question preview logic
+            // Question preview
             $questionContent = $record->question;
             $hasImage = preg_match('/<img[^>]+src="([^">]+)"/', $questionContent, $imgMatch);
             $hasIframe = preg_match('/<iframe[^>]+src="([^">]+)"/', $questionContent, $iframeMatch);
 
             $preview = '';
             if ($hasImage) {
-                $preview .= '<img src="' . htmlspecialchars($imgMatch[1]) . '" style="max-height:200px; width: 200px;"> ';
+                $preview .= '<img src="' . htmlspecialchars($imgMatch[1]) . '" style="max-height:200px; width:200px;"> ';
             }
-
             if ($hasIframe) {
-                $iframe = preg_replace(
-                    '/width="[^"]*"|height="[^"]*"/i',
-                    '',
-                    $iframeMatch[0]
-                );
+                $iframe = preg_replace('/width="[^"]*"|height="[^"]*"/i', '', $iframeMatch[0]);
                 $preview .= '<div style="max-width:300px; max-height:180px;">' . str_replace('<iframe', '<iframe width="300" height="180"', $iframe) . '</div>';
             }
-
             $textOnly = trim(strip_tags($questionContent));
             if ($textOnly) {
                 $preview .= '<br><small>' . htmlspecialchars($textOnly) . '</small>';
             }
-
 
             $row[] = $preview;
             $row[] = $record->group_name;
@@ -638,6 +768,7 @@ class Onlineexam_model extends MY_Model
             $row[] = $question_type[$record->type];
             $row[] = $arrayLevel[$record->level];
             $row[] = $action;
+
             $data[] = $row;
         }
 
@@ -648,8 +779,10 @@ class Onlineexam_model extends MY_Model
             "recordsFiltered" => $totalRecordwithFilter,
             "data" => $data,
         );
+
         return json_encode($response);
     }
+
 
     public function getStudentSubmitted($online_examID = null)
     {
