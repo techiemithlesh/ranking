@@ -969,11 +969,11 @@ class Onlineexam_model extends MY_Model
         foreach ($records as $record) {
             $row = array();
 
-            // Checkbox in Action column
             $checkbox = '<div class="material-switch ml-xs">
-                        <input class="question-assign" id="qassign_' . $record->id . '" data-id="' . $record->id . '" name="question_assign[' . $record->id . ']" type="checkbox" />
-                        <label for="qassign_' . $record->id . '" class="label-primary"></label>
-                    </div>';
+            <input class="question-assign" id="qassign_' . $record->id . '" data-id="' . $record->id . '" name="question_assign[' . $record->id . ']" type="checkbox" />
+                <label for="qassign_' . $record->id . '" class="label-primary"></label>
+            </div>';
+            $row[] = $checkbox;
 
             // SL
             $row[] = $count++;
@@ -1003,9 +1003,6 @@ class Onlineexam_model extends MY_Model
             $row[] = $record->subject_name;
             $row[] = $question_type[$record->type];
             $row[] = $arrayLevel[$record->level];
-
-            // Action column (checkbox only)
-            $row[] = $checkbox;
 
             $data[] = $row;
         }

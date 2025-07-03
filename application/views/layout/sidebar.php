@@ -1011,6 +1011,17 @@
                                             </a>
                                         </li>
                                     <?php }
+                                    if (is_superadmin_loggedin()) {
+                                        ?>
+                                        <li class="<?php if ($sub_page == 'onlineexam/branch_assign')
+                                            echo 'nav-active'; ?>">
+                                            <a href="<?= base_url('onlineexam/question_branch_assign') ?>">
+                                                <span><i class="fas fa-caret-right"
+                                                        aria-hidden="true"></i><?= translate('assign_questions_to_branch') ?></span>
+                                            </a>
+                                        </li>
+                                        <?php
+                                    }
                                     if (get_permission('question_group', 'is_view')) { ?>
                                         <li class="<?php if ($sub_page == 'onlineexam/question_group')
                                             echo 'nav-active'; ?>">

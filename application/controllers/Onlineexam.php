@@ -335,6 +335,8 @@ class Onlineexam extends Admin_Controller
         $this->load->view('onlineexam/question_view', $this->data);
     }
 
+
+
     public function question_delete($id = '')
     {
         if (get_permission('question_bank', 'is_delete')) {
@@ -348,7 +350,6 @@ class Onlineexam extends Admin_Controller
 
     public function question_branch_assign()
     {
-
         if (!is_superadmin_loggedin()) {
             redirect()->back();
         }
@@ -360,16 +361,84 @@ class Onlineexam extends Admin_Controller
     }
 
     public function getQuestionsForAssignmentDT()
-{
-    if ($_POST) {
-        $postData = $this->input->post();
-        $data = $this->onlineexam_model->getQuestionsFilteredDT($postData);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
+    {
+        if ($_POST) {
+            $postData = $this->input->post();
+            $data = $this->onlineexam_model->getQuestionsFilteredDT($postData);
+            header('Content-Type: application/json');
+            echo json_encode($data);
+            exit;
+        }
     }
-}
 
+
+
+    public function getBranchesByClass()
+    {
+        $classId = $this->input->post('class_id');
+
+        if (!empty($classId)) {
+            $this->db->select('branch.id, branch.name');
+            $this->db->from('class_branch_map');
+            $this->db->join('branch', 'branch.id = class_branch_map.branch_id', 'inner');
+            $this->db->where('class_branch_map.class_id', $classId);
+            $query = $this->db->get();
+
+            if ($query->num_rows() > 0) {
+                $branches = $query->result_array();
+                echo json_encode($branches);
+            } else {
+                echo json_encode([]);
+            }
+        } else {
+            echo json_encode([]);
+        }
+    }
+
+
+    public function assignQuestionsToBranches()
+    {
+        if (!is_superadmin_loggedin()) {
+            responseMsg('error', 'Permission denied.');
+            return;
+        }
+
+        $questionIds = $this->input->post('question_ids');
+        $branchIds = $this->input->post('branch_ids');
+
+        if (empty($questionIds) || empty($branchIds)) {
+            responseMsg('error', 'Please select at least one question and branch.');
+            return;
+        }
+
+        $dataToInsert = [];
+        $createdBy = get_loggedin_user_id();
+
+        foreach ($questionIds as $questionId) {
+            foreach ($branchIds as $branchId) {
+                // Check if already assigned
+                $exists = $this->db->get_where('question_assignments', [
+                    'question_id' => $questionId,
+                    'branch_id' => $branchId
+                ])->num_rows();
+
+                if ($exists == 0) {
+                    $dataToInsert[] = [
+                        'question_id' => $questionId,
+                        'branch_id' => $branchId,
+                        'created_by' => $createdBy,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                }
+            }
+        }
+
+        if (!empty($dataToInsert)) {
+            $this->db->insert_batch('question_assignments', $dataToInsert);
+        }
+
+        responseMsg('success', 'Questions assigned to branches successfully.');
+    }
 
 
 
