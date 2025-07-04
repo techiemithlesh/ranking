@@ -31,7 +31,7 @@ class Onlineexam_model extends MY_Model
             'question_type' => $data['question_type'],
             'fee' => ($data['exam_type'] == 1 ? $data['exam_fee'] : 0),
             'exam_type' => $data['exam_type'],
-            'branch_id' => $branchID,
+            'created_by_branch' => $branchID,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         );
@@ -1170,5 +1170,22 @@ class Onlineexam_model extends MY_Model
             $this->db->insert('question_assignments', $data);
         }
     }
+
+    public function getAllExams()
+    {
+        return $this->db->get('online_exam')->result_array();
+    }
+
+    public function getBranchExams($branch_id)
+    {
+        $this->db->select('online_exam.*');
+        $this->db->from('online_exam');
+        $this->db->join('exam_assignment', 'exam_assignment.exam_id = online_exam.id', 'left');
+        $this->db->where('exam_assignment.branch_id', $branch_id);
+        $this->db->or_where('online_exam.created_by_branch', $branch_id);
+        $this->db->group_by('online_exam.id');
+        return $this->db->get()->result_array();
+    }
+
 
 }

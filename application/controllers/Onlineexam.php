@@ -39,17 +39,24 @@ class Onlineexam extends Admin_Controller
     /* online exam controller */
     public function index()
     {
-        // check access permission
         if (!get_permission('online_exam', 'is_view')) {
             access_denied();
         }
-        $this->data['branch_id'] = $this->application_model->get_branch_id();
-        $this->data['examList'] = $this->onlineexam_model->examList();
+
+        $branch_id = $this->application_model->get_branch_id();
+
+        if (is_superadmin_loggedin()) {
+            $this->data['examList'] = $this->onlineexam_model->getAllExams();
+        } else {
+            $this->data['examList'] = $this->onlineexam_model->getBranchExams($branch_id);
+        }
+
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/index';
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
+
 
     /* online exam table list controller */
     public function getExamListDT()
@@ -93,10 +100,6 @@ class Onlineexam extends Admin_Controller
 
     protected function exam_validation()
     {
-        if (is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
-
         $this->form_validation->set_rules('title', translate('title'), 'trim|required');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
         $this->form_validation->set_rules('section[]', translate('section'), 'trim|required');
@@ -143,7 +146,8 @@ class Onlineexam extends Admin_Controller
             $this->exam_validation();
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
-                $branchID = $this->application_model->get_branch_id();
+
+                $branchID = is_superadmin_loggedin() ? null: get_loggedin_branch_id();
                 //online exam save in DB
                 $this->onlineexam_model->saveExam($post, $branchID);
 

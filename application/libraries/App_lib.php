@@ -734,7 +734,7 @@ class App_lib
         $CI->db->select('id, name');
         $CI->db->from('class');
         $CI->db->where('created_by_branch IS NULL');
-        $CI->db->order_by('name', 'ASC');
+        $CI->db->order_by('id', 'ASC');
         return $CI->db->get()->result_array();
     }
 
@@ -782,7 +782,7 @@ class App_lib
         if (is_superadmin_loggedin()) {
             $CI->db->select('c.id, c.name');
             $CI->db->from('class c');
-            $CI->db->order_by('c.name', 'ASC');
+            $CI->db->order_by('c.id', 'ASC');
             $result = $CI->db->get()->result_array();
         } else {
             $branch_id = get_loggedin_branch_id();

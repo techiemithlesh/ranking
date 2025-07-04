@@ -42,20 +42,7 @@
 			<?php if (get_permission('online_exam', 'is_add')): ?>
 				<div class="tab-pane" id="add">
 					<?php echo form_open('onlineexam/exam_save', array('class' => 'form-bordered form-horizontal frm-submit')); ?>
-					<?php if (is_superadmin_loggedin()): ?>
-						<div class="form-group">
-							<label class="control-label col-md-3"><?= translate('branch') ?> <span
-									class="required">*</span></label>
-							<div class="col-md-6">
-								<?php
-								$arrayBranch = $this->app_lib->getSelectList('branch');
-								echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' data-width='100%' onchange='getClassByBranch(this.value)'
-									data-plugin-selectTwo");
-								?>
-								<span class="error"></span>
-							</div>
-						</div>
-					<?php endif; ?>
+					
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?= translate('title') ?> <span
 								class="required">*</span></label>
@@ -69,7 +56,7 @@
 								class="required">*</span></label>
 						<div class="col-md-6">
 							<?php
-							$arrayClass = $this->app_lib->getClass($branch_id);
+							$arrayClass = $this->app_lib->getSelectClassList();
 							echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0,1)'
 								data-plugin-selectTwo data-width='100%' ");
 							?>
@@ -295,7 +282,7 @@
 <script type="text/javascript">
 	$(document).ready(function () {
 		// initiate Datatable
-		initDatatable('.exam-list', 'onlineexam/getExamListDT', {}, 25);
+		//initDatatable('.exam-list', 'onlineexam/getExamListDT', {}, 25);
 		$('#class_id').on('change', function () {
 			var classID = $(this).val();
 			$.ajax({
