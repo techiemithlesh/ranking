@@ -43,14 +43,6 @@ class Onlineexam extends Admin_Controller
             access_denied();
         }
 
-        $branch_id = $this->application_model->get_branch_id();
-
-        // if (is_superadmin_loggedin()) {
-        //     $this->data['examList'] = $this->onlineexam_model->getAllExams();
-        // } else {
-        //     $this->data['examList'] = $this->onlineexam_model->getBranchExams($branch_id);
-        // }
-
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/index';
         $this->data['main_menu'] = 'onlineexam';
@@ -79,7 +71,7 @@ class Onlineexam extends Admin_Controller
             $this->exam_validation();
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
-                $branchID = $this->application_model->get_branch_id();
+                $branchID = is_superadmin_loggedin() ? null : get_loggedin_branch_id();
                 $this->onlineexam_model->saveExam($post, $branchID);
                 set_alert('success', translate('information_has_been_saved_successfully'));
                 $url = base_url('onlineexam');
@@ -91,7 +83,24 @@ class Onlineexam extends Admin_Controller
             echo json_encode($array);
             exit();
         }
-        $this->data['onlineexam'] = $this->app_lib->getTable('online_exam', array('t.id' => $id), true);
+        $onlineexam = $this->app_lib->getTableHybrid('online_exam', array('t.id' => $id), true);
+        if (empty($onlineexam)) {
+            set_alert('error', 'Question not found.');
+            redirect($_SERVER['HTTP_REFERER']);
+        }
+
+        // Restrict branch users from editing global exams
+        if (!is_superadmin_loggedin()) {
+            $loggedin_branch_id = get_loggedin_branch_id();
+
+            if (empty($onlineexam['created_by_branch']) || $onlineexam['created_by_branch'] != $loggedin_branch_id) {
+                set_alert('error', 'You are not allowed to edit this global exam.');
+                redirect($_SERVER['HTTP_REFERER']);
+            }
+        }
+
+        $this->data['onlineexam'] = $onlineexam;
+      
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/edit';
         $this->data['main_menu'] = 'onlineexam';
@@ -147,7 +156,7 @@ class Onlineexam extends Admin_Controller
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
 
-                $branchID = is_superadmin_loggedin() ? null: get_loggedin_branch_id();
+                $branchID = is_superadmin_loggedin() ? null : get_loggedin_branch_id();
                 //online exam save in DB
                 $this->onlineexam_model->saveExam($post, $branchID);
 

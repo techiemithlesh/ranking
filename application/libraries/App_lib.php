@@ -169,9 +169,7 @@ class App_lib
     // NEW HASSING ADDING FOR 2 WAY PROCESS ENCRYPTION AND DECRYPTION FOR PASSWORD VIEW
 
     // Initialize encryption #changing the encryption mehtod to show password in super admin of all login 24-01-25
-    public function has_password($password)
-    {
-
+    public function has_password($password){
         $this->CI->encryption->initialize(array(
             'cipher' => 'aes-256',
             'mode' => 'cbc',
@@ -772,7 +770,7 @@ class App_lib
         return $output;
     }
 
-    
+
 
     public function getSelectClassList()
     {

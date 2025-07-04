@@ -16,20 +16,7 @@
 		<div class="tab-content">
 			<div class="tab-pane active" id="add">
 					<?php echo form_open('', array('class' => 'form-bordered form-horizontal frm-submit'));?>
-					<input type="hidden" name="id" value="<?php echo $onlineexam['id'] ?>">		
-					<?php if (is_superadmin_loggedin()): ?>
-						<div class="form-group">
-							<label class="control-label col-md-3"><?=translate('branch')?> <span class="required">*</span></label>
-							<div class="col-md-6">
-								<?php
-									$arrayBranch = $this->app_lib->getSelectList('branch');
-									echo form_dropdown("branch_id", $arrayBranch, $onlineexam['branch_id'], "class='form-control' data-width='100%' onchange='getClassByBranch(this.value)'
-									data-plugin-selectTwo  data-minimum-results-for-search='Infinity'");
-								?>
-								<span class="error"></span>
-							</div>
-						</div>
-					<?php endif; ?>
+					<input type="hidden" name="id" value="<?php echo $onlineexam['id'] ?>">	
 
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('title')?> <span class="required">*</span></label>
@@ -42,7 +29,7 @@
 						<label class="col-md-3 control-label"><?=translate('class')?> <span class="required">*</span></label>
 						<div class="col-md-6">
 							<?php
-								$arrayClass = $this->app_lib->getClass($onlineexam['branch_id']);
+								$arrayClass = $this->app_lib->getSelectClassList();
 								echo form_dropdown("class_id", $arrayClass, $onlineexam['class_id'], "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0,1)'
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -54,7 +41,7 @@
 						<div class="col-md-6">
 							<?php
 								$sel = json_decode($onlineexam['section_id'], true);
-								$arraySections = $this->app_lib->getSections($onlineexam['class_id'], false, true);
+								$arraySections = $this->app_lib->getSectionsByClass($onlineexam['class_id'], false, true);
 								echo form_dropdown("section[]", $arraySections, $sel, "class='form-control' id='section_id' data-plugin-selectTwo data-width='100%' multiple
 								data-minimum-results-for-search='Infinity' ");
 							?>

@@ -223,7 +223,6 @@ class Onlineexam_model extends MY_Model
 
         // WHERE CLAUSE BUILD
         if (is_superadmin_loggedin()) {
-            // Superadmin: no branch restrictions
             $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' ";
         } else {
             $branchID = $this->db->escape(get_loggedin_branch_id());
@@ -241,8 +240,21 @@ class Onlineexam_model extends MY_Model
             $whereClause .= " AND " . $searchQuery;
         }
 
-        // Total records without filtering
-        $sql = "SELECT `id` FROM `online_exam` " . str_replace("AND " . $searchQuery, "", $whereClause);
+        // Total records without filtering (build fresh WHERE clause without search filter)
+        if (is_superadmin_loggedin()) {
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+        } else {
+            $branchID = $this->db->escape(get_loggedin_branch_id());
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            `online_exam`.`created_by_branch` = $branchID 
+            OR `online_exam`.`id` IN (
+                SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
+            )
+        )";
+        }
+
+        // Total records without filter
+        $sql = "SELECT `id` FROM `online_exam` " . $countWhere;
         $records = $this->db->query($sql)->result();
         $totalRecords = count($records);
 
@@ -300,9 +312,6 @@ class Onlineexam_model extends MY_Model
 
             $row[] = $count++;
             if (is_superadmin_loggedin()) {
-
-                // $row[] = $record->branchname;
-
                 if (empty($record->created_by_branch)) {
                     $row[] = '<span class="label label-success">Global</span>';
                 } else {
@@ -317,9 +326,9 @@ class Onlineexam_model extends MY_Model
             $row[] = $record->duration;
             $row[] = $record->exam_type == 0 ? translate('free') : $currency_symbol . $record->fee;
             $row[] = '<div class="material-switch ml-xs">
-                    <input class="exam-status" id="examstatus_' . $record->id . '" data-id="' . $record->id . '" name="exam_status' . $record->id . '" type="checkbox" ' . $status . ' />
-                    <label for="examstatus_' . $record->id . '" class="label-primary"></label>
-                  </div>';
+                <input class="exam-status" id="examstatus_' . $record->id . '" data-id="' . $record->id . '" name="exam_status' . $record->id . '" type="checkbox" ' . $status . ' />
+                <label for="examstatus_' . $record->id . '" class="label-primary"></label>
+              </div>';
             $row[] = get_type_name_by_id('staff', $record->created_by);
             $row[] = $action;
 
@@ -333,6 +342,7 @@ class Onlineexam_model extends MY_Model
             "data" => $data,
         ));
     }
+
 
 
     public function getSelectExamList($class_id)
@@ -1286,8 +1296,6 @@ class Onlineexam_model extends MY_Model
         );
         return $response;
     }
-
-
 
     public function assignQuestionToBranch($question_id, $branch_id, $created_by = null)
     {
