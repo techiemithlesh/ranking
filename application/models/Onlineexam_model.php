@@ -62,7 +62,7 @@ class Onlineexam_model extends MY_Model
         return $result;
     }
 
-    public function examListDT($postData, $currency_symbol = '')
+    public function examListDT_old($postData, $currency_symbol = '')
     {
         $response = array();
         $sessionID = get_session_id();
@@ -197,6 +197,143 @@ class Onlineexam_model extends MY_Model
         );
         return json_encode($response);
     }
+
+    public function examListDT($postData, $currency_symbol = '')
+    {
+        $response = array();
+        $sessionID = get_session_id();
+
+        // read value
+        $draw = $postData['draw'];
+        $start = $postData['start'];
+        $rowperpage = $postData['length'];
+        $searchValue = $postData['search']['value'];
+
+        // order
+        $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column'];
+        $columnSortOrder = empty($postData['order'][0]['dir']) ? 'DESC' : $postData['order'][0]['dir'];
+        $column_order = array('`online_exam`.`id`');
+
+        $search_arr = array();
+        $searchQuery = "";
+
+        if ($searchValue != '') {
+            $search_arr[] = " (`online_exam`.`title` like '%" . $searchValue . "%' OR `online_exam`.`exam_start` like '%" . $searchValue . "%' OR `online_exam`.`exam_end` like '%" . $searchValue . "%') ";
+        }
+
+        // WHERE CLAUSE BUILD
+        if (is_superadmin_loggedin()) {
+            // Superadmin: no branch restrictions
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+        } else {
+            $branchID = $this->db->escape(get_loggedin_branch_id());
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            `online_exam`.`created_by_branch` = $branchID 
+            OR `online_exam`.`id` IN (
+                SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
+            )
+        )";
+        }
+
+        // Append search filter
+        if (!empty($search_arr)) {
+            $searchQuery = implode(" AND ", $search_arr);
+            $whereClause .= " AND " . $searchQuery;
+        }
+
+        // Total records without filtering
+        $sql = "SELECT `id` FROM `online_exam` " . str_replace("AND " . $searchQuery, "", $whereClause);
+        $records = $this->db->query($sql)->result();
+        $totalRecords = count($records);
+
+        // Total records with filtering
+        $sql = "SELECT `id` FROM `online_exam` " . $whereClause;
+        $records = $this->db->query($sql)->result();
+        $totalRecordwithFilter = count($records);
+
+        // Fetch paginated records
+        $sql = "SELECT `online_exam`.*, `class`.`name` as `class_name`,
+        (SELECT COUNT(`id`) FROM `questions_manage` WHERE `questions_manage`.`onlineexam_id`=`online_exam`.`id`) as `questions_qty`,
+        `branch`.`name` as `branchname`
+        FROM `online_exam`
+        LEFT JOIN `branch` ON `branch`.`id` = `online_exam`.`created_by_branch`
+        LEFT JOIN `class` ON `class`.`id` = `online_exam`.`class_id`
+        $whereClause
+        ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder
+        LIMIT $start, $rowperpage";
+
+        $records = $this->db->query($sql)->result();
+
+        $data = array();
+        $count = $start + 1;
+
+        foreach ($records as $record) {
+            $status = ($record->publish_status == 1) ? 'checked' : '';
+            $row = array();
+            $action = "";
+
+            if (get_permission('add_questions', 'is_add')) {
+                if ($record->publish_result == 0 && $record->publish_status == 1) {
+                    $action .= '<button onclick="confirmModal(' . $this->db->escape(base_url('onlineexam/make_result_publish/' . $record->id)) . ')" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('make') . " " . translate('result_publish') . '"> <i class="fas fa-square-poll-vertical"></i></button>';
+                }
+            }
+
+            $action .= '<a href="' . base_url('onlineexam/question_list/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . " " . translate('question') . '"> <i class="fas fa-list-check"></i></a>';
+
+            if ($record->publish_status == 0) {
+                $action .= '<a href="' . base_url('onlineexam/manage_question/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('add_questions') . '"> <i class="fas fa-question"></i></a>';
+            }
+
+            if (get_permission('online_exam', 'is_edit')) {
+                $action .= '<a href="' . base_url('onlineexam/edit/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('edit') . '"> <i class="fas fa-pen-nib"></i></a>';
+            }
+
+            if (get_permission('online_exam', 'is_delete')) {
+                $action .= btn_delete('onlineexam/delete/' . $record->id);
+            }
+
+            // Exam Link Share
+            if (get_permission('exam_link_share', 'is_view')) {
+                $examURL = base_url('userrole/onlineexam_take/' . $record->id);
+                $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Share Link" onclick="shareExamLink(\'' . $examURL . '\')"><i class="fas fa-share-alt"></i></button>';
+            }
+
+            $row[] = $count++;
+            if (is_superadmin_loggedin()) {
+
+                // $row[] = $record->branchname;
+
+                if (empty($record->created_by_branch)) {
+                    $row[] = '<span class="label label-success">Global</span>';
+                } else {
+                    $row[] = $record->branchname;
+                }
+            }
+            $row[] = $record->title;
+            $row[] = $record->class_name . " (" . $this->getSectionDetails($record->section_id) . ")";
+            $row[] = $record->questions_qty;
+            $row[] = _d($record->exam_start) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_start)) . "</p>";
+            $row[] = _d($record->exam_end) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_end)) . "</p>";
+            $row[] = $record->duration;
+            $row[] = $record->exam_type == 0 ? translate('free') : $currency_symbol . $record->fee;
+            $row[] = '<div class="material-switch ml-xs">
+                    <input class="exam-status" id="examstatus_' . $record->id . '" data-id="' . $record->id . '" name="exam_status' . $record->id . '" type="checkbox" ' . $status . ' />
+                    <label for="examstatus_' . $record->id . '" class="label-primary"></label>
+                  </div>';
+            $row[] = get_type_name_by_id('staff', $record->created_by);
+            $row[] = $action;
+
+            $data[] = $row;
+        }
+
+        return json_encode(array(
+            "draw" => intval($draw),
+            "recordsTotal" => $totalRecords,
+            "recordsFiltered" => $totalRecordwithFilter,
+            "data" => $data,
+        ));
+    }
+
 
     public function getSelectExamList($class_id)
     {

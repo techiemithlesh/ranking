@@ -282,7 +282,7 @@
 <script type="text/javascript">
 	$(document).ready(function () {
 		// initiate Datatable
-		//initDatatable('.exam-list', 'onlineexam/getExamListDT', {}, 25);
+		initDatatable('.exam-list', 'onlineexam/getExamListDT', {}, 25);
 		$('#class_id').on('change', function () {
 			var classID = $(this).val();
 			$.ajax({

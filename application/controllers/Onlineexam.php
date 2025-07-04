@@ -45,11 +45,11 @@ class Onlineexam extends Admin_Controller
 
         $branch_id = $this->application_model->get_branch_id();
 
-        if (is_superadmin_loggedin()) {
-            $this->data['examList'] = $this->onlineexam_model->getAllExams();
-        } else {
-            $this->data['examList'] = $this->onlineexam_model->getBranchExams($branch_id);
-        }
+        // if (is_superadmin_loggedin()) {
+        //     $this->data['examList'] = $this->onlineexam_model->getAllExams();
+        // } else {
+        //     $this->data['examList'] = $this->onlineexam_model->getBranchExams($branch_id);
+        // }
 
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/index';
