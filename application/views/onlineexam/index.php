@@ -42,7 +42,7 @@
 			<?php if (get_permission('online_exam', 'is_add')): ?>
 				<div class="tab-pane" id="add">
 					<?php echo form_open('onlineexam/exam_save', array('class' => 'form-bordered form-horizontal frm-submit')); ?>
-					
+
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?= translate('title') ?> <span
 								class="required">*</span></label>
@@ -279,6 +279,59 @@
 	</div>
 </section>
 
+<!-- MODAL FOR BRANCH ASSIGN START HERE-->
+<div class="zoom-anim-dialog modal-block modal-block-xl mfp-hide" id="modal">
+	<section class="panel">
+		<header class="panel-heading d-flex justify-content-between align-items-center">
+			<h4 class="panel-title mb-0">
+				<i class="fas fa-check-circle"></i> <?php echo translate('Assign Branch'); ?>
+				<small class="text-muted d-block">Select branches to assign selected questions</small>
+			</h4>
+			<div>
+				<div class="form-check mb-0">
+					<input class="form-check-input" type="checkbox" id="selectAllBranches">
+					<label class="form-check-label" for="selectAllBranches">
+						<?php echo translate('Select All Branches'); ?>
+					</label>
+				</div>
+			</div>
+		</header>
+
+		<div class="panel-body">
+			<div class="table-responsive">
+				<table id="branchTable" class="table table-bordered table-striped mb-none" width="100%">
+					<input type="hidden" name="exam_id" id="assign_exam_id" value="">
+					<thead>
+						<tr>
+							<th style="width: 50px;">#</th>
+							<th><?php echo translate('Branch Name'); ?></th>
+							<th class="text-center"><?php echo translate('Assign'); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Dynamic rows will be appended here -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<footer class="panel-footer">
+			<div class="row">
+				<div class="col-md-12 text-right">
+					<button class="btn btn-default modal-dismiss">
+						<i class="fas fa-times"></i> <?php echo translate('close'); ?>
+					</button>
+					<button type="submit" class="btn btn-primary" id="assignBranchModalBtn">
+						<i class="fas fa-check"></i> <?php echo translate('Assign Branch'); ?>
+					</button>
+				</div>
+			</div>
+		</footer>
+	</section>
+</div>
+
+<!-- MODAL FOR BRANCH ASSIGN END HERE-->
+
 <script type="text/javascript">
 	$(document).ready(function () {
 		// initiate Datatable
@@ -296,6 +349,46 @@
 				}
 			});
 		});
+
+		$('#assignBranchModalBtn').on('click', function () {
+			var examID = $('#assign_exam_id').val();
+			var branches = [];
+			$('#branchTable input[name="branches[]"]:checked').each(function () {
+				branches.push($(this).val());
+			});
+
+			$.ajax({
+				url: base_url + 'onlineexam/assignBranchToExam',
+				type: 'POST',
+				data: { exam_id: examID, branches: branches },
+				dataType: 'json',
+				success: function (response) {
+					console.log("re++s", response);
+					if (response.status === 'success') {
+						swal({
+							toast: true,
+							position: 'top-end',
+							title: response.message,
+							showConfirmButton: false,
+							timer: 8000
+						});
+						$.magnificPopup.close();
+						$('#search-btn').trigger('click');
+					} else {
+						alert('Failed to assign branches.');
+					}
+				},
+				error: function () {
+					Swal.fire({
+						title: 'Error',
+						text: 'An unexpected error occurred.',
+						confirmButtonText: 'OK'
+					});
+				}
+			});
+		});
+
+
 	});
 
 	function confirmModal(publish_url) {
@@ -366,4 +459,28 @@
 		});
 
 	}
+
+	// BRANCH ASSIGN START HERE
+	function openAssignBranchModal($id) {
+		console.log("assign branch called", $id);
+
+		if ($id) {
+			$.ajax({
+				url: base_url + 'onlineexam/getBrancheswithExamAssignment',
+				method: "POST",
+				data: { exam_id: $id },
+				success: function (response) {
+					$('#branchTable tbody').html(response);
+					$('#assign_exam_id').val($id);
+				},
+				error: function () {
+					alert('Error loading branch data.');
+				}
+			});
+		}
+
+		mfp_modal('#modal');
+	}
+	// BRANCH ASSIGN END HERE
+
 </script>

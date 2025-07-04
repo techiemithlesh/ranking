@@ -1,4 +1,4 @@
-<?php $branch_id = $exam['branch_id']; ?>
+<?php $branch_id = $exam['created_by_branch']; ?>
 <div class="row">
 	<div class="col-md-12">
 		<section class="panel">
@@ -52,7 +52,7 @@
 						<div class="form-group">
 							<label class="control-label"><?=translate('class')?></label>
 							<?php
-								$arrayClass = $this->app_lib->getClass($branch_id);
+								$arrayClass = $this->app_lib->getSelectClassList();
 								echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>

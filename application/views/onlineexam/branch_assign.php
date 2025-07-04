@@ -287,7 +287,7 @@
                     branch_ids: selectedBranches
                 },
                 success: function (response) {
-                    console.log("branch_assign", response);
+                    // console.log("branch_assign", response);
                     if (response.status === 'success') {
                         swal({
                             toast: true,

@@ -100,7 +100,7 @@ class Onlineexam extends Admin_Controller
         }
 
         $this->data['onlineexam'] = $onlineexam;
-      
+
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/edit';
         $this->data['main_menu'] = 'onlineexam';
@@ -501,6 +501,7 @@ class Onlineexam extends Admin_Controller
         $this->data['sectionID'] = $this->input->post('section_id');
         $this->data['subjectID'] = $this->input->post('subject_id');
         $exam = $this->onlineexam_model->get('online_exam', array('id' => $examid), true);
+
         $this->data['exam'] = $exam;
         $this->data['title'] = translate('manage') . " " . translate('question');
         $this->data['sub_page'] = 'onlineexam/manage_question';
@@ -1164,4 +1165,89 @@ class Onlineexam extends Admin_Controller
             return true;
         }
     }
+
+    public function getBrancheswithExamAssignment()
+    {
+        if (!is_superadmin_loggedin()) {
+            access_denied();
+        }
+
+        $examID = $this->input->post('exam_id');
+
+        // ✅ Fetch exam to get class_id
+        $exam = $this->db->get_where('online_exam', ['id' => $examID])->row();
+        if (!$exam) {
+            echo '<tr><td colspan="3">Exam not found.</td></tr>';
+            return;
+        }
+        $classID = $exam->class_id;
+
+        // ✅ Fetch branches mapped to that class
+        $this->db->select('branch.*')
+            ->from('branch')
+            ->join('class_branch_map', 'class_branch_map.branch_id = branch.id')
+            ->where('class_branch_map.class_id', $classID);
+        $branches = $this->db->get()->result();
+
+        // ✅ Fetch already assigned branches for this exam
+        $assigned = $this->db->select('branch_id')
+            ->where('exam_id', $examID)
+            ->get('exam_assignment')
+            ->result_array();
+        $assignedBranchIDs = array_column($assigned, 'branch_id');
+
+        // ✅ Prepare HTML
+        $html = '';
+        $count = 1;
+        if (empty($branches)) {
+            $html .= '<tr><td colspan="3">No branches mapped to this class.</td></tr>';
+        } else {
+            foreach ($branches as $branch) {
+                $checked = in_array($branch->id, $assignedBranchIDs) ? 'checked' : '';
+                $html .= '<tr>
+                    <td>' . $count++ . '</td>
+                    <td>' . htmlspecialchars($branch->name) . '</td>
+                    <td class="text-center">
+                        <input type="checkbox" name="branches[]" value="' . $branch->id . '" ' . $checked . '>
+                    </td>
+                  </tr>';
+            }
+        }
+        echo $html;
+    }
+
+    public function assignBranchToExam()
+    {
+        if (!is_superadmin_loggedin()) {
+            access_denied();
+        }
+
+        $examID = $this->input->post('exam_id');
+        $branches = $this->input->post('branches');
+
+        if (empty($examID)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Exam ID is required.']);
+            return;
+        }
+
+        // Remove all existing assignments for this exam
+        $this->db->where('exam_id', $examID);
+        $this->db->delete('exam_assignment');
+
+        // Insert new assignments
+        if (!empty($branches)) {
+            $data = [];
+            foreach ($branches as $branchID) {
+                $data[] = [
+                    'exam_id' => $examID,
+                    'branch_id' => $branchID,
+                ];
+            }
+            $this->db->insert_batch('exam_assignment', $data);
+        }
+
+        echo json_encode(['status' => 'success', 'message' => 'Branch assignment updated successfully.']);
+    }
+
+
 }
