@@ -245,10 +245,10 @@ class Userrole_model extends MY_Model
         return $this->db->get()->row_array();
     }
 
-    public function examListDT($postData, $currency_symbol = '')
+    public function examListDT_Old($postData, $currency_symbol = '')
     {
         date_default_timezone_set('Asia/Kolkata');
-        
+
         $response = array();
         $sessionID = get_session_id();
         // read value
@@ -403,7 +403,173 @@ class Userrole_model extends MY_Model
         return json_encode($response);
     }
 
-    public function getExamDetails($onlineexamID)
+    public function examListDT($postData, $currency_symbol = '')
+    {
+        $response = array();
+        $sessionID = get_session_id();
+
+        // read value
+        $draw = $postData['draw'];
+        $start = $postData['start'];
+        $rowperpage = $postData['length'];
+        $searchValue = $postData['search']['value'];
+
+        // order
+        $columnIndex = empty($postData['order'][0]['column']) ? 0 : $postData['order'][0]['column'];
+        $columnSortOrder = empty($postData['order'][0]['dir']) ? 'DESC' : $postData['order'][0]['dir'];
+        $column_order = array('`online_exam`.`id`');
+
+        $search_arr = array();
+        $searchQuery = "";
+
+        if ($searchValue != '') {
+            $search_arr[] = " (`online_exam`.`title` like '%" . $searchValue . "%' OR `online_exam`.`exam_start` like '%" . $searchValue . "%' OR `online_exam`.`exam_end` like '%" . $searchValue . "%') ";
+        }
+
+        $enrollID = $this->session->userdata('enrollID');
+        $enroll = $this->db->select('*')->where('id', $enrollID)->get('enroll')->row();
+        $branch_id = get_loggedin_branch_id();
+        $class_id = $enroll->class_id;
+        $section_id = $enroll->section_id;
+
+        // ✅ Fetch exams assigned to this branch from exam_assignment table
+        $assignedExamIDs = $this->db->select('exam_id')
+            ->where('branch_id', $branch_id)
+            ->get('exam_assignment')
+            ->result_array();
+        $assignedExamIDs = array_column($assignedExamIDs, 'exam_id');
+
+        // log_message('error', 'Assigned Exam IDs: ' . print_r($assignedExamIDs, true));
+
+        // ✅ Build WHERE condition: created_by_branch OR assigned to branch
+        $search_arr[] = " `online_exam`.`class_id` = " . $this->db->escape($class_id) . " ";
+        $search_arr[] = " (
+        `online_exam`.`created_by_branch` IS NULL
+        OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
+        OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
+    )";
+
+        if (count($search_arr) > 0) {
+            $searchQuery = implode(" AND ", $search_arr);
+        }
+
+        // ✅ Total number of records with filtering
+        $sql = "SELECT `id`, `section_id` FROM `online_exam`
+            WHERE `publish_status` = '1' AND " . $searchQuery;
+
+        // log_message('error', 'Exam Count Query: ' . $sql);
+        $records = $this->db->query($sql)->result();
+
+        $totalRecords = 0;
+        $totalRecordwithFilter = 0;
+
+        foreach ($records as $record) {
+            $array = json_decode($record->section_id, true);
+            if ((is_array($array) && in_array($section_id, $array)) || $record->section_id == $section_id) {
+                $totalRecords++;
+                $totalRecordwithFilter++;
+            }
+        }
+
+        // ✅ Fetch records with pagination
+        $studentID = $this->db->escape(get_loggedin_user_id());
+        $sql = "SELECT `online_exam`.*, `class`.`name` as `class_name`,
+            (SELECT COUNT(`id`) FROM `questions_manage` WHERE `questions_manage`.`onlineexam_id`=`online_exam`.`id`) as `questions_qty`,
+            (SELECT COUNT(`id`) FROM `online_exam_payment` WHERE `online_exam_payment`.`exam_id`=`online_exam`.`id` AND `online_exam_payment`.`student_id`= $studentID) as `payment_status`,
+            `branch`.`name` as `branchname`
+            FROM `online_exam`
+            LEFT JOIN `branch` ON `branch`.`id` = `online_exam`.`created_by_branch`
+            LEFT JOIN `class` ON `class`.`id` = `online_exam`.`class_id`
+            WHERE `publish_status` = '1' AND " . $searchQuery . "
+            ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder
+            LIMIT $start, $rowperpage";
+
+        // log_message('error', 'Exam Fetch Query: ' . $sql);
+        $records = $this->db->query($sql)->result();
+
+        $data = array();
+        $count = $start + 1;
+
+        foreach ($records as $record) {
+            $array = json_decode($record->section_id, true);
+            if ((is_array($array) && in_array($section_id, $array)) || $record->section_id == $section_id) {
+                $startTime = strtotime($record->exam_start);
+                $endTime = strtotime($record->exam_end);
+                $now = time();
+                $examSubmitted = $this->onlineexam_model->getStudentSubmitted($record->id);
+                $status = '';
+                $labelmode = '';
+                $takeExam = 0;
+
+                // exam status
+                if ($record->publish_result == 1 && !empty($examSubmitted)) {
+                    $status = translate('result_published');
+                    $labelmode = 'label-success-custom';
+                } else {
+                    if (!empty($examSubmitted)) {
+                        $status = '<i class="fas fa-check fa-fw"></i> ' . translate('already_submitted');
+                        $labelmode = 'label-success-custom';
+                    } elseif ($startTime <= $now && $now <= $endTime) {
+                        $status = translate('live');
+                        $labelmode = 'label-warning-custom';
+                        $takeExam = 1;
+                    } elseif ($startTime >= $now && $now <= $endTime) {
+                        $status = '<i class="far fa-clock"></i> ' . translate('waiting');
+                        $labelmode = 'label-info-custom';
+                    } elseif ($now >= $endTime) {
+                        $status = translate('closed');
+                        $labelmode = 'label-danger-custom';
+                    }
+                }
+
+                $row = array();
+                $action = "";
+                $paymentStatus = ($record->exam_type == 1 && $record->payment_status == 0) ? 1 : 0;
+
+                if ($takeExam == 1) {
+                    $url = base_url('userrole/onlineexam_take/' . $record->id);
+                    if ($paymentStatus == 1) {
+                        $action .= '<a href="javascript:void(0);" onclick="paymentModal(' . $this->db->escape($record->id) . ')" class="btn btn-circle btn-default"> <i class="fas fa-credit-card"></i> ' . translate('pay') . " & " . translate('take_exam') . '</a>';
+                    } else {
+                        $action .= '<a href="' . $url . '" class="btn btn-circle btn-default"> <i class="fas fa-users-between-lines"></i> ' . translate('take_exam') . '</a>';
+                    }
+                } else {
+                    if ($record->publish_result == 1 && !empty($examSubmitted)) {
+                        $action .= '<a href="javascript:void(0);" onclick="getStudentResult(' . $this->db->escape($record->id) . ')" class="btn btn-circle btn-default"> <i class="fas fa-users-viewfinder"></i> ' . translate('view') . " " . translate('result') . '</a>';
+                    } else {
+                        $action .= '<a href="javascript:void(0);" disabled class="btn btn-circle btn-default"> <i class="fas fa-users-between-lines"></i> ' . translate('take_exam') . '</a>';
+                    }
+                }
+
+                $row[] = $count++;
+                $row[] = $record->title;
+                $row[] = $record->class_name . " (" . $this->onlineexam_model->getSectionDetails($record->section_id) . ")";
+                $row[] = $this->onlineexam_model->getSubjectDetails($record->subject_id);
+                $row[] = $record->questions_qty;
+                $row[] = _d($record->exam_start) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_start)) . "</p>";
+                $row[] = _d($record->exam_end) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_end)) . "</p>";
+                $row[] = $record->duration;
+                $row[] = $record->exam_type == 0 ? translate('free') : $currency_symbol . $record->fee;
+                $row[] = "<span class='label " . $labelmode . " '>" . $status . "</span>";
+                $row[] = $action;
+                $data[] = $row;
+            }
+        }
+
+        // Response
+        $response = array(
+            "draw" => intval($draw),
+            "recordsTotal" => $totalRecords,
+            "recordsFiltered" => $totalRecordwithFilter,
+            "data" => $data,
+        );
+
+        return json_encode($response);
+    }
+
+
+
+    public function getExamDetails_Old($onlineexamID)
     {
         $student = $this->getStudentDetails();
         $classID = $student['class_id'];
@@ -421,5 +587,56 @@ class Userrole_model extends MY_Model
             return [];
         }
     }
+
+    public function getExamDetails($onlineexamID)
+    {
+        $student = $this->getStudentDetails();
+        $classID = $student['class_id'];
+        $sectionID = $student['section_id'];
+        $onlineexamID = $this->db->escape($onlineexamID);
+        $sessionID = $this->db->escape(get_session_id());
+        $branchID = $this->db->escape(get_loggedin_branch_id());
+        $studentID = $this->db->escape(get_loggedin_user_id());
+
+        // Fetch assigned exams to this branch
+        $assignedExams = $this->db->select('exam_id')
+            ->where('branch_id', get_loggedin_branch_id())
+            ->get('exam_assignment')
+            ->result_array();
+
+        $assignedExamIDs = array_column($assignedExams, 'exam_id');
+        $assignedExamIDsStr = !empty($assignedExamIDs) ? implode(',', $assignedExamIDs) : '0';
+
+        $sql = "SELECT `online_exam`.*, `class`.`name` as `class_name`,
+        (SELECT COUNT(`id`) FROM `questions_manage` WHERE `questions_manage`.`onlineexam_id`=`online_exam`.`id`) as `questions_qty`,
+        (SELECT COUNT(`id`) FROM `online_exam_payment` WHERE `online_exam_payment`.`exam_id`=`online_exam`.`id` AND `online_exam_payment`.`student_id`=$studentID) as `payment_status`,
+        `branch`.`name` as `branchname`
+        FROM `online_exam`
+        LEFT JOIN `branch` ON `branch`.`id` = `online_exam`.`created_by_branch`
+        LEFT JOIN `class` ON `class`.`id` = `online_exam`.`class_id`
+        WHERE `online_exam`.`session_id` = $sessionID
+        AND `online_exam`.`publish_status` = '1'
+        AND `online_exam`.`id` = $onlineexamID
+        AND `online_exam`.`class_id` = $classID
+        AND (
+            `online_exam`.`created_by_branch` IS NULL
+            OR `online_exam`.`created_by_branch` = $branchID
+            OR `online_exam`.`id` IN ($assignedExamIDsStr)
+        )";
+
+        $records = $this->db->query($sql)->row();
+
+        // Check section mapping
+        if ($records) {
+            $sectionList = json_decode($records->section_id, true);
+            if (in_array($sectionID, $sectionList)) {
+                return $records;
+            }
+        }
+
+        return [];
+    }
+
+
 
 }
