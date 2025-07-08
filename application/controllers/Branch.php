@@ -14,12 +14,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Branch extends Admin_Controller
 {
 
+    public $branch_model;
+    
     public function __construct()
     {
         parent::__construct();
-        ini_set('display_errors', 1);
-        ini_set('display_startup_errors', 1);
-        error_reporting(E_ALL);
+        // ini_set('display_errors', 1);
+        // ini_set('display_startup_errors', 1);
+        // error_reporting(E_ALL);
         $this->load->model('branch_model');
         $this->load->library('csvimport');
 
