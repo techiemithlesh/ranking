@@ -84,11 +84,9 @@
         },
         complete: function (data) {
           btn.button("reset");
-         
         },
         error: function () {
           btn.button("reset");
-          
         },
       });
     });
@@ -441,8 +439,15 @@ function getClassAssignM(class_id, section_id) {
 
 function getSectionByClass(class_id, all = 0, multi = 0) {
   if (class_id !== "") {
+    // var branch_id = $("#branch_id").length ? $("#branch_id").val() : "";
 
-    var branch_id = $("#branch_id").length ? $("#branch_id").val() : "";
+    var branch_id = '';
+
+    if ($("#branch_id").length) {
+      branch_id = $("#branch_id").val();
+    } else if ($("[name='branch_id']").length) {
+      branch_id = $("[name='branch_id']").val();
+    }
 
     console.log("branch_id", branch_id);
 

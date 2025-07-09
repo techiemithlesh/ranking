@@ -35,7 +35,7 @@
 					<label class="col-md-3 control-label"><?=translate('section')?> <span class="required">*</span></label>
 					<div class="col-md-6">
 						<?php
-							$arraySection = $this->app_lib->getSections(set_value('class_id'), true);
+							$arraySection = $this->app_lib->getSectionsByClass(set_value('class_id'), true);
 							echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id'
 							data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 						?>

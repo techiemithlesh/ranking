@@ -39,7 +39,7 @@ $currency_symbol = $global_config['currency_symbol'];
 							<label class="control-label"><?= translate('section') ?> <span
 									class="required">*</span></label>
 							<?php
-							$arraySection = $this->app_lib->getSections(set_value('class_id'), true);
+							$arraySection = $this->app_lib->getSectionsByClass(set_value('class_id'), true);
 							echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id' required
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>

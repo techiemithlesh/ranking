@@ -15,7 +15,7 @@
                                         class="required">*</span></label>
                                 <?php
                                 $arrayBranch = $this->app_lib->getSelectList('branch');
-                                echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' onchange='getClassByBranch(this.value)'
+                                echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id' onchange='getClassByBranch(this.value)'
                                 data-plugin-selectTwo data-width='100%' required");
                                 ?>
                             </div>
@@ -29,7 +29,7 @@
                                 $branch_id = get_loggedin_branch_id();
                             }
 
-                            $arrayClass = $this->app_lib->getClass($branch_id);
+                           $arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
                             echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,1)'
                                 required data-plugin-selectTwo data-width='100%' ");
                             ?>
@@ -40,7 +40,7 @@
                             <label class="control-label"><?= translate('section') ?> <span
                                     class="required">*</span></label>
                             <?php
-                            $arraySection = $this->app_lib->getSections(set_value('class_id'), true);
+                            $arraySection = $this->app_lib->getSectionsByClass(set_value('class_id'), true);
                             echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id' required
                                 data-plugin-selectTwo data-width='100%' onchange='getStudentsBySection(this.value)' ");
                             ?>
@@ -160,9 +160,6 @@
                 text: 'Please wait while we process your file',
                 allowOutsideClick: false,
                 showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
             });
 
             let formData = new FormData(this);

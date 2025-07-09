@@ -331,7 +331,7 @@ class Ajax extends MY_Controller
     {
         $html = "";
         $classID = $this->input->post("class_id");
-        $branchID = $this->input->post("branch_id");
+        $branchID = is_superadmin_loggedin() ? $this->input->post("branch_id") : get_loggedin_branch_id(); 
         $mode = $this->input->post("all");
         $multi = $this->input->post("multi");
 
