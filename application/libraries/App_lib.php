@@ -169,7 +169,8 @@ class App_lib
     // NEW HASSING ADDING FOR 2 WAY PROCESS ENCRYPTION AND DECRYPTION FOR PASSWORD VIEW
 
     // Initialize encryption #changing the encryption mehtod to show password in super admin of all login 24-01-25
-    public function has_password($password){
+    public function has_password($password)
+    {
         $this->CI->encryption->initialize(array(
             'cipher' => 'aes-256',
             'mode' => 'cbc',
@@ -275,11 +276,14 @@ class App_lib
             $CI->db->select('c.id, c.name');
             $CI->db->from('class c');
             $CI->db->join('class_branch_map cbm', 'cbm.class_id = c.id', 'left');
+            $CI->db->group_start();
             $CI->db->where('cbm.branch_id', $branch_id);
             $CI->db->or_where('c.created_by_branch', $branch_id);
+            $CI->db->group_end();
             $CI->db->group_by('c.id');
             $CI->db->order_by('c.name', 'ASC');
             $result = $CI->db->get()->result();
+
         }
 
         foreach ($result as $row) {
@@ -288,8 +292,6 @@ class App_lib
 
         return $array;
     }
-
-
 
     public function getStudentCategory($branch_id = '')
     {
@@ -352,7 +354,7 @@ class App_lib
     }
 
     // NEW FOR 3.0
-    public function getSectionsByClass($class_id = '', $all = false, $multi = false)
+    public function getSectionsByClass($class_id = '', $branch_id = '', $all = false, $multi = false)
     {
         $CI = &get_instance();
 
@@ -374,6 +376,9 @@ class App_lib
                 // Admin/staff — use Section table (new model)
                 $CI->db->select('id, name');
                 $CI->db->where('class_id', $class_id);
+                if (!empty($branch_id)) {
+                    $CI->db->where('branch_id', $branch_id);
+                }
                 $CI->db->order_by('name', 'ASC');
                 $result = $CI->db->get('section')->result();
             }
@@ -769,8 +774,6 @@ class App_lib
 
         return $output;
     }
-
-
 
     public function getSelectClassList()
     {

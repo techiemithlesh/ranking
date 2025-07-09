@@ -37,14 +37,15 @@
 							<label class="control-label"><?= translate('register_no') ?> <span
 									class="required">*</span></label>
 							<input type="text" class="form-control" name="register_no"
-								value="<?= set_value('register_no', $register_id) ?>" readonly/>
+								value="<?= set_value('register_no', $register_id) ?>" readonly />
 							<span class="error"><?= form_error('register_no') ?></span>
 						</div>
 					</div>
 
 					<div class="col-md-3 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?= translate('roll') ?> <span class="required">*</span></label>
+							<label class="control-label"><?= translate('roll') ?> <span
+									class="required">*</span></label>
 							<input type="text" class="form-control" name="roll" value="<?= set_value('roll') ?>" />
 							<span class="error"><?= form_error('roll') ?></span>
 						</div>
@@ -81,9 +82,14 @@
 					<?php endif; ?>
 					<div class="col-md-<?php echo $widget; ?> mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?= translate('class') ?> <span class="required">*</span></label>
+							<label class="control-label"><?= translate('class') ?> <span
+									class="required">*</span></label>
 							<?php
-							$arrayClass = $this->app_lib->getClass($branch_id);
+							if (!is_superadmin_loggedin()) {
+								$branch_id = get_loggedin_branch_id();
+							}
+							
+							$arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
 							echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -95,7 +101,7 @@
 							<label class="control-label"><?= translate('section') ?> <span
 									class="required">*</span></label>
 							<?php
-							$arraySection = $this->app_lib->getSections(set_value('class_id'), false);
+							$arraySection = $this->app_lib->getSectionsByClass(set_value('class_id'), false);
 							echo form_dropdown("section_id", $arraySection, set_value('section_id'), "class='form-control' id='section_id' 
 								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -108,7 +114,7 @@
 									class="required">*</span></label>
 							<?php
 							$arrayCategory = $this->app_lib->classCategory();
-							
+
 							echo form_dropdown("category_id", $arrayCategory, set_value('category_id'), "class='form-control'
 								data-plugin-selectTwo data-width='100%' id='class_category_id' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -282,7 +288,8 @@
 				<div class="row mb-md">
 					<div class="col-md-6 mb-sm">
 						<div class="form-group">
-							<label class="control-label"><?= translate('email') ?> <span class="required">*</span></label>
+							<label class="control-label"><?= translate('email') ?> <span
+									class="required">*</span></label>
 							<div class="input-group">
 								<span class="input-group-addon"><i class="far fa-envelope-open"></i></span>
 								<input type="text" class="form-control" name="email" id="email"
@@ -333,7 +340,8 @@
 				<div class="row" id="exist_list" <?php if (set_value('guardian_chk') != true)
 					echo 'style="display: none;"'; ?>>
 					<div class="col-md-12 mb-md">
-						<label class="control-label"><?= translate('guardian') ?> <span class="required">*</span></label>
+						<label class="control-label"><?= translate('guardian') ?> <span
+								class="required">*</span></label>
 						<div class="form-group">
 							<?php
 							$arrayParent = $this->app_lib->getSelectByBranch('parent', $branch_id);
@@ -403,8 +411,8 @@
 						<div class="col-md-4 mb-sm">
 							<div class="form-group">
 								<label class="control-label"><?= translate('education') ?></label>
-								<input class="form-control" name="grd_education" value="<?= set_value('grd_education') ?>"
-									type="text">
+								<input class="form-control" name="grd_education"
+									value="<?= set_value('grd_education') ?>" type="text">
 							</div>
 						</div>
 					</div>

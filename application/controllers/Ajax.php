@@ -185,7 +185,9 @@ class Ajax extends MY_Controller
 
     public function getClassByBranch()
     {
+        
         $branch_id = $this->input->post('branch_id', true);
+
         $html = "";
 
         if (!empty($branch_id)) {
@@ -329,11 +331,12 @@ class Ajax extends MY_Controller
     {
         $html = "";
         $classID = $this->input->post("class_id");
+        $branchID = $this->input->post("branch_id");
         $mode = $this->input->post("all");
         $multi = $this->input->post("multi");
 
         if (!empty($classID)) {
-            $sections = $this->app_lib->getSectionsByClass($classID, $mode, $multi);
+            $sections = $this->app_lib->getSectionsByClass($classID, $branchID, $mode, $multi);
 
             foreach ($sections as $key => $value) {
                 $html .= '<option value="' . $key . '">' . htmlspecialchars($value) . '</option>';
