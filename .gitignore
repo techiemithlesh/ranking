@@ -1,3 +1,4 @@
 books/ 
 application/config/database.php
 application/logs/
+application/config
