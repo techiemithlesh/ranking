@@ -29,7 +29,7 @@
                                 </thead>
                                 <tbody>
                                     <?php $count = 1;
-                                    foreach ($attachmentss as $row): ?>
+                                    foreach ($books as $row): ?>
                                         <tr>
                                             <td><?php echo $count++; ?></td>
                                             <td><?php echo $row['title']; ?></td>
@@ -84,7 +84,7 @@
                         $session_data = $this->session->all_userdata();
                         $loggedin_branchId = $session_data['loggedin_branch'];
 
-                        $arrayClass = $this->app_lib->getClass($loggedin_branchId);
+                        $arrayClass = $this->app_lib->getSelectClassByBranch($loggedin_branchId);
                         echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
                                                                                                 data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
                         ?>
