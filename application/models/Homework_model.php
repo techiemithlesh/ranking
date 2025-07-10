@@ -116,8 +116,6 @@ class Homework_model extends MY_Model
         $sendPop = true;
 
         $stuList = $this->application_model->getStudentListByClassSection($arrayHomework['class_id'], $arrayHomework['section_id'], $arrayHomework['branch_id']);
-        // printVar($stuList);
-        // die;
         $this->load->model('notification_model');
         $this->load->model('subject_model');
 
@@ -147,7 +145,7 @@ class Homework_model extends MY_Model
                 }
 
                 // SEND WHATSAPP MSG
-                sendWhatsAppMsg($item['mobileno'], $studentTitle);
+                // sendWhatsAppMsg($item['mobileno'], $studentTitle);
             }
         }
 
