@@ -153,7 +153,6 @@
                 selectedBooks.push($(this).val());
             });
 
-            // Get branch_id - either from dropdown or session
             var branch_id;
             if ($('#branch_id').length) {
                 // If branch dropdown exists (superadmin)
@@ -162,7 +161,6 @@
                     swal({
                         toast: true,
                         position: 'top-end',
-                        icon: 'error',
                         title: 'Please select a branch.',
                         showConfirmButton: false,
                         timer: 8000
@@ -170,7 +168,6 @@
                     return;
                 }
             } else {
-                // For regular admin, use session branch
                 branch_id = '<?php echo $this->session->userdata("loggedin_branch"); ?>';
             }
 
@@ -179,7 +176,6 @@
                 swal({
                     toast: true,
                     position: 'top-end',
-                    icon: 'error',
                     title: 'Please select a class.',
                     showConfirmButton: false,
                     timer: 8000
@@ -193,6 +189,8 @@
                 book_ids: selectedBooks,
                 branch_id: branch_id
             };
+
+            console.log("formdata", formData);
 
             // Add CSRF token
             formData['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
@@ -210,7 +208,6 @@
                         swal({
                             toast: true,
                             position: 'top-end',
-                            icon: 'success',
                             title: response.message,
                             showConfirmButton: false,
                             timer: 8000
@@ -221,7 +218,6 @@
                         swal({
                             toast: true,
                             position: 'top-end',
-                            icon: 'error',
                             title: response.message || 'Error assigning class to books.',
                             showConfirmButton: false,
                             timer: 8000
@@ -232,7 +228,6 @@
                     swal({
                         toast: true,
                         position: 'top-end',
-                        icon: 'error',
                         title: 'An error occurred while assigning class to books.',
                         showConfirmButton: false,
                         timer: 8000

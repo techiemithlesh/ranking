@@ -10,7 +10,7 @@ class Classes_model extends MY_Model
 
     public function getTeacherAllocation($branch_id = '')
     {
-        $this->db->select('ta.*,st.name as teacher_name,st.staff_id as teacher_id,c.name as class_name,c.branch_id,s.name as section_name');
+        $this->db->select('ta.*,st.name as teacher_name,st.staff_id as teacher_id,c.name as class_name, ta.branch_id,s.name as section_name');
         $this->db->from('teacher_allocation as ta');
         $this->db->join('staff as st', 'st.id = ta.teacher_id', 'left');
         $this->db->join('class as c', 'c.id = ta.class_id', 'left');
