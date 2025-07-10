@@ -35,7 +35,7 @@ class Homework extends Admin_Controller
             $subjectID = $this->input->post('subject_id');
             $this->data['homeworklist'] = $this->homework_model->getList($classID, $sectionID, $subjectID, $branchID);
         }
-        
+
         $this->data['branch_id'] = $branchID;
         $this->data['title'] = translate('homework');
         $this->data['sub_page'] = 'homework/index';
@@ -54,18 +54,21 @@ class Homework extends Admin_Controller
             if ($this->form_validation->run() !== false) {
                 $post = $this->input->post();
                 $response = $this->homework_model->save($post);
-                set_alert('success', translate('information_has_been_saved_successfully'));
-                $url = base_url('homework');
-                $array = array('status' => 'success', 'url' => $url);
+                if ($response) {
+                    set_alert('success', translate('homework_has_been_saved_successfully'));
+                    $url = base_url('homework');
+                    $array = array('status' => 'success', 'url' => $url);
+                }
             } else {
                 $error = $this->form_validation->error_array();
-                $array = array('status' => 'fail','error' => $error);
+                $array = array('status' => 'fail', 'error' => $error);
             }
             echo json_encode($array);
             exit();
         }
+
+        $this->data['branch_id'] = $this->application_model->get_branch_id();
         
-        $this->data['branch_id'] = $this->application_model->get_branch_id();;
         $this->data['title'] = translate('homework');
         $this->data['sub_page'] = 'homework/add';
         $this->data['main_menu'] = 'homework';
@@ -82,12 +85,12 @@ class Homework extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function edit($id='')
+    public function edit($id = '')
     {
         if (!get_permission('homework', 'is_edit')) {
             access_denied();
         }
-        
+
         if ($_POST) {
             $this->homework_validation();
             if ($this->form_validation->run() !== false) {
@@ -98,14 +101,15 @@ class Homework extends Admin_Controller
                 $array = array('status' => 'success', 'url' => $url);
             } else {
                 $error = $this->form_validation->error_array();
-                $array = array('status' => 'fail','error' => $error);
+                $array = array('status' => 'fail', 'error' => $error);
             }
             echo json_encode($array);
             exit();
         }
-        
+
         $this->data['homework'] = $this->app_lib->getTable('homework', array('t.id' => $id), true);
-        $this->data['branch_id'] = $this->application_model->get_branch_id();;
+        $this->data['branch_id'] = $this->application_model->get_branch_id();
+        ;
         $this->data['title'] = translate('homework');
         $this->data['sub_page'] = 'homework/edit';
         $this->data['main_menu'] = 'homework';
@@ -122,7 +126,7 @@ class Homework extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function evaluate($id='')
+    public function evaluate($id = '')
     {
         // check access permission
         if (!get_permission('homework_evaluate', 'is_view')) {
@@ -169,17 +173,17 @@ class Homework extends Admin_Controller
                 }
                 $this->db->where('id', $homeworkID);
                 $this->db->update('homework', array('evaluation_date' => $date, 'evaluated_by' => get_loggedin_user_id()));
-                
+
                 set_alert('success', translate('information_has_been_saved_successfully'));
                 $url = base_url('homework');
-                $array  = array('status' => 'success', 'url' => $url);
+                $array = array('status' => 'success', 'url' => $url);
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
             }
             echo json_encode($array);
             exit();
-        }  
+        }
     }
 
     public function evaluateModal()
@@ -202,7 +206,7 @@ class Homework extends Admin_Controller
             $subjectID = $this->input->post('subject_id');
             $this->data['homeworklist'] = $this->homework_model->getList($classID, $sectionID, $subjectID, $branchID);
         }
-        
+
         $this->data['branch_id'] = $branchID;
         $this->data['title'] = translate('homework');
         $this->data['sub_page'] = 'homework/report';
@@ -221,12 +225,12 @@ class Homework extends Admin_Controller
     public function download($id)
     {
         $this->load->helper('download');
-        $name     = get_type_name_by_id('homework', $id, 'document');
-        $ext      = explode(".", $name);
+        $name = get_type_name_by_id('homework', $id, 'document');
+        $ext = explode(".", $name);
         $filepath = "./uploads/attachments/homework/" . $id . "." . $ext[1];
-        $data     = file_get_contents($filepath);
+        $data = file_get_contents($filepath);
         force_download($name, $data);
-    } 
+    }
 
     public function delete($id = '')
     {

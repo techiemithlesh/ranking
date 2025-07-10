@@ -56,12 +56,118 @@ class Homework_model extends MY_Model
     }
 
     // save student homework in DB
+    // public function save($data)
+    // {
+    //     // $this->db->trans_start();
+
+    //     $status = isset($data['published_later']) ? TRUE : FALSE;
+    //     $sms_notification = isset($data['notification_sms']) ? TRUE : FALSE;
+    //     $arrayHomework = array(
+    //         'branch_id' => $this->application_model->get_branch_id(),
+    //         'class_id' => $data['class_id'],
+    //         'section_id' => $data['section_id'],
+    //         'session_id' => get_session_id(),
+    //         'subject_id' => $data['subject_id'],
+    //         'date_of_homework' => date("Y-m-d", strtotime($data['date_of_homework'])),
+    //         'date_of_submission' => date("Y-m-d", strtotime($data['date_of_submission'])),
+    //         'description' => $data['homework'],
+    //         'created_by' => get_loggedin_user_id(),
+    //         'create_date' => date("Y-m-d"),
+    //         'status' => $status,
+    //         'sms_notification' => $sms_notification,
+    //     );
+    //     if ($status == TRUE) {
+    //         $arrayHomework['schedule_date'] = date("Y-m-d", strtotime($data['schedule_date']));
+    //     } else {
+    //         $arrayHomework['schedule_date'] = null;
+    //     }
+    //     if (isset($data['homework_id'])) {
+    //         if (!is_superadmin_loggedin())
+    //             $this->db->where('branch_id', get_loggedin_branch_id());
+    //         $this->db->where('id', $data['homework_id']);
+    //         $this->db->update('homework', $arrayHomework);
+    //         $insert_id = $data['homework_id'];
+    //     } else {
+    //         $this->db->insert('homework', $arrayHomework);
+    //         $insert_id = $this->db->insert_id();
+    //     }
+
+    //     if (isset($_FILES["attachment_file"]) && !empty($_FILES['attachment_file']['name'])) {
+    //         $uploaddir = './uploads/attachments/homework/';
+    //         if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
+    //             die("Error creating folder $uploaddir");
+    //         }
+    //         $fileInfo = pathinfo($_FILES["attachment_file"]["name"]);
+    //         $document = basename($_FILES['attachment_file']['name']);
+
+    //         $file_name = $insert_id . '.' . $fileInfo['extension'];
+    //         move_uploaded_file($_FILES["attachment_file"]["tmp_name"], $uploaddir . $file_name);
+    //     } else {
+    //         if (isset($data['old_document'])) {
+    //             $document = $data['old_document'];
+    //         } else {
+    //             $document = "";
+    //         }
+    //     }
+
+    //     $this->db->where('id', $insert_id);
+    //     $this->db->update('homework', array('document' => $document));
+
+    //     $sendPop = true;
+
+    //     $stuList = $this->application_model->getStudentListByClassSection($arrayHomework['class_id'], $arrayHomework['section_id'], $arrayHomework['branch_id']);
+    //     $this->load->model('notification_model');
+    //     $this->load->model('subject_model');
+
+    //     $subjectName = $this->subject_model->getSubjectNameById($arrayHomework['subject_id']);
+    //     $submissionDate = date('d M Y', strtotime($arrayHomework['date_of_submission']));
+    //     $homeworkDate = date('d M Y', strtotime($arrayHomework['date_of_homework']));
+
+    //     $studentTitle = "New homework has been assigned.";
+    //     $studentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submit by: {$submissionDate}.";
+
+    //     $parentTitle = "Your child has been assigned a new homework.";
+    //     $parentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submission due: {$submissionDate}. Please ensure it is completed on time.";
+
+    //     $link = base_url("userrole/homework");
+    //     $from_user_id = get_loggedin_user_id();
+    //     $from_user_type = loggedin_role_id();
+
+    //     if (!$status ==TRUE) {
+    //         foreach ($stuList as $item) {
+    //             $user_id = $item['student_id'];
+    //             $this->notification_model->sendNotification($user_id, 7, $studentTitle, $studentDescription, $link, $from_user_id, $from_user_type);
+
+    //             if (!empty($item['parent_id'])) {
+    //                 $parent_id = $item['parent_id'];
+    //                 $parentTitle = "Your child has been assigned a new homework.";
+    //                 $this->notification_model->sendNotification($parent_id, 6, $parentTitle, $parentDescription, $link, $from_user_id, $from_user_type);
+    //             }
+
+    //             // SEND WHATSAPP MSG
+    //             // sendWhatsAppMsg($item['mobileno'], $studentTitle);
+    //         }
+    //     }
+
+    //     //send homework sms notification
+    //     if (isset($data['notification_sms'])) {
+    //         foreach ($stuList as $row) {
+    //             $row['date_of_homework'] = $arrayHomework['date_of_homework'];
+    //             $row['date_of_submission'] = $arrayHomework['date_of_submission'];
+    //             $row['subject_id'] = $arrayHomework['subject_id'];
+    //             $this->sms_model->sendHomework($row);
+    //         }
+    //     }
+    // }
+
+
     public function save($data)
     {
         $this->db->trans_start();
 
         $status = isset($data['published_later']) ? TRUE : FALSE;
         $sms_notification = isset($data['notification_sms']) ? TRUE : FALSE;
+
         $arrayHomework = array(
             'branch_id' => $this->application_model->get_branch_id(),
             'class_id' => $data['class_id'],
@@ -76,87 +182,96 @@ class Homework_model extends MY_Model
             'status' => $status,
             'sms_notification' => $sms_notification,
         );
+
         if ($status == TRUE) {
             $arrayHomework['schedule_date'] = date("Y-m-d", strtotime($data['schedule_date']));
         } else {
             $arrayHomework['schedule_date'] = null;
         }
+
+        $success = false; // Track DB action success
         if (isset($data['homework_id'])) {
-            if (!is_superadmin_loggedin())
+            if (!is_superadmin_loggedin()) {
                 $this->db->where('branch_id', get_loggedin_branch_id());
+            }
             $this->db->where('id', $data['homework_id']);
-            $this->db->update('homework', $arrayHomework);
+            $success = $this->db->update('homework', $arrayHomework);
             $insert_id = $data['homework_id'];
+            log_message('debug', 'Homework updated ID: ' . $insert_id . ' | Success: ' . ($success ? 'true' : 'false'));
         } else {
-            $this->db->insert('homework', $arrayHomework);
+            $success = $this->db->insert('homework', $arrayHomework);
             $insert_id = $this->db->insert_id();
+            log_message('debug', 'Homework inserted ID: ' . $insert_id . ' | Success: ' . ($success ? 'true' : 'false'));
         }
 
+        if (!$success) {
+            log_message('error', 'Homework save failed. Data: ' . json_encode($arrayHomework));
+            return false;
+        }
+
+        // Handle attachment upload
+        $document = "";
         if (isset($_FILES["attachment_file"]) && !empty($_FILES['attachment_file']['name'])) {
             $uploaddir = './uploads/attachments/homework/';
-            if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                die("Error creating folder $uploaddir");
+            if (!is_dir($uploaddir)) {
+                mkdir($uploaddir, 0777, true);
             }
             $fileInfo = pathinfo($_FILES["attachment_file"]["name"]);
             $document = basename($_FILES['attachment_file']['name']);
-
             $file_name = $insert_id . '.' . $fileInfo['extension'];
             move_uploaded_file($_FILES["attachment_file"]["tmp_name"], $uploaddir . $file_name);
-        } else {
-            if (isset($data['old_document'])) {
-                $document = $data['old_document'];
-            } else {
-                $document = "";
-            }
+        } elseif (isset($data['old_document'])) {
+            $document = $data['old_document'];
         }
 
+        // Update document name in DB
         $this->db->where('id', $insert_id);
         $this->db->update('homework', array('document' => $document));
 
-        $sendPop = true;
+        // Send notifications only if insert/update success
+        if ($success && !$status) {
+            $stuList = $this->application_model->getStudentListByClassSection($arrayHomework['class_id'], $arrayHomework['section_id'], $arrayHomework['branch_id']);
+            $this->load->model('notification_model');
+            $this->load->model('subject_model');
 
-        $stuList = $this->application_model->getStudentListByClassSection($arrayHomework['class_id'], $arrayHomework['section_id'], $arrayHomework['branch_id']);
-        $this->load->model('notification_model');
-        $this->load->model('subject_model');
+            $subjectName = $this->subject_model->getSubjectNameById($arrayHomework['subject_id']);
+            $submissionDate = date('d M Y', strtotime($arrayHomework['date_of_submission']));
+            $homeworkDate = date('d M Y', strtotime($arrayHomework['date_of_homework']));
 
-        $subjectName = $this->subject_model->getSubjectNameById($arrayHomework['subject_id']);
-        $submissionDate = date('d M Y', strtotime($arrayHomework['date_of_submission']));
-        $homeworkDate = date('d M Y', strtotime($arrayHomework['date_of_homework']));
+            $studentTitle = "New homework has been assigned.";
+            $studentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submit by: {$submissionDate}.";
 
-        $studentTitle = "New homework has been assigned.";
-        $studentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submit by: {$submissionDate}.";
+            $parentTitle = "Your child has been assigned a new homework.";
+            $parentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submission due: {$submissionDate}. Please ensure it is completed on time.";
 
-        $parentTitle = "Your child has been assigned a new homework.";
-        $parentDescription = "Subject: {$subjectName}. Assigned on: {$homeworkDate}. Submission due: {$submissionDate}. Please ensure it is completed on time.";
+            $link = base_url("userrole/homework");
+            $from_user_id = get_loggedin_user_id();
+            $from_user_type = loggedin_role_id();
 
-        $link = base_url("userrole/homework");
-        $from_user_id = get_loggedin_user_id();
-        $from_user_type = loggedin_role_id();
-
-        if (!$status ==TRUE) {
             foreach ($stuList as $item) {
-                $user_id = $item['student_id'];
-                $this->notification_model->sendNotification($user_id, 7, $studentTitle, $studentDescription, $link, $from_user_id, $from_user_type);
-                
+                // Notify student
+                $this->notification_model->sendNotification($item['student_id'], 7, $studentTitle, $studentDescription, $link, $from_user_id, $from_user_type);
+
+                // Notify parent
                 if (!empty($item['parent_id'])) {
-                    $parent_id = $item['parent_id'];
-                    $parentTitle = "Your child has been assigned a new homework.";
-                    $this->notification_model->sendNotification($parent_id, 6, $parentTitle, $parentDescription, $link, $from_user_id, $from_user_type);
+                    $this->notification_model->sendNotification($item['parent_id'], 6, $parentTitle, $parentDescription, $link, $from_user_id, $from_user_type);
                 }
+            }
 
-                // SEND WHATSAPP MSG
-                // sendWhatsAppMsg($item['mobileno'], $studentTitle);
+            // Send SMS if checked
+            if ($sms_notification) {
+                foreach ($stuList as $row) {
+                    $row['date_of_homework'] = $arrayHomework['date_of_homework'];
+                    $row['date_of_submission'] = $arrayHomework['date_of_submission'];
+                    $row['subject_id'] = $arrayHomework['subject_id'];
+                    $this->sms_model->sendHomework($row);
+                }
             }
         }
 
-        //send homework sms notification
-        if (isset($data['notification_sms'])) {
-            foreach ($stuList as $row) {
-                $row['date_of_homework'] = $arrayHomework['date_of_homework'];
-                $row['date_of_submission'] = $arrayHomework['date_of_submission'];
-                $row['subject_id'] = $arrayHomework['subject_id'];
-                $this->sms_model->sendHomework($row);
-            }
-        }
+        $this->db->trans_complete();
+
+        return $success;
     }
+
 }

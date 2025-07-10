@@ -165,8 +165,6 @@ class StudentBookUpload extends Admin_Controller
 
     public function assignClass()
     {
-        // printVar(get_loggedin_branch_id());
-        // die;
         $this->data['books'] = $this->studentbook_model->getBooksForClassAssign();
         $this->data['title'] = translate('Assign Books to Class');
         $this->data['sub_page'] = 'book_upload/assign_class';
