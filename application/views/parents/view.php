@@ -85,15 +85,15 @@
 											<tr>
 												<td><?php echo $count++; ?></td>
 												<?php if (is_superadmin_loggedin()) { ?>
-													<td><?php echo get_type_name_by_id('branch', $row->branch_id); ?></td>
+													<td><?php echo get_type_name_by_id('branch', $row['branch_id']); ?></td>
 												<?php } ?>
-												<td><?php echo $row->name; ?></td>
-												<td><?php echo $row->occupation; ?></td>
-												<td><?php echo $row->mobileno; ?></td>
-												<td><?php echo $row->email; ?></td>
+												<td><?= !empty($row['name']) ? $row['name'] : 'NA'; ?></td>
+												<td><?= !empty($row['occupation']) ? $row['occupation'] : 'NA'; ?></td>
+												<td><?= !empty($row['mobileno']) ? $row['mobileno'] : 'NA'; ?></td>
+												<td><?= !empty($row['email']) ? $row['email'] : 'NA'; ?></td>
 												<?php if (is_superadmin_loggedin()) {
 													?>
-													<td><?= $row->decrypted_password ?? 'NA' ?></td>
+													<td><?= !empty($row['decrypted_password']) ? $row['decrypted_password'] : 'NA'; ?></td>
 													<?php
 												}
 												?>
@@ -107,7 +107,7 @@
 												<td class="min-w-xs">
 													<?php if (get_permission('parent', 'is_edit')): ?>
 														<!-- update link -->
-														<a href="<?php echo base_url('parents/profile/' . $row->id); ?>"
+														<a href="<?php echo base_url('parents/profile/' . $row['id']); ?>"
 															class="btn btn-default btn-circle icon" data-toggle="tooltip"
 															data-original-title="<?= translate('profile') ?>">
 															<i class="far fa-arrow-alt-circle-right"></i>
@@ -115,7 +115,7 @@
 													<?php endif;
 													if (get_permission('parent', 'is_delete')): ?>
 														<!-- delete link -->
-														<?php echo btn_delete('parents/delete/' . $row->id); ?>
+														<?php echo btn_delete('parents/delete/' . $row['id']); ?>
 													<?php endif; ?>
 												</td>
 											</tr>
