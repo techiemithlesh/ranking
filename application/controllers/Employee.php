@@ -7,7 +7,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * @developed by : RamomCoder
  * @support : ramomcoder@yahoo.com
  * @author url : http://codecanyon.net/user/RamomCoder
- * @filename : Accounting.php
+ * @filename : Employee.php
  * @copyright : Reserved RamomCoders Team
  */
 
@@ -698,20 +698,20 @@ class Employee extends Admin_Controller
                                 $i++;
                             }
                         } else {
-                            $err_msg .= $row['Name'] . " - Imported Failed : Invalid Email.<br>";
+                            $err_msg .= $row['Name'] . " - Imported Failed : Invalid Name.<br>";
                         }
                     } else {
                         set_alert('error', translate('invalid_csv_file'));
                     }
                 }
                 if ($err_msg != null) {
-                    $msgRes = $i . ' Students Have Been Successfully Added. <br>';
+                    $msgRes = $i . ' Employee Have Been Successfully Added. <br>';
                     $msgRes .= $err_msg;
                     echo json_encode(array('status' => 'errlist', 'errMsg' => $msgRes));
                     exit();
                 }
                 if ($i > 0) {
-                    set_alert('success', $i . ' Students Have Been Successfully Added');
+                    set_alert('success', $i . ' Employee Have Been Successfully Added');
                 }
             } else {
                 set_alert('error', translate('invalid_csv_file'));
