@@ -719,10 +719,7 @@ class Student extends Admin_Controller
 
         if ($_POST) {
             $branchID = $this->data['branch_id'];
-            ;
             $this->data['branch'] = $this->db->get_where('branch', array('id' => $branchID))->row();
-            // printVar($this->data['branch']);
-
             $class_id = $this->input->post('class_id');
             $section_id = $this->input->post('section_id');
             $this->data['query'] = $this->student_model->getStudentList($class_id, $section_id, $this->data['branch_id']);

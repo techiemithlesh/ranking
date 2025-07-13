@@ -27,7 +27,7 @@
 							<label class="control-label"><?= translate('class') ?> <span
 									class="required">*</span></label>
 							<?php
-							$arrayClass = $this->app_lib->getClass($branch_id);
+							$arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
 							echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,1)'
 								required data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 							?>
@@ -124,10 +124,10 @@
 															<td><?php echo get_type_name_by_id('section', $row->section_id); ?></td>
 														</tr>
 														<tr>
-															<td width="80"><?= translate('blood_group') ?></td>
+															<td width="80"><?= translate('mobile_no') ?></td>
 															<td width="8">:</td>
 															<td>
-																<?= empty($row->blood_group) ? 'N/A' : $row->blood_group; ?>
+																<?= empty($row->mobileno) ? 'N/A' : $row->mobileno; ?>
 															</td>
 														</tr>
 													</tbody>
