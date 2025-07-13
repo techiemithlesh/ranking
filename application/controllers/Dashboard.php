@@ -2,13 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : Ramom school management system
+ * @package : Schoolexcel school management system
  * @version : 2.0
- * @developed by : RamomCoder
- * @support : ramomcoder@yahoo.com
- * @author url : http://codecanyon.net/user/RamomCoder
- * @filename : Accounting.php
- * @copyright : Reserved RamomCoders Team
+ * @developed by : Schoolexcel
+ * @support : techie.mithlesh@gmail.com
+ * @author url : http://codewithmithlesh.com
+ * @filename : Dashboard.php
+ * @copyright : Reserved Eduproject Global Team
  */
 
 class Dashboard extends Admin_Controller
@@ -30,7 +30,6 @@ class Dashboard extends Admin_Controller
         if (is_student_loggedin() || is_parent_loggedin()) {
             $studentID = 0;
             if (is_student_loggedin()) {
-
                 $this->db->select('branch.name, branch.school_name');
                 $this->db->from('branch');
                 $this->db->join('enroll', 'branch.id = enroll.branch_id');
@@ -46,13 +45,11 @@ class Dashboard extends Admin_Controller
                 $studentID = get_loggedin_user_id();
             } elseif (is_parent_loggedin()) {
                 $studentID = $this->session->userdata('myChildren_id');
-
                 $this->db->select('branch.name, branch.school_name');
                 $this->db->from('branch');
                 $this->db->join('parent', 'branch.id = parent.branch_id');
                 $this->db->where('parent.id', $userId);
                 $result = $this->db->get()->row_array();
-
                 if ($result) {
                     $schoolName = $result['school_name'];
                     $this->data['title'] = "Welcome to " . $schoolName . " - " . translate('dashboard');
@@ -66,10 +63,7 @@ class Dashboard extends Admin_Controller
             if (!is_new_design()) {
                 $this->data['sub_page'] = 'userrole/dashboard';
             }
-
-
             return $this->home();
-
         } else {
             if (is_superadmin_loggedin()) {
                 if ($this->input->get('school_id')) {

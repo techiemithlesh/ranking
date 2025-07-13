@@ -2,12 +2,12 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : Ramom school management system
+ * @package : Schoolexcel school management system
  * @version : 2.0
- * @developed by : RamomCoder
- * @support : ramomcoder@yahoo.com
- * @author url : http://codecanyon.net/user/RamomCoder
- * @filename : Accounting.php
+ * @developed by : EduproectGlobal.tech
+ * @support : techie.mithlesh@gmail.com
+ * @author url : http://codewithmithlesh.com
+ * @filename : Student.php
  * @copyright : Reserved RamomCoders Team
  */
 
@@ -29,25 +29,6 @@ class Student extends Admin_Controller
         redirect(base_url('student/view'));
     }
 
-    // public function home()
-    // {
-
-    //     $this->data['sub_page'] = 'userrole/student/home';
-    //     $this->data['headerelements'] = array(
-    //         'css' => array(
-    //             'vendor/fullcalendar/fullcalendar.css',
-    //         ),
-    //         'js' => array(
-    //             'vendor/chartjs/chart.min.js',
-    //             'vendor/echarts/echarts.common.min.js',
-    //             'vendor/moment/moment.js',
-    //             'vendor/fullcalendar/fullcalendar.js',
-    //         ),
-    //     );
-    //     $this->data['menu'] = get_menu_by_role();
-    //     $this->data['main_menu'] = 'Home';
-    //     $this->load->view('layout/index', $this->data);
-    // }
 
     /* student form validation rules */
     protected function student_validation()
@@ -56,16 +37,17 @@ class Student extends Admin_Controller
             $this->form_validation->set_rules('branch_id', translate('branch'), 'trim|required');
         }
         $this->form_validation->set_rules('year_id', translate('academic_year'), 'trim|required');
-        $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required');
         $this->form_validation->set_rules('admission_date', translate('admission_date'), 'trim|required');
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
         $this->form_validation->set_rules('category_id', translate('category'), 'trim|required');
         $this->form_validation->set_rules('first_name', translate('first_name'), 'trim|required');
         $this->form_validation->set_rules('last_name', translate('last_name'), 'trim|required');
-        $this->form_validation->set_rules('mobileno', translate('mobile_no'), 'trim|required');
+        $this->form_validation->set_rules('mobileno', translate('mobile_no'), 'trim|required|regex_match[/^[6-9][0-9]{9}$/]', array(
+            'regex_match' => translate('please_enter_valid_mobile_number')
+        ));
         $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email|callback_unique_username');
-        $this->form_validation->set_rules('roll', translate('roll_number'), 'trim|required|numeric|callback_unique_roll');
+        $this->form_validation->set_rules('roll', translate('roll_number'), 'trim|required|numeric|greater_than[0]|callback_unique_roll');
         $this->form_validation->set_rules('register_no', translate('register_no'), 'trim|required|callback_unique_registerid');
         $this->form_validation->set_rules('user_photo', 'profile_picture', array(array('handle_upload', array($this->application_model, 'profilePicUpload'))));
         if (!isset($_POST['student_id'])) {
@@ -87,77 +69,94 @@ class Student extends Admin_Controller
     /* student admission information are prepared and stored in the database here */
     public function add()
     {
-        // check access permission
+        // Check access permission
         if (!get_permission('student', 'is_add')) {
             access_denied();
         }
 
         $branchID = $this->application_model->get_branch_id();
+
         if (isset($_POST['save'])) {
             $this->student_validation();
+
             if (!isset($_POST['guardian_chk'])) {
                 $this->form_validation->set_rules('grd_name', translate('name'), 'required|trim');
                 $this->form_validation->set_rules('grd_relation', translate('relation'), 'trim');
                 $this->form_validation->set_rules('grd_occupation', translate('occupation'), 'trim');
-                $this->form_validation->set_rules('grd_mobileno', translate('mobile_no'), 'trim');
+                $this->form_validation->set_rules('grd_mobileno', translate('mobile_no'), 'trim|regex_match[/^[6-9][0-9]{9}$/]');
                 $this->form_validation->set_rules('grd_email', translate('email'), 'trim|callback_get_valid_guardian_email');
                 $this->form_validation->set_rules('grd_password', translate('password'), 'trim');
                 $this->form_validation->set_rules('grd_retype_password', translate('retype_password'), 'trim|matches[grd_password]');
             } else {
                 $this->form_validation->set_rules('parent_id', translate('guardian'), 'required');
             }
-            if ($this->form_validation->run() == true) {
+
+            if ($this->form_validation->run() === true) {
                 $post = $this->input->post();
+                // Start transaction
+                $this->db->trans_begin();
+
                 $studentID = $this->student_model->save($post);
-                //save student enroll information in the database file
-                $arrayEnroll = array(
-                    'student_id' => $studentID,
-                    'class_id' => $post['class_id'],
-                    'section_id' => $post['section_id'],
-                    'roll' => $post['roll'],
-                    'session_id' => $post['year_id'],
-                    'branch_id' => $branchID,
-                );
-                $this->db->insert('enroll', $arrayEnroll);
+                if ($studentID) {
+                    // Save enrollment info
+                    $arrayEnroll = array(
+                        'student_id' => $studentID,
+                        'class_id' => $post['class_id'],
+                        'section_id' => $post['section_id'],
+                        'roll' => $post['roll'],
+                        'session_id' => $post['year_id'],
+                        'branch_id' => $branchID,
+                    );
+                    $this->db->insert('enroll', $arrayEnroll);
 
-                // handle custom fields data
-                $class_slug = $this->router->fetch_class();
-                $customField = $this->input->post("custom_fields[$class_slug]");
-                if (!empty($customField)) {
-                    saveCustomFields($customField, $studentID);
+                    // Save custom fields
+                    $class_slug = $this->router->fetch_class();
+                    $customField = $this->input->post("custom_fields[$class_slug]");
+                    if (!empty($customField)) {
+                        saveCustomFields($customField, $studentID);
+                    }
+
+                    // Send SMS & Email
+                    $this->sms_model->send_sms($arrayEnroll, 1);
+                    $emailData = array(
+                        'name' => $post['first_name'],
+                        'login_email' => $post['email'],
+                        'password' => $post['password'],
+                        'user_role' => 7,
+                        'email' => $post['email'],
+                    );
+                    $this->email_model->sentStaffRegisteredAccount($emailData);
+
+                    // Commit and set success alert
+                    if ($this->db->trans_status() === true) {
+                        $this->db->trans_commit();
+                        set_alert('success', translate('admission_has_been_saved_successfully'));
+                        redirect(base_url('student/add'));
+                    } else {
+                        $this->db->trans_rollback();
+                        set_alert('error', translate('something_went_wrong_please_try_again'));
+                    }
+                } else {
+                    $this->db->trans_rollback();
+                    set_alert('error', translate('student_data_not_saved'));
                 }
-
-                //send account activate sms
-                $this->sms_model->send_sms($arrayEnroll, 1);
-                //send account activate email
-                $emailData = array(
-                    'name' => $this->input->post('first_name'),
-                    'login_email' => $this->input->post('email'),
-                    'password' => $this->input->post('password'),
-                    'user_role' => 7,
-                    'email' => $this->input->post('email'),
-                );
-                $this->email_model->sentStaffRegisteredAccount($emailData);
-                set_alert('success', translate('information_has_been_saved_successfully'));
-                redirect(base_url('student/add'));
+            } else {
+                set_alert('error', translate('validation_failed_please_check_the_form'));
             }
         }
+
         $this->data['branch_id'] = $branchID;
         $this->data['sub_page'] = 'student/add';
         $this->data['main_menu'] = 'admission';
         $this->data['register_id'] = $this->student_model->regSerNumber();
         $this->data['title'] = translate('create_admission');
         $this->data['headerelements'] = array(
-            'css' => array(
-                'vendor/dropify/css/dropify.min.css',
-            ),
-            'js' => array(
-                'js/student.js',
-                'vendor/dropify/js/dropify.min.js',
-            ),
+            'css' => array('vendor/dropify/css/dropify.min.css'),
+            'js' => array('js/student.js', 'vendor/dropify/js/dropify.min.js'),
         );
         $this->load->view('layout/index', $this->data);
     }
+
 
     /* csv file to import student information  and stored in the database here */
     public function csv_import()
@@ -647,6 +646,13 @@ class Student extends Admin_Controller
         } else {
             return true;
         }
+    }
+
+    /* Mobile No validation  */
+
+    public function validateMobileNo($input)
+    {
+
     }
 
     /* unique valid guardian email address verification is done here */

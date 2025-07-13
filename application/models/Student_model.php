@@ -77,7 +77,6 @@ class Student_model extends MY_Model
                     'username' => $data["grd_email"] ?? null,
                     'role' => 6,
                     'user_id' => $parentID,
-                    // 'password' => $this->app_lib->pass_hashed($data["grd_password"]),
                     'password' => $this->app_lib->has_password($data["grd_password"] ?? null),
                 );
                 $this->db->insert('login_credential', $parent_credential);
@@ -89,14 +88,11 @@ class Student_model extends MY_Model
             // insert student all information in the database
             $this->db->insert('student', $inser_data1);
             $student_id = $this->db->insert_id();
-
             $branchData = $this->getBranchName($this->application_model->get_branch_id());
             $branchName = '';
             if (!empty($branchData)) {
                 $branchName = $branchData['name'];
             }
-
-
             // save student login credential information in the database
             $inser_data2['role'] = 7;
             $inser_data2['user_id'] = $student_id;
