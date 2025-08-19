@@ -254,10 +254,35 @@ function get_type_name_by_id($table, $type_id = '', $field = 'name')
 }
 
 // set session alert / flashdata
-function set_alert($type, $message)
+// function set_alert($type, $message)
+// {
+//     $CI = &get_instance();
+//     $CI->session->set_flashdata('alert-message-' . $type, $message);
+
+// }
+
+function set_alert($type, $message = "")
 {
     $CI = &get_instance();
-    $CI->session->set_flashdata('alert-message-' . $type, $message);
+    if ($message) {
+        $CI->session->set_flashdata('alert-message-' . $type, $message);
+        return true;
+    } else {
+        $message = $CI->session->flashdata('alert-message-' . $type);
+        $CI->session->unset_userdata('alert-message-' . $type);
+        return $message;
+    }
+
+}
+function set_alert_sa($type, $message = "")
+{
+    $CI = &get_instance();
+    if ($message) {
+        $CI->session->set_flashdata('alert-message-' . $type, $message);
+        return true;
+    } else {
+        return $CI->session->flashdata('alert-message-' . $type);
+    }
 }
 
 // generate md5 hash
@@ -324,6 +349,11 @@ function _d($date)
 function btn_delete($uri)
 {
     return "<button class='btn btn-danger icon btn-circle' onclick=confirm_modal('" . base_url($uri) . "') ><i class='fas fa-trash-alt'></i></button>";
+}
+
+function btn_delete_ajax($uri)
+{
+    return "<button class='btn btn-danger icon btn-circle' onclick=confirmDeleteAjax('" . base_url($uri) . "') ><i class='fas fa-trash-alt'></i></button>";
 }
 
 // delete url

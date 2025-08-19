@@ -2,13 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : Ramom school management system
+ * @package : Schoolexcel school management system
  * @version : 2.0
- * @developed by : RamomCoder
- * @support : ramomcoder@yahoo.com
- * @author url : http://codecanyon.net/user/RamomCoder
- * @filename : Accounting.php
- * @copyright : Reserved RamomCoders Team
+ * @developed by : eduprojectsCoder
+ * @support : techie.mithlesh@gmail.com
+ * @author url : http://codewithmithlesh.com
+ * @filename : Userrole.php
+ * @copyright : Reserved EduprojectGlobalTech Team
  */
 
 class Userrole extends User_Controller
@@ -22,6 +22,9 @@ class Userrole extends User_Controller
         $this->load->model('fees_model');
         $this->load->model('exam_model');
         $this->load->model('report_model');
+        $this->load->model('onlineexam_model');
+        $this->load->model('reward_model');
+        $this->load->library('reward_lib');
 
     }
 
@@ -311,12 +314,10 @@ class Userrole extends User_Controller
         $this->load->view('userrole/report/annual_examination_report/report', $this->data);
     }
 
-
     public function getClassAverageByExamId($branchId, $classId, $sectionId, $exam_id)
     {
         $params = [$classId, $sectionId, $branchId, $exam_id];
-        $query = "
-        SELECT 
+        $query = "SELECT 
             m.subject_id,
             AVG(
                 CAST(
@@ -331,8 +332,7 @@ class Userrole extends User_Controller
             AND m.branch_id = ? 
             AND m.exam_id = ?
         GROUP BY 
-            m.subject_id
-    ";
+            m.subject_id";
         $queryResult = $this->db->query($query, $params)->result_array();
 
         if (empty($queryResult)) {
@@ -850,12 +850,9 @@ class Userrole extends User_Controller
         return $response;
     }
 
-
     public function skillBasedReport()
     {
-
         $this->data['stu'] = $this->userrole_model->getStudentDetails();
-
         $branch_id = $this->data['stu']['branch_id'];
         $this->data['exams'] = $this->db->get_where('exam', array(
             'branch_id' => $branch_id,
@@ -1085,7 +1082,6 @@ class Userrole extends User_Controller
 
 
     // ONLINE EXAM CUSTOM REPORT CARD
-
     public function online_exam_progress()
     {
         if (isset($_POST['search'])) {
@@ -1140,8 +1136,6 @@ class Userrole extends User_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
-
     public function exam_progress_subjectwise()
     {
         if (isset($_POST['search'])) {
@@ -1202,6 +1196,22 @@ class Userrole extends User_Controller
         $this->data['title'] = translate('subject_wise_exam_progress');
         $this->data['main_menu'] = 'online_exam_progress';
         $this->data['sub_page'] = 'userrole/report/subjectwise_filter';
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    // REWARD SYSTEM
+    public function my_rewards()
+    {
+        $studentDetails = $this->userrole_model->getStudentDetails();
+        $student_id = $studentDetails['student_id'];
+        $this->data['wallet'] = $this->reward_model->getWallet($student_id);
+        $this->data['rewards'] = $this->reward_model->getAvailableRewards($studentDetails);
+        $this->data['history'] = $this->reward_model->getStudentRewards($student_id);
+        $this->data['branch_id'] = $this->application_model->get_branch_id();
+        $this->data['title'] = translate('my_rewards');
+        $this->data['sub_page'] = 'userrole/reward';
+        $this->data['main_menu'] = 'exam';
 
         $this->load->view('layout/index', $this->data);
     }

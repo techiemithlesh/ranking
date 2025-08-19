@@ -1,5 +1,3 @@
-
-
 <div class="topbar-student">
     <div class="left-group">
         <div class="logo">
@@ -83,8 +81,15 @@
             <ul>
                 <li><a href="<?php echo base_url('profile'); ?>"><i class="fas fa-user-shield"></i>
                         <?php echo translate('profile'); ?></a></li>
+                <li>
+                    <a href="<?php echo base_url('userrole/my_rewards'); ?>">
+                        <i class="fas fa-coins"></i>
+                        <?php echo translate('my_rewards'); ?>
+                    </a>
+                </li>
                 <li><a href="<?php echo base_url('profile/password'); ?>"><i class="fas fa-mars-stroke-h"></i>
                         <?php echo translate('reset_password'); ?></a></li>
+
             </ul>
         </div>
     </div>

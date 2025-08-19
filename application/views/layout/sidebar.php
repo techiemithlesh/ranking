@@ -1951,6 +1951,37 @@
                         </li>
                     <?php } ?>
 
+                    <?php if (is_superadmin_loggedin()) {
+                        ?>
+                        <li class="nav-parent <?php if ($main_menu == 'Reward')
+                            echo 'nav-expanded nav-active'; ?>">
+                            <a>
+                                <i class="fas fa-coins"></i><span><?= translate('rewards') ?></span>
+                            </a>
+                            <ul class="nav nav-children">
+
+                                <li class="<?php if ($sub_page == 'rewards/index')
+                                    echo 'nav-active'; ?>">
+                                    <a href="<?php echo base_url('rewards'); ?>">
+                                        <span><i class="fas fa-caret-right"
+                                                aria-hidden="true"></i><?php echo translate('reward_list'); ?></span>
+                                    </a>
+                                </li>
+
+                                <li class="<?= ($sub_page == 'reward/config') ? 'nav-active' : '' ?>">
+                                    <a href="<?= base_url('rewards/config') ?>">
+                                        <span><i class="fas fa-caret-right"></i>
+                                            <?= translate('reward_configuration') ?></span>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+                        <?php
+                    }
+
+                    ?>
+
 
                 </ul>
             </nav>
