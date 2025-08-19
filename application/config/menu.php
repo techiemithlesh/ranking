@@ -1,5 +1,5 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 
 /**
@@ -30,7 +30,7 @@ $config['menus'] = [
                     'icon' => 'icon-notebook',
                     'children' => [
                         ['label' => 'Book List', 'icon' => 'fas fa-book-open', 'url' => 'userrole/book'],
-                        ['label' => 'Issued Book', 'icon' => 'fas fa-book-reade', 'url' => 'userrole/book_request'],
+                        ['label' => 'Issued Book', 'icon' => 'fas fa-book-reader', 'url' => 'userrole/book_request'],
                     ]
                 ],
             ]
@@ -57,21 +57,33 @@ $config['menus'] = [
                 ['label' => 'Progress Tracker', 'icon' => 'fas fa-chart-line', 'url' => 'userrole/my_progress'],
                 ['label' => 'Skill Report', 'icon' => 'fas fa-clipboard-list', 'url' => 'userrole/skillBasedReport'],
 
-                ['label' => 'Online Exam', 'icon' => 'fas fa-laptop-code', 'children' => [
-                    ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
-                    ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
-                ]]
+                [
+                    'label' => 'Online Exam',
+                    'icon' => 'fas fa-laptop-code',
+                    'children' => [
+                        ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
+                        ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
+                    ]
+                ]
             ]
         ],
-        ['label' => 'My Gallery', 'icon' => 'fas fa-images', 'url' => 'userrole/my_gallery']
+        ['label' => 'My Gallery', 'icon' => 'fas fa-images', 'url' => 'userrole/my_gallery'],
+        [
+            'label' => 'Parents',
+            'icon' => 'fas fa-user',
+            'children' => [
+                ['label' => 'Fees', 'icon' => 'icons icon-calculator', 'url' => 'userrole/invoice'],
+                ['label' => 'Message', 'icon' => 'icons icon-envelope-open', 'url' => 'communication/mailbox/inbox']
+            ]
+        ],
     ],
 
     // MENU FOR PARENT LOGIN
     'parent' => [
         [
-            'label'=>'My Children',
-            'icon'=>'fas fa-user-friends',
-            'url'=>'parents/my_children'
+            'label' => 'My Children',
+            'icon' => 'fas fa-user-friends',
+            'url' => 'parents/my_children'
         ]
     ],
 

@@ -1,7 +1,4 @@
 <!doctype html>
-<?php
-$disable_sidebar = isset($is_new_design) && $is_new_design;
-?>
 <html class="fixed sidebar-left-sm <?php echo ($theme_config['dark_skin'] == 'true' ? 'dark' : 'sidebar-light'); ?>">
 <!-- html header -->
 <?php $this->load->view('layout/header.php'); ?>

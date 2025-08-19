@@ -4,6 +4,7 @@ $new_design = $is_student_or_parent && is_new_design(); // true only for student
 $html_classes = !$new_design
 	? 'fixed sidebar-left-sm sidebar-light js flexbox flexboxlegacy no-touch csstransforms csstransforms3d no-overflowscrolling no-mobile-device custom-scroll'
 	: '';
+// $this->data['is_new_design'] = $new_design;
 $this->data['is_new_design'] = $new_design;
 ?>
 
@@ -56,7 +57,6 @@ $this->data['is_new_design'] = $new_design;
 
 				<?php $this->load->view($sub_page) ?>
 			</section>
-
 
 		</div>
 	</section>
