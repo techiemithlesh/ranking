@@ -153,7 +153,7 @@ class Gallery_model extends MY_Model
             $uploadConfig = [
                 'encrypt_name' => true,
                 'upload_path' => 'uploads/gallery/' . $fileType . '/',
-                'max_size' => 1024 * 1024 * 2, // 2MB
+                'max_size' => 102400, // 100MB
                 'allowed_types' => $this->getAllowedFileTypes($fileType),
             ];
 

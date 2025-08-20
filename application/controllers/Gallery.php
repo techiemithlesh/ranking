@@ -88,6 +88,77 @@ class Gallery extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    public function upload_media()
+    {
+        if (is_superadmin_loggedin()) {
+            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
+        }
+
+        $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
+        $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
+
+        $branch_id = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
+
+
+        if ($this->form_validation->run() === FALSE) {
+            $response = ['status' => 'error', 'error' => validation_errors()];
+        } else {
+            $post = $this->input->post();
+            $post['branch_id'] = $branch_id;
+
+            $result = $this->gallery_model->saveGallery($post);
+
+            if ($result['status'] === 'success') {
+                // Handle student assignments only after successful file upload
+                $studentIds = $this->input->post('student_ids');
+                if (!empty($studentIds)) {
+                    $this->gallery_model->assign_students_to_gallery($result['file_id'], $studentIds);
+                }
+                $response = ['status' => 'success', 'message' => 'Gallery Uploaded Successfully !', 'url' => base_url('gallery/index')];
+            } else {
+                $response = ['status' => 'error', 'error' => $result['error']];
+            }
+        }
+
+        echo json_encode($response);
+    }
+
+    public function upload_media_bulk()
+    {
+        if (is_superadmin_loggedin()) {
+            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
+        }
+
+        $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
+        $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
+
+        $branch_id = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
+
+        if ($this->form_validation->run() === FALSE) {
+            $response = ['status' => 'error', 'error' => validation_errors()];
+        } else {
+            $post = $this->input->post();
+            $post['branch_id'] = $branch_id;
+
+            $uploadResults = $this->gallery_model->saveMultipleGallery($post);
+
+            if (!empty($uploadResults['success'])) {
+                // Assign students if provided
+                $studentIds = $this->input->post('student_ids');
+                foreach ($uploadResults['success'] as $file_id) {
+                    if (!empty($studentIds)) {
+                        $this->gallery_model->assign_students_to_gallery($file_id, $studentIds);
+                    }
+                }
+
+                $response = ['status' => 'success', 'message' => 'Files uploaded successfully!', 'url' => base_url('gallery/index')];
+            } else {
+                $response = ['status' => 'error', 'error' => $uploadResults['error'] ?? 'Upload failed'];
+            }
+        }
+
+        echo json_encode($response);
+    }
 
     public function edit($id = '')
     {
@@ -203,77 +274,7 @@ class Gallery extends Admin_Controller
     }
 
 
-    public function upload_media()
-    {
-        if (is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
 
-        $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
-        $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
-
-        $branch_id = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
-
-
-        if ($this->form_validation->run() === FALSE) {
-            $response = ['status' => 'error', 'error' => validation_errors()];
-        } else {
-            $post = $this->input->post();
-            $post['branch_id'] = $branch_id;
-
-            $result = $this->gallery_model->saveGallery($post);
-
-            if ($result['status'] === 'success') {
-                // Handle student assignments only after successful file upload
-                $studentIds = $this->input->post('student_ids');
-                if (!empty($studentIds)) {
-                    $this->gallery_model->assign_students_to_gallery($result['file_id'], $studentIds);
-                }
-                $response = ['status' => 'success', 'message' => 'Gallery Uploaded Successfully !', 'url' => base_url('gallery/index')];
-            } else {
-                $response = ['status' => 'error', 'error' => $result['error']];
-            }
-        }
-
-        echo json_encode($response);
-    }
-
-    public function upload_media_bulk()
-    {
-        if (is_superadmin_loggedin()) {
-            $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-        }
-
-        $this->form_validation->set_rules('class_id', translate('class'), 'trim|required');
-        $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
-
-        $branch_id = is_superadmin_loggedin() ? $this->input->post('branch_id') : get_loggedin_branch_id();
-
-        if ($this->form_validation->run() === FALSE) {
-            $response = ['status' => 'error', 'error' => validation_errors()];
-        } else {
-            $post = $this->input->post();
-            $post['branch_id'] = $branch_id;
-
-            $uploadResults = $this->gallery_model->saveMultipleGallery($post);
-
-            if (!empty($uploadResults['success'])) {
-                // Assign students if provided
-                $studentIds = $this->input->post('student_ids');
-                foreach ($uploadResults['success'] as $file_id) {
-                    if (!empty($studentIds)) {
-                        $this->gallery_model->assign_students_to_gallery($file_id, $studentIds);
-                    }
-                }
-
-                $response = ['status' => 'success', 'message' => 'Files uploaded successfully!', 'url' => base_url('gallery/index')];
-            } else {
-                $response = ['status' => 'error', 'error' => $uploadResults['error'] ?? 'Upload failed'];
-            }
-        }
-
-        echo json_encode($response);
-    }
 
 
     public function delete($id)

@@ -215,5 +215,4 @@ class Rewards extends Admin_Controller
         responseMsg('success', 'Reward History fetched successfully!', $data);
     }
 
-
 }
