@@ -7,8 +7,8 @@ $total_obtain_marks = $result['total_obtain_marks'];
 $wrong_ans = $result['wrong_ans'];
 $total_answered = $result['total_answered'];
 $total_neg_marks = ($exam->neg_mark == 0 ? 0 : $result['total_neg_marks']);
-printVar( $result);
-printVar($exam);
+// printVar( $result);
+// printVar($exam);
 ?>
 <div class="table-responsive">
 	<table class="table table-striped table-bordered table-condensed mb-md mt-sm">
