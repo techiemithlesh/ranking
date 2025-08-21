@@ -8,7 +8,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * @support : Mithlesh Patel
  * @author url : Mithlesh Patel
  * @filename : Gallery.php
- * @copyright : Eduproject Global PVT LTD
+ * @copyright : Eduprojects Global PVT LTD
  */
 
 class Gallery extends Admin_Controller

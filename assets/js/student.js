@@ -138,3 +138,36 @@ function studentQuickView(id) {
         }
     });
 }
+
+
+function studentRewardView(student_id) {
+  $.ajax({
+    url: base_url + "rewards/studentRewards",
+    type: "POST",
+    data: { student_id: student_id },
+    dataType: "json",
+    success: function (res) {
+      console.log("response", res);
+      $("#quick_full_name").html(res.data.full_name);
+
+
+      let html = "";
+      if (res.data.rewards && res.data.rewards.length > 0) {
+        res.data.rewards.forEach(function (r) {
+          html += `
+                        <tr>
+                            <td>${r.exam_name}</td>
+                            <td>${r.exam_type}</td>
+                            <td>${r.earned_coins}</td>
+                            <td>${r.remarks}</td>
+                            <td>${r.date}</td>
+                        </tr>`;
+        });
+      } else {
+        html = `<tr><td colspan="5" class="text-center text-muted"><?= translate('no_records_found') ?></td></tr>`;
+      }
+      $("#reward_table_body").html(html);
+      mfp_modal("#quickView");
+    },
+  });
+}
