@@ -988,6 +988,7 @@ class Userrole extends User_Controller
             $examID = $this->input->post('id');
             $this->load->model('onlineexam_model');
             $exam = $this->onlineexam_model->getExamDetails($examID);
+            printVar($exam);
             $data['exam'] = $exam;
             echo $this->load->view('userrole/onlineexam_result', $data, true);
         }
