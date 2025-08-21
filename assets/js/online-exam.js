@@ -206,6 +206,7 @@ function getStudentResult(id) {
         data: { 'id': id },
         dataType: "html",
         success: function (data) {
+            console.log("result-data", data);
             $('#quick_view').html(data);
             mfp_modal('#modal');
         }

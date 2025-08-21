@@ -439,15 +439,15 @@ class Userrole_model extends MY_Model
             ->result_array();
         $assignedExamIDs = array_column($assignedExamIDs, 'exam_id');
 
-        // log_message('error', 'Assigned Exam IDs: ' . print_r($assignedExamIDs, true));
+        log_message('error', 'Assigned Exam IDs: ' . print_r($assignedExamIDs, true));
 
         // ✅ Build WHERE condition: created_by_branch OR assigned to branch
         $search_arr[] = " `online_exam`.`class_id` = " . $this->db->escape($class_id) . " ";
         $search_arr[] = " (
         `online_exam`.`created_by_branch` IS NULL
-        OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
-        OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
-    )";
+            OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
+            OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
+        )";
 
         if (count($search_arr) > 0) {
             $searchQuery = implode(" AND ", $search_arr);
@@ -484,7 +484,7 @@ class Userrole_model extends MY_Model
             ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder
             LIMIT $start, $rowperpage";
 
-        // log_message('error', 'Exam Fetch Query: ' . $sql);
+        log_message('error', 'Exam Fetch Query: ' . $sql);
         $records = $this->db->query($sql)->result();
 
         $data = array();
