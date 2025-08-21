@@ -989,7 +989,7 @@ class Userrole extends User_Controller
             $this->load->model('onlineexam_model');
             $exam = $this->onlineexam_model->getExamDetails($examID);
             $data['exam'] = $exam;
-            printVar($data['exam']);
+            printVar($this->db->last_query());
             die;
             echo $this->load->view('userrole/onlineexam_result', $data, true);
         }
