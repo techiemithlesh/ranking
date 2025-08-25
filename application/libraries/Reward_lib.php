@@ -14,11 +14,12 @@ class Reward_lib
     /**
      * Process and reward coins to a student for an exam.
      */
-    public function processExamReward($student_id, $exam_id, $exam_type, $percentage)
+     public function processExamReward($student_id, $exam_id, $exam_type, $percentage)
     {
-        $rewardRule = $this->CI->reward_model->getApplicableReward($student_id, $exam_id, $exam_type);
+        $rewardRule = $this->CI->reward_model->getApplicableReward($student_id, $exam_id, $exam_type, $percentage);
 
         if (!$rewardRule || $percentage < $rewardRule['min_percentage']) {
+            log_message('debug', "No applicable reward for student_id={$student_id}, exam_id={$exam_id}, percentage={$percentage}");
             return false;
         }
 

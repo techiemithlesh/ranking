@@ -73,16 +73,39 @@ class Reward_model extends MY_Model
     }
 
 
-    public function getApplicableReward($student_id, $exam_id, $exam_type)
+    // public function getApplicableReward($student_id, $exam_id, $exam_type)
+    // {
+    //     $this->db->select('rc.*');
+    //     $this->db->from('reward_config as rc');
+    //     $this->db->join('enroll as e', 'e.class_id = rc.class_id AND e.section_id = rc.section_id AND e.student_id = ' . $this->db->escape($student_id));
+    //     $this->db->where('rc.exam_id', $exam_id);
+    //     $this->db->where('rc.exam_type', $exam_type);
+    //     $this->db->where('rc.is_active', 1);
+
+    //     return $this->db->get()->row_array();
+    // }
+
+
+    public function getApplicableReward($student_id, $exam_id, $exam_type, $percentage)
     {
         $this->db->select('rc.*');
         $this->db->from('reward_config as rc');
-        $this->db->join('enroll as e', 'e.class_id = rc.class_id AND e.section_id = rc.section_id AND e.student_id = ' . $this->db->escape($student_id));
+        $this->db->join(
+            'enroll as e',
+            'e.class_id = rc.class_id 
+         AND e.section_id = rc.section_id 
+         AND e.student_id = ' . $this->db->escape($student_id)
+        );
         $this->db->where('rc.exam_id', $exam_id);
         $this->db->where('rc.exam_type', $exam_type);
         $this->db->where('rc.is_active', 1);
+        $this->db->where('rc.min_percentage <=', $percentage);
+        $this->db->order_by('rc.min_percentage', 'DESC');
 
-        return $this->db->get()->row_array();
+        $row = $this->db->get()->row_array();
+
+        log_message('debug', "Applicable reward config: " . json_encode($row));
+        return $row;
     }
 
     public function isRewarded($exam_id, $student_id)
@@ -180,7 +203,7 @@ class Reward_model extends MY_Model
     }
 
 
-     public function getStudentRewards($student_id)
+    public function getStudentRewards($student_id)
     {
         $result = $this->db
             ->select('sr.earned_coins, rc.exam_type, sr.remarks, sr.rewarded_at as date', false)
