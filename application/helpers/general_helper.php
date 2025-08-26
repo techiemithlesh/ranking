@@ -216,8 +216,6 @@ function loggedin_role_name()
     return $CI->db->select('name')->where('id', $roleID)->get('roles')->row()->name;
 }
 
-
-
 function loggedin_role_id()
 {
     $ci = &get_instance();
@@ -315,7 +313,6 @@ function get_image_url($role = '', $file_name = '')
     }
     return $image_url;
 }
-
 
 function get_signature_url($role = '', $file_name = '')
 {
@@ -687,7 +684,6 @@ function get_classes_by_user()
         return $ci->db->get()->result_array();
     }
 }
-
 
 
 if (!function_exists('get_name_by_id')) {

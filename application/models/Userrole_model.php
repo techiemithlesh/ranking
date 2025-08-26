@@ -245,6 +245,7 @@ class Userrole_model extends MY_Model
         return $this->db->get()->row_array();
     }
 
+   
     public function examListDT_Old($postData, $currency_symbol = '')
     {
         date_default_timezone_set('Asia/Kolkata');
@@ -329,14 +330,12 @@ class Userrole_model extends MY_Model
                 $labelmode = '';
                 $takeExam = 0;
 
-                log_message('error', "======== Exam Debug Info ========");
-                log_message('error', 'Server Timezone: ' . date_default_timezone_get());
-                log_message('error', 'Local Server Time: ' . date('Y-m-d H:i:s'));
-                log_message('error', 'Exam Start (DB): ' . $record->exam_start . ' | Timestamp: ' . strtotime($record->exam_start));
-                log_message('error', 'Exam End   (DB): ' . $record->exam_end . ' | Timestamp: ' . strtotime($record->exam_end));
-                log_message('error', 'Now (Server PHP): ' . date('Y-m-d H:i:s', $now) . ' | Timestamp: ' . $now);
-
-
+                // log_message('error', "======== Exam Debug Info ========");
+                // log_message('error', 'Server Timezone: ' . date_default_timezone_get());
+                // log_message('error', 'Local Server Time: ' . date('Y-m-d H:i:s'));
+                // log_message('error', 'Exam Start (DB): ' . $record->exam_start . ' | Timestamp: ' . strtotime($record->exam_start));
+                // log_message('error', 'Exam End   (DB): ' . $record->exam_end . ' | Timestamp: ' . strtotime($record->exam_end));
+                // log_message('error', 'Now (Server PHP): ' . date('Y-m-d H:i:s', $now) . ' | Timestamp: ' . $now);
 
                 // exam status
                 if ($record->publish_result == 1 && !empty($examSubmitted)) {
@@ -443,11 +442,16 @@ class Userrole_model extends MY_Model
 
         // ✅ Build WHERE condition: created_by_branch OR assigned to branch
         $search_arr[] = " `online_exam`.`class_id` = " . $this->db->escape($class_id) . " ";
+        // $search_arr[] = " (
+        // `online_exam`.`created_by_branch` IS NULL
+        //     OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
+        //     OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
+        // )";
+
         $search_arr[] = " (
-        `online_exam`.`created_by_branch` IS NULL
-            OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
-            OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
-        )";
+                `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
+                OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
+            )";
 
         if (count($search_arr) > 0) {
             $searchQuery = implode(" AND ", $search_arr);

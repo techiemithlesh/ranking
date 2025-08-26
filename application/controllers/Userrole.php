@@ -894,7 +894,6 @@ class Userrole extends User_Controller
             access_denied();
         }
 
-        $this->load->model('onlineexam_model');
         $this->data['headerelements'] = array(
             'js' => array(
                 'js/online-exam.js',
@@ -989,8 +988,6 @@ class Userrole extends User_Controller
             $this->load->model('onlineexam_model');
             $exam = $this->onlineexam_model->getExamDetails($examID);
             $data['exam'] = $exam;
-            // printVar($this->db->last_query());
-            // die;
             echo $this->load->view('userrole/onlineexam_result', $data, true);
         }
     }
