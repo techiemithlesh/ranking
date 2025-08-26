@@ -203,19 +203,36 @@ class Reward_model extends MY_Model
     }
 
 
+    // public function getStudentRewards($student_id)
+    // {
+    //     $result = $this->db
+    //         ->select('sr.earned_coins, rc.exam_type, sr.remarks, sr.rewarded_at as date', false)
+    //         ->select('COALESCE(oe.title, e.name) as exam_name', false)
+    //         ->from('student_rewards sr')
+    //         ->join('view_student_details vsd', 'vsd.id = sr.student_id', 'left')
+    //         ->join('reward_config rc', 'rc.exam_id = sr.exam_id 
+    //                                  AND rc.branch_id = vsd.branch_id 
+    //                                  AND rc.class_id = vsd.class_id 
+    //                                  AND rc.section_id = vsd.section_id', 'left')
+    //         ->join('online_exam oe', 'oe.id = sr.exam_id AND rc.exam_type = "online"', 'left')
+    //         ->join('exam e', 'e.id = sr.exam_id AND rc.exam_type = "offline"', 'left')
+    //         ->where('sr.student_id', $student_id)
+    //         ->order_by('sr.rewarded_at', 'desc')
+    //         ->get()
+    //         ->result_array();
+
+    //     return $result;
+    // }
+
+
     public function getStudentRewards($student_id)
     {
         $result = $this->db
-            ->select('sr.earned_coins, rc.exam_type, sr.remarks, sr.rewarded_at as date', false)
+            ->select('sr.earned_coins, sr.exam_type, sr.remarks, sr.rewarded_at as date', false)
             ->select('COALESCE(oe.title, e.name) as exam_name', false)
             ->from('student_rewards sr')
-            ->join('view_student_details vsd', 'vsd.id = sr.student_id', 'left')
-            ->join('reward_config rc', 'rc.exam_id = sr.exam_id 
-                                     AND rc.branch_id = vsd.branch_id 
-                                     AND rc.class_id = vsd.class_id 
-                                     AND rc.section_id = vsd.section_id', 'left')
-            ->join('online_exam oe', 'oe.id = sr.exam_id AND rc.exam_type = "online"', 'left')
-            ->join('exam e', 'e.id = sr.exam_id AND rc.exam_type = "offline"', 'left')
+            ->join('online_exam oe', 'oe.id = sr.exam_id AND sr.exam_type = "online"', 'left')
+            ->join('exam e', 'e.id = sr.exam_id AND sr.exam_type = "offline"', 'left')
             ->where('sr.student_id', $student_id)
             ->order_by('sr.rewarded_at', 'desc')
             ->get()
