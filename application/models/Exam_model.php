@@ -226,5 +226,65 @@ class Exam_model extends CI_Model
         return $query->result_array();
     }
 
-    
+    public function getStudentExamResult($exam_ID, $class_ID, $section_ID, $branch_Id, $student_Id)
+    {
+        $sql = "SELECT *
+            FROM mark
+            JOIN (
+                SELECT timetable_exam.*, subject.name AS subject_name
+                FROM timetable_exam
+                JOIN subject ON subject.id = timetable_exam.subject_id
+                JOIN exam ON exam.id = timetable_exam.exam_id
+                WHERE timetable_exam.exam_id = " . (int) $exam_ID . " 
+                AND timetable_exam.class_id = " . (int) $class_ID . " 
+                AND timetable_exam.section_id = " . (int) $section_ID . " 
+                AND timetable_exam.branch_id = " . (int) $branch_Id . "
+            ) AS subject 
+            ON subject.subject_id = mark.subject_id 
+            AND subject.exam_id = mark.exam_id 
+            WHERE mark.student_id = " . (int) $student_Id . "
+            ORDER BY mark.subject_id ASC";
+
+        $subjects = $this->db->query($sql)->result_array();
+
+        $totalMarks = 0;
+        $obtainedMarks = 0;
+
+        foreach ($subjects as $key => $item) {
+            // ✅ decode obtained marks (student side)
+            $obtainMark = array_values(json_decode($item["mark"], true))[0] ?? 0;
+
+            // ✅ decode full_mark & pass_mark (from exam setup)
+            $distribution = array_values(json_decode($item["mark_distribution"], true))[0] ?? [
+                "full_mark" => 0,
+                "pass_mark" => 0
+            ];
+
+            // merge back into array
+            $subjects[$key] = array_merge($item, [
+                "obtainMark" => $obtainMark,
+                "full_mark" => $distribution["full_mark"],
+                "pass_mark" => $distribution["pass_mark"]
+            ]);
+
+            // update totals
+            $totalMarks += (int) $distribution["full_mark"];
+            $obtainedMarks += (int) $obtainMark;
+        }
+
+        $percentage = $totalMarks > 0 ? round(($obtainedMarks / $totalMarks) * 100, 2) : 0;
+
+        return [
+            'student_id' => $student_Id,
+            'exam_id' => $exam_ID,
+            'class_id' => $class_ID,
+            'section_id' => $section_ID,
+            'branch_id' => $branch_Id,
+            'total_marks' => $totalMarks,
+            'obtained_marks' => $obtainedMarks,
+            'percentage' => $percentage,
+            'subjects' => $subjects
+        ];
+    }
+
 }

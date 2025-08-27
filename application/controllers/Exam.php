@@ -19,6 +19,8 @@ class Exam extends Admin_Controller
         parent::__construct();
         $this->load->model('exam_model');
         $this->load->model('sms_model');
+        $this->load->model('reward_model');
+        $this->load->library('reward_lib');
     }
 
     /* exam form validation rules */
@@ -438,7 +440,7 @@ class Exam extends Admin_Controller
     // }
 
 
-    public function mark_save()
+    public function mark_save_old()
     {
         if ($_POST) {
             if (!get_permission('exam_mark', 'is_add')) {
@@ -508,6 +510,125 @@ class Exam extends Admin_Controller
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
+            }
+            echo json_encode($array);
+        }
+    }
+
+    public function mark_save()
+    {
+        if ($_POST) {
+            if (!get_permission('exam_mark', 'is_add')) {
+                ajax_access_denied();
+            }
+
+            $inputMarks = $this->input->post('mark');
+            foreach ($inputMarks as $key => $value) {
+                if (!isset($value['absent'])) {
+                    foreach ($value['assessment'] as $i => $row) {
+                        $this->form_validation->set_rules(
+                            'mark[' . $key . '][assessment][' . $i . ']',
+                            translate('mark'),
+                            'trim|required|numeric'
+                        );
+                    }
+                }
+                // remarks validation
+                $this->form_validation->set_rules('mark[' . $key . '][remarks]', 'Remarks', 'trim');
+            }
+
+            if ($this->form_validation->run() !== false) {
+                $branchID = $this->application_model->get_branch_id();
+                $classID = $this->input->post('class_id');
+                $sectionID = $this->input->post('section_id');
+                $subjectID = $this->input->post('subject_id');
+                $examID = $this->input->post('exam_id');
+                $inputMarks = $this->input->post('mark');
+
+                $processedStudents = [];
+
+                foreach ($inputMarks as $key => $value) {
+                    $assMark = [];
+                    foreach ($value['assessment'] as $i => $row) {
+                        $assMark[$i] = $row;
+                    }
+
+                    $student_id = $value['student_id'];
+
+                    $arrayMarks = [
+                        'student_id' => $student_id,
+                        'exam_id' => $examID,
+                        'class_id' => $classID,
+                        'section_id' => $sectionID,
+                        'subject_id' => $subjectID,
+                        'branch_id' => $branchID,
+                        'session_id' => get_session_id(),
+                    ];
+
+                    $inputMark = (isset($value['absent']) ? null : json_encode($assMark));
+                    $absent = (isset($value['absent']) ? 'on' : '');
+                    $remarks = isset($value['remarks']) ? $value['remarks'] : '';
+
+                    $query = $this->db->get_where('mark', $arrayMarks);
+                    if ($query->num_rows() > 0) {
+                        $this->db->where('id', $query->row()->id);
+                        $this->db->update('mark', [
+                            'mark' => $inputMark,
+                            'absent' => $absent,
+                            'remarks' => $remarks
+                        ]);
+                    } else {
+                        $arrayMarks['mark'] = $inputMark;
+                        $arrayMarks['absent'] = $absent;
+                        $arrayMarks['remarks'] = $remarks;
+                        $this->db->insert('mark', $arrayMarks);
+                        $this->sms_model->send_sms($arrayMarks, 5);
+                    }
+
+                    // keep track of student for reward processing
+                    if (!in_array($student_id, $processedStudents)) {
+                        $processedStudents[] = $student_id;
+                    }
+                }
+
+                // $this->db->trans_start();
+
+                // ==============================
+                // REWARD SYSTEM (OFFLINE EXAMS)
+                // ==============================
+                foreach ($processedStudents as $student_id) {
+                    $result = $this->exam_model->getStudentExamResult($examID, $classID, $sectionID, $branchID, $student_id);
+
+                    log_message('debug', 'Prepared Answers: ' . json_encode($result));
+
+                    if ($result) {
+                        $percentage = $result['percentage'];
+
+                        log_message('info', 'EXAM PERCENTAGE: ' . $percentage);
+
+                        $isRewarded = $this->reward_model->isRewarded($examID, $student_id);
+
+                        log_message('info', 'Reward already given? ' . ($isRewarded ? 'YES' : 'NO'));
+
+                        // Reward only if not already rewarded
+                        if (!$isRewarded) {
+                            log_message('info', 'Calling Reward Library -> processExamReward() for StudentID: ' . $student_id . ', ExamID: ' . $examID);
+                            $this->reward_lib->processExamReward($student_id, $examID, 'offline', $percentage);
+                            log_message('info', 'Reward process executed for StudentID: ' . $student_id);
+                        } else {
+                            log_message('info', 'Skipping reward, already rewarded.');
+                        }
+                    }
+                }
+
+
+
+                $message = translate('information_has_been_saved_successfully');
+                $array = ['status' => 'success', 'message' => $message];
+
+            } else {
+                $error = $this->form_validation->error_array();
+                $array = ['status' => 'fail', 'error' => $error];
             }
             echo json_encode($array);
         }
@@ -742,16 +863,16 @@ class Exam extends Admin_Controller
                     $q = $this->db->select('id')->where(array('exam_id' => $examID, 'enroll_id' => $value['enroll_id']))->get('exam_rank');
                     if ($q->num_rows() == 0) {
                         $arrayRank = array(
-                            'rank' => $value['position'], 
-                            'teacher_comments' => $value['teacher_comments'], 
-                            'principal_comments' => $value['principal_comments'], 
-                            'enroll_id' => $value['enroll_id'], 
-                            'exam_id' => $examID, 
+                            'rank' => $value['position'],
+                            'teacher_comments' => $value['teacher_comments'],
+                            'principal_comments' => $value['principal_comments'],
+                            'enroll_id' => $value['enroll_id'],
+                            'exam_id' => $examID,
                         );
                         $this->db->insert('exam_rank', $arrayRank);
                     } else {
                         $this->db->where('id', $q->row()->id);
-                        $this->db->update('exam_rank', ['rank' => $value['position'], 'teacher_comments' => $value['teacher_comments'] , 'principal_comments' => $value['principal_comments']]);
+                        $this->db->update('exam_rank', ['rank' => $value['position'], 'teacher_comments' => $value['teacher_comments'], 'principal_comments' => $value['principal_comments']]);
                     }
                 }
                 $message = translate('information_has_been_saved_successfully');
