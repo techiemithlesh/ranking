@@ -229,7 +229,7 @@ class Homework extends Admin_Controller
         $ext = explode(".", $name);
         $filepath = "./uploads/attachments/homework/" . $id . "." . $ext[1];
         $data = file_get_contents($filepath);
-        force_download($name, $data);
+        force_download($name, $data, TRUE);
     }
 
     public function delete($id = '')

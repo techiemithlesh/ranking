@@ -163,7 +163,6 @@ class Exam_model extends CI_Model
         return $this->db->get('timetable_exam')->row_array();
     }
 
-
     public function getMarkAndStudent($branchID, $classID, $sectionID, $examID, $subjectID)
     {
         $this->db->select('en.*,st.first_name,st.last_name,st.register_no,st.category_id,m.mark as get_mark,IFNULL(m.absent, 0) as get_abs, m.remarks as remarks, subject.name as subject_name');

@@ -50,7 +50,6 @@ class Reward_model extends MY_Model
         return $this->db->get()->result_array() ?? [];
     }
 
-
     public function save($data)
     {
 
@@ -178,7 +177,6 @@ class Reward_model extends MY_Model
             return false;
         }
     }
-
 
     public function rewardList($data)
     {
