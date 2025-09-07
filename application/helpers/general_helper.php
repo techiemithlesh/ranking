@@ -708,3 +708,19 @@ if (!function_exists('get_name_by_id')) {
 }
 
 
+if (!function_exists('getSectionDetails')) {
+    function getSectionDetails($data)
+    {
+        $array = json_decode($data, true);
+        $nameList = [];
+        if (json_last_error() == JSON_ERROR_NONE) {
+            foreach ($array as $value) {
+                $nameList[] = get_type_name_by_id('section', $value);
+            }
+        }
+        return implode(', ', $nameList);
+    }
+}
+
+
+

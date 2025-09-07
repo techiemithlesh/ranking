@@ -51,16 +51,7 @@
 						<th><?= translate('negative_mark') ?></th>
 						<td><?php echo ($exam->neg_mark == 1) ? translate('yes') : translate('no'); ?></td>
 					</tr>
-					<?php if ($exam->exam_type == 1) { ?>
-						<tr>
-							<th><?= translate('exam') . " " . translate('fees') ?> </th>
-							<td><?php echo currencyFormat($exam->fee); ?></td>
-							<th><?= translate('payment_informations') ?></th>
-							<td width="270">
-								<?php echo $this->db->select('transaction_id')->where(array('student_id' => get_loggedin_user_id(), 'exam_id' => $exam->id))->get('online_exam_payment')->row()->transaction_id; ?>
-							</td>
-						</tr>
-					<?php } ?>
+					
 				</tbody>
 			</table>
 		</div>
@@ -76,7 +67,7 @@
 				<div class="text-center">
 					<button class="btn btn-default btn-lg mt-lg start_btn" data-examid="<?php echo $exam->id; ?>"
 						data-loading-text="<i class='fas fa-spinner fa-spin'></i> Processing"><i
-							class="fas fa-computer-mouse"></i> <?= translate('start_exam') ?></button>
+							class="fas fa-computer-mouse"></i> <?= translate('host_exam') ?></button>
 				</div>
 			<?php
 			}
@@ -114,7 +105,7 @@
 		var examID = $this.attr("data-examid");
 		$.ajax({
 			type: 'POST',
-			url: base_url + "userrole/ajaxQuestions",
+			url: base_url + "liveexam/ajaxGetQuestions",
 			data: { 'exam_id': examID },
 			dataType: 'JSON',
 			beforeSend: function () {
@@ -194,9 +185,7 @@
 		}
 	}
 
-	function completeExams() {
-		$('#answerForm').submit();
-	}
+
 
 	// remain duration update
 	var interval;

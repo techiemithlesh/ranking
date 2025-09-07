@@ -984,7 +984,8 @@
                             get_permission('question_bank', 'is_view') ||
                             get_permission('exam_result', 'is_view') ||
                             get_permission('position_generate', 'is_view') ||
-                            get_permission('question_group', 'is_view')
+                            get_permission('question_group', 'is_view') ||
+                            get_permission('live_exam', 'is_view')
                         ) {
                             ?>
                             <li class="nav-parent <?php if ($main_menu == 'onlineexam')
@@ -1049,6 +1050,19 @@
                                             </a>
                                         </li>
                                     <?php } ?>
+
+                                    <!-- 🔹 NEW MENU FOR LIVE EXAM -->
+                                    <?php if (get_permission('live_exam', 'is_view')) { ?>
+                                        <li
+                                            class="<?php if ($sub_page == 'live_exam/index' || $sub_page == 'live_exam/host')
+                                                echo 'nav-active'; ?>">
+                                            <a href="<?= base_url('liveexam') ?>">
+                                                <span><i class="fas fa-broadcast-tower"
+                                                        aria-hidden="true"></i><?= translate('live_exam') ?></span>
+                                            </a>
+                                        </li>
+                                    <?php } ?>
+
                                 </ul>
                             </li>
                         <?php }
@@ -1979,10 +1993,7 @@
                         </li>
                         <?php
                     }
-
                     ?>
-
-
                 </ul>
             </nav>
         </div>
