@@ -363,7 +363,7 @@
 				data: { exam_id: examID, branches: branches },
 				dataType: 'json',
 				success: function (response) {
-					console.log("re++s", response);
+					// console.log("re++s", response);
 					if (response.status === 'success') {
 						swal({
 							toast: true,

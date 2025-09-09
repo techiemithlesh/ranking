@@ -66,6 +66,12 @@ class LiveExam extends Admin_Controller
             access_denied();
         }
 
+        $this->data['headerelements'] = array(
+            'js' => array(
+                'js/online-exam.js',
+            ),
+        );
+
         // If non-superadmin, ensure branch is allowed
         if (!is_superadmin_loggedin()) {
             $isPerm = $this->live_exam_model->isBranchExamAssigned($exam_id);
@@ -86,6 +92,7 @@ class LiveExam extends Admin_Controller
 
         $data['sub_page'] = 'onlineexam/live_exam/host';
         $data['main_menu'] = 'onlineexam';
+
         $this->load->view('layout/index', $data);
     }
 
@@ -95,50 +102,60 @@ class LiveExam extends Admin_Controller
         $status = 0;
         $totalQuestions = 0;
         $message = "";
-        $this->load->model('onlineexam_model');
         $examID = $this->input->post('exam_id');
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
         $totalQuestions = $exam->questions_qty;
-        $studentAttempt = $this->onlineexam_model->getStudentAttempt($exam->id);
-        $examSubmitted = $this->onlineexam_model->getStudentSubmitted($exam->id);
         if (!empty($exam)) {
             $startTime = strtotime($exam->exam_start);
             $endTime = strtotime($exam->exam_end);
             $now = strtotime("now");
-            if (($startTime <= $now && $now <= $endTime) && (empty($examSubmitted)) && $exam->publish_status == 1) {
-                if ($exam->limits_participation > $studentAttempt) {
-                    // $this->onlineexam_model->addStudentAttemts($exam->id);
-                    $message = "";
-                    $status = 1;
-                } else {
-                    $status = 0;
-                    $message = "You already reach max exam attempt.";
-                }
+            if (($startTime <= $now && $now <= $endTime) && $exam->publish_status == 1) {
+                $message = "";
+                $status = 1;
+
             } else {
                 $message = "Maybe the test has expired or something wrong.";
             }
         }
         $data['exam'] = $exam;
         $data['questions'] = $this->onlineexam_model->getExamQuestions($exam->id, $exam->question_type);
-
-        // $activeSession = $this->live_exam_model->getActiveSessionByExam($exam->id);
-        // $participants = [];
-        // if (!empty($activeSession)) {
-        //     $participants = $this->live_exam_model->getSessionStudents($activeSession->id);
-        // }
-        // $data['participants'] = $participants;
-        // $data['active_session'] = $activeSession;
-
         $pag_content = $this->load->view('onlineexam/live_exam/ajax_start', $data, true);
         echo json_encode(array(
             'status' => $status,
             'total_questions' => $totalQuestions,
             'message' => $message,
             'page' => $pag_content,
-            // 'participants_count' => count($participants),
-            // 'participants' => $participants
         ));
     }
 
+    public function startSession()
+    {
+        if (!get_permission('live_exam', 'is_add')) {
+            echo json_encode(['status' => 0, 'message' => 'Permission denied']);
+            return;
+        }
+
+        $examID = $this->input->post('exam_id');
+        if (empty($examID)) {
+            echo json_encode(['status' => 0, 'message' => 'Invalid Exam']);
+            return;
+        }
+
+        $hostID = get_loggedin_user_id();
+        $hostRole = loggedin_role_name();
+
+        $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole);
+
+        if ($session) {
+            echo json_encode([
+                'status' => 1,
+                'message' => 'Session started successfully',
+                'session_code' => $session->session_code,
+                'join_link' => base_url('liveexam/join/' . $session->session_token)
+            ]);
+        } else {
+            echo json_encode(['status' => 0, 'message' => 'Failed to start session']);
+        }
+    }
 
 }

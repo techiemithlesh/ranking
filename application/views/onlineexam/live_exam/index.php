@@ -41,22 +41,6 @@
     $(document).ready(function () {
         // initiate Datatable
         initDatatable('.live-exam-list', 'liveexam/getLiveExamListDT', {}, 25);
-
-        $('#class_id').on('change', function () {
-            var classID = $(this).val();
-            $.ajax({
-                url: base_url + 'onlineexam/getByClass',
-                type: 'POST',
-                data: {
-                    classID: classID
-                },
-                success: function (data) {
-                    $('#subject_id').html(data);
-                }
-            });
-        });
-
-
     });
 
 

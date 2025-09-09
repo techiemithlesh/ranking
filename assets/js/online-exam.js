@@ -225,3 +225,34 @@ function getAdminStudentResult(examID, studentID) {
         }
     });
 }
+
+
+
+function hostDurationUpdate() {
+    function zeroPad(number) {
+        return (number < 10 ? '0' : '') + number;
+    }
+    splitTime = examDuration.split(':');
+    var hours = parseInt(splitTime[0], 10);
+    var minutes = parseInt(splitTime[1], 10);
+    var seconds = parseInt(splitTime[2], 10);
+    --seconds;
+    minutes = (seconds < 0) ? --minutes : minutes;
+    seconds = (seconds < 0) ? 59 : seconds;
+    hours = (minutes < 0) ? --hours : hours;
+    minutes = (minutes < 0) ? 59 : minutes;
+
+    hours = zeroPad(hours);
+    minutes = zeroPad(minutes);
+    seconds = zeroPad(seconds);
+    if (hours < 0)
+        clearInterval(interval);
+
+    if ((seconds <= 0) && (minutes <= 0) && (hours <= 0)) {
+        clearInterval(interval);
+    }
+
+    examDuration = hours + ":" + minutes + ":" + seconds;
+    var r = hours + ":" + minutes + ":" + seconds;
+    return r;
+}

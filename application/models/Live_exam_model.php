@@ -267,6 +267,34 @@ class Live_exam_model extends MY_Model
         return $this->db->get()->result();
     }
 
+
+    public function createSession($examID, $hostID, $hostRole)
+    {
+        // generate codes
+        $sessionCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+        $sessionToken = bin2hex(random_bytes(16)); // 32 chars
+
+        $data = [
+            'exam_id' => intval($examID),
+            'host_id' => intval($hostID),
+            'host_role' => $hostRole,
+            'session_code' => $sessionCode,
+            'session_token' => $sessionToken,
+            'status' => 'active',
+            'started_at' => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->insert('exam_sessions', $data);
+
+        if ($this->db->affected_rows() > 0) {
+            $data['id'] = $this->db->insert_id();
+            return (object) $data; // return session object
+        }
+
+        return false;
+    }
+
+
     private function getSectionDetails($section_json)
     {
         $arr = json_decode($section_json, true);
