@@ -81,7 +81,6 @@ class LiveExam extends Admin_Controller
             }
         }
 
-
         $data['title'] = translate('host_live_exam');
         $data['exam'] = $this->live_exam_model->getExamDetailsForLive($exam_id);
 
@@ -104,6 +103,7 @@ class LiveExam extends Admin_Controller
         $message = "";
         $examID = $this->input->post('exam_id');
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
+
         $totalQuestions = $exam->questions_qty;
         if (!empty($exam)) {
             $startTime = strtotime($exam->exam_start);
@@ -143,13 +143,15 @@ class LiveExam extends Admin_Controller
 
         $hostID = get_loggedin_user_id();
         $hostRole = loggedin_role_name();
+        $currentQuestionId = $this->input->post('current_question_id');
 
-        $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole);
+        $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole, $currentQuestionId);
 
         if ($session) {
             echo json_encode([
                 'status' => 1,
                 'message' => 'Session started successfully',
+                'session_id' => $session->id,
                 'session_code' => $session->session_code,
                 'join_link' => base_url('liveexam/join/' . $session->session_token)
             ]);
@@ -157,5 +159,47 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Failed to start session']);
         }
     }
+
+
+    public function setCurrentQuestion()
+    {
+        if (!get_permission('live_exam', 'is_add')) {
+            echo json_encode(['status' => 0, 'message' => 'Permission denied']);
+            return;
+        }
+
+        $session_id = $this->input->post('session_id');
+        $question_id = $this->input->post('question_id');
+
+        if (empty($session_id) || $question_id === null) {
+            echo json_encode(['status' => 0, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $ok = $this->live_exam_model->setCurrentQuestion($session_id, $question_id);
+
+        if ($ok) {
+            echo json_encode(['status' => 1, 'message' => 'Current question updated']);
+        } else {
+            echo json_encode(['status' => 0, 'message' => 'Failed to update']);
+        }
+    }
+
+
+    public function endSession()
+    {
+        $session_id = $this->input->post('session_id');
+
+        if (empty($session_id)) {
+            echo json_encode(['status' => 0, 'message' => 'Missing session id']);
+            exit;
+        }
+        $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id());
+        if ($ok)
+            echo json_encode(['status' => 1, 'message' => 'Session ended']);
+        else
+            echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
+    }
+
 
 }

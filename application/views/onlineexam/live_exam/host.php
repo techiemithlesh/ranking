@@ -86,6 +86,7 @@
 	var currentStep = 1;
 	var interval = null;
 	var elapsed_seconds = 0;
+	window._live_session = null;
 
 	// Start Hosting Exam
 	$(document).on("click", ".start_btn", function () {
@@ -140,13 +141,25 @@
 
 
 	function hostSessionGenerate(examID) {
+
+		currentQuestionId = $(".step-pane[data-step='1']").data("question-id");
+		console.log("curren", currentQuestionId);
+
 		$.ajax({
 			type: "POST",
 			url: base_url + "liveexam/startSession",
-			data: { exam_id: examID },
+			data: { exam_id: examID, current_question_id: currentQuestionId },
 			dataType: "JSON",
 			success: function (resp) {
 				if (resp.status === 1) {
+					window._live_session = {
+						id: resp.session_id,               // make sure backend returns this
+						session_code: resp.session_code,
+						join_link: resp.join_link
+					};
+
+					console.log("Session started:", window._live_session);
+
 					// Show session info
 					$("#sessionInfo").html(
 						'<p><strong>Session Code:</strong> ' + resp.session_code + '</p>' +
@@ -154,6 +167,7 @@
 						'<input type="text" id="joinLink" value="' + resp.join_link + '" readonly style="width:80%;"> ' +
 						'<button onclick="copyJoinLink()">Copy</button></p>'
 					);
+
 				} else {
 					alertMsg(resp.message, "error", "Error", "");
 				}
@@ -188,6 +202,12 @@
 		// Prev/Next button handling
 		$("#prevbutton").prop("disabled", step === 1);
 		$("#nextbutton").prop("disabled", step === totalQuestions);
+
+		// update session current question
+		var qid = $(".step-pane[data-step='" + step + "']").data("question-id");
+		if (window._live_session && qid) {
+			setSessionCurrentQuestion(window._live_session.id, qid);
+		}
 	}
 
 	// Timer
@@ -225,8 +245,6 @@
 	}
 
 
-
-
 	// Prev/Next buttons
 	$(document).on("click", "#prevbutton", function () {
 		showStep(currentStep - 1);
@@ -239,6 +257,14 @@
 		showStep(step);
 	});
 
+	// Update current question API
+	function setSessionCurrentQuestion(sessionId, qid) {
+		console.log("seseesion called");
+		$.post(base_url + "liveexam/setCurrentQuestion",
+			{ session_id: sessionId, question_id: qid }
+		);
+	}
+
 	// End Session
 	$(document).on("click", "#end_session_btn", function () {
 		if (!confirm("Are you sure you want to end this live exam session?")) return;
@@ -246,7 +272,7 @@
 		$.ajax({
 			type: "POST",
 			url: base_url + "liveexam/endSession",
-			data: { exam_id: $("input[name='online_exam_id']").val() },
+			data: { session_id: window._live_session.id },
 			success: function (res) {
 				try {
 					var data = JSON.parse(res);

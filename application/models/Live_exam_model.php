@@ -173,8 +173,6 @@ class Live_exam_model extends MY_Model
         return !empty($row2);
     }
 
-
-
     public function getExamDetailsForLive($onlineexamID)
     {
         // We expect $onlineexamID as integer (from controller). Validate.
@@ -232,19 +230,6 @@ class Live_exam_model extends MY_Model
         // No section check here (host side). Return the record object.
         return $record;
     }
-
-
-    public function getExamQuestions($exam_id)
-    {
-        $exam_id = intval($exam_id);
-        $this->db->select('id, question, option1, option2, option3, option4');
-        $this->db->from('questions_manage');
-        $this->db->where('onlineexam_id', $exam_id);
-        $this->db->order_by('id', 'ASC');
-        return $this->db->get()->result_array();
-    }
-
-
     public function getActiveSessionByExam($exam_id)
     {
         return $this->db->from('live_exam_sessions')
@@ -267,12 +252,11 @@ class Live_exam_model extends MY_Model
         return $this->db->get()->result();
     }
 
-
-    public function createSession($examID, $hostID, $hostRole)
+    public function createSession($examID, $hostID, $hostRole, $question_id)
     {
         // generate codes
         $sessionCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
-        $sessionToken = bin2hex(random_bytes(16)); // 32 chars
+        $sessionToken = bin2hex(random_bytes(16)); // 32 chars  
 
         $data = [
             'exam_id' => intval($examID),
@@ -280,6 +264,7 @@ class Live_exam_model extends MY_Model
             'host_role' => $hostRole,
             'session_code' => $sessionCode,
             'session_token' => $sessionToken,
+            'current_question_id' => $question_id,
             'status' => 'active',
             'started_at' => date('Y-m-d H:i:s')
         ];
@@ -294,17 +279,41 @@ class Live_exam_model extends MY_Model
         return false;
     }
 
-
-    private function getSectionDetails($section_json)
+    public function setCurrentQuestion($session_id, $question_id)
     {
-        $arr = json_decode($section_json, true);
-        $nameList = [];
-        if (json_last_error() == JSON_ERROR_NONE && is_array($arr)) {
-            foreach ($arr as $sec) {
-                $nameList[] = get_type_name_by_id('section', $sec);
-            }
-        }
-        return implode(', ', $nameList);
+        $this->db->where('id', intval($session_id));
+        $this->db->update('exam_sessions', [
+            'current_question_id' => intval($question_id),
+        ]);
+
+        return $this->db->affected_rows() > 0;
     }
+
+
+    public function getSession($session_id)
+    {
+        return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
+    }
+
+
+    public function endSession($session_id, $host_id)
+    {
+        // Verify ownership
+        $this->db->where('id', $session_id);
+        $this->db->where('host_id', $host_id);
+        $session = $this->db->get('exam_sessions')->row();
+
+        if (!$session) {
+            return false; // not found or not owned by this host
+        }
+
+        $this->db->where('id', $session_id);
+        return $this->db->update('exam_sessions', [
+            'status' => 'completed',
+            'ended_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+
 
 }

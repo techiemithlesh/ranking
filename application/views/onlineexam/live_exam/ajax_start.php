@@ -73,8 +73,7 @@
                                             <li>
                                                 <a class="que_btn <?= $key == 0 ? 'active' : '' ?>"
                                                    id="question<?= $key+1 ?>"
-                                                   href="javascript:void(0);"
-                                                   onclick="changeQuestion(<?= $key+1 ?>)">
+                                                   href="javascript:void(0);">
                                                     <?= $key+1 ?>
                                                 </a>
                                             </li>
@@ -102,7 +101,7 @@
 
                 <div class="box-body step-content">
                     <?php foreach ($questions as $key => $q): ?>
-                        <div class="clearfix step-pane <?= $key==0 ? 'active':'' ?>" data-step="<?= $key+1 ?>">
+                        <div class="clearfix step-pane <?= $key==0 ? 'active':'' ?>" data-step="<?= $key+1 ?>" data-question-id="<?= $q->question_id ?>">
                             <section class="panel pg-fw">
                                 <div class="panel-body">
                                     <h5 class="chart-title mb-xs">
