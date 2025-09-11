@@ -849,7 +849,6 @@ class Userrole extends User_Controller
 
         return $response;
     }
-
     public function skillBasedReport()
     {
         $this->data['stu'] = $this->userrole_model->getStudentDetails();
@@ -866,7 +865,6 @@ class Userrole extends User_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
 
     public function ReportCardSessionSet()
     {
@@ -1178,7 +1176,6 @@ class Userrole extends User_Controller
             redirect(base_url('userrole/online_exam'));
         }
     }
-
 
     // ONLINE EXAM CUSTOM REPORT CARD
     public function online_exam_progress()

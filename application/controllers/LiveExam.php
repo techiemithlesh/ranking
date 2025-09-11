@@ -160,7 +160,6 @@ class LiveExam extends Admin_Controller
         }
     }
 
-
     public function setCurrentQuestion()
     {
         if (!get_permission('live_exam', 'is_add')) {

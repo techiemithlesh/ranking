@@ -212,6 +212,15 @@
                                     <i class="icon-screen-desktop"></i><span><?= translate('online_exam') ?></span>
                                 </a>
                             </li>
+
+                            <!-- LIVE Exam -->
+                            <li class="<?php if ($main_menu == 'onlineexam')
+                                echo ' nav-active'; ?>">
+                                <a href="<?= base_url('liveexam_student/index') ?>">
+                                    <i class="icon-screen-desktop"></i><span><?= translate('live_exam') ?></span>
+                                </a>
+                            </li>
+
                         <?php } ?>
 
                         <!-- supervision -->

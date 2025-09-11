@@ -230,6 +230,8 @@ class Live_exam_model extends MY_Model
         // No section check here (host side). Return the record object.
         return $record;
     }
+
+
     public function getActiveSessionByExam($exam_id)
     {
         return $this->db->from('live_exam_sessions')
@@ -295,6 +297,29 @@ class Live_exam_model extends MY_Model
         return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
     }
 
+    public function getSessionByCode($session_code)
+    {
+        return $this->db->where('session_code', $session_code)
+            ->where('status', 'active')
+            ->get('exam_sessions')
+            ->row();
+    }
+
+
+    public function addStudentToSession($session_id, $student_id)
+    {
+        $exists = $this->db->where('session_id', $session_id)
+            ->where('student_id', $student_id)
+            ->get('exam_session_students')
+            ->row();
+        if (!$exists) {
+            $this->db->insert('exam_session_students', [
+                'session_id' => $session_id,
+                'student_id' => $student_id,
+                'joined_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+    }
 
     public function endSession($session_id, $host_id)
     {
@@ -312,6 +337,164 @@ class Live_exam_model extends MY_Model
             'status' => 'completed',
             'ended_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+
+    // STUDENT
+    public function liveExamListForStudentDT($postData, $currency_symbol = '')
+    {
+        $response = array();
+        $sessionID = get_session_id();
+
+        // Read datatable params
+        $draw = intval($postData['draw'] ?? 1);
+        $start = intval($postData['start'] ?? 0);
+        $rowperpage = intval($postData['length'] ?? 10);
+        $searchValue = $postData['search']['value'] ?? '';
+
+        $columnIndex = $postData['order'][0]['column'] ?? 0;
+        $columnSortOrder = $postData['order'][0]['dir'] ?? 'DESC';
+
+        $columns = [
+            0 => 'oe.id',
+            1 => 'oe.title',
+            2 => 'class.name',
+            3 => 'subject.name',
+            4 => 'oe.questions_qty',
+            5 => 'oe.exam_start',
+            6 => 'oe.exam_end',
+            7 => 'oe.duration',
+            8 => 'sess.status'
+        ];
+        $orderBy = $columns[$columnIndex] ?? 'oe.id';
+
+        // Student details
+        $enrollID = $this->session->userdata('enrollID');
+        $enroll = $this->db->where('id', $enrollID)->get('enroll')->row();
+        $branch_id = get_loggedin_branch_id();
+        $class_id = $enroll->class_id;
+        $section_id = $enroll->section_id;
+
+        // Exams assigned to branch
+        $assignedExamIDs = $this->db->select('exam_id')
+            ->where('branch_id', $branch_id)
+            ->get('exam_assignment')
+            ->result_array();
+        $assignedExamIDs = array_column($assignedExamIDs, 'exam_id');
+
+        // ---- Base Query ----
+        $this->db->select('
+        oe.id as exam_id,
+        oe.title,
+        oe.exam_start,
+        oe.exam_end,
+        oe.duration,
+        oe.section_id,
+        oe.subject_id,
+        class.name as class_name,
+        subj.name as subject_name,
+        (SELECT COUNT(id) FROM questions_manage WHERE onlineexam_id = oe.id) as questions_qty,
+        sess.id as session_id,
+        sess.session_code,
+        sess.status as session_status
+    ');
+        $this->db->from('online_exam as oe');
+        $this->db->join('class', 'class.id = oe.class_id', 'left');
+        $this->db->join('subject as subj', 'subj.id = oe.subject_id', 'left');
+        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status="active"', 'left');
+
+        $this->db->where('oe.session_id', $sessionID);
+        $this->db->where('oe.publish_status', 1);
+        $this->db->where('oe.class_id', $class_id);
+        $this->db->group_start();
+        $this->db->where('oe.created_by_branch', $branch_id);
+        if (!empty($assignedExamIDs)) {
+            $this->db->or_where_in('oe.id', $assignedExamIDs);
+        }
+        $this->db->group_end();
+
+        // Search
+        if (!empty($searchValue)) {
+            $this->db->group_start();
+            $this->db->like('oe.title', $searchValue);
+            $this->db->or_like('oe.exam_start', $searchValue);
+            $this->db->or_like('oe.exam_end', $searchValue);
+            $this->db->group_end();
+        }
+
+        // Count filtered
+        $totalRecordwithFilter = $this->db->count_all_results('', false);
+
+        // Order + Limit
+        $this->db->order_by($orderBy, $columnSortOrder);
+        if ($rowperpage != -1) {
+            $this->db->limit($rowperpage, $start);
+        }
+
+        $query = $this->db->get();
+        $records = $query->result();
+
+        // Count total
+        $totalRecords = $totalRecordwithFilter;
+
+        // ---- Build Data ----
+        $data = [];
+        $count = $start + 1;
+
+        foreach ($records as $record) {
+            // Filter by section
+            $array = json_decode($record->section_id, true);
+            if ((is_array($array) && !in_array($section_id, $array)) && $record->section_id != $section_id) {
+                continue;
+            }
+
+            // Status
+            $status = '<span class="label label-danger">' . translate('inactive') . '</span>';
+            $action = '';
+            if ($record->session_status === 'active') {
+                $status = '<span class="label label-success">' . translate('active') . '</span>';
+                $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
+                          class="btn btn-circle btn-success btn-sm" 
+                          title="' . translate('join_exam') . '">
+                          <i class="fas fa-sign-in-alt"></i></a>';
+            }
+
+            $row = [];
+            $row[] = $count++;
+            $row[] = $record->title;
+            $row[] = $record->class_name . " (" . $this->onlineexam_model->getSectionDetails($record->section_id) . ")";
+            $row[] = $this->onlineexam_model->getSubjectDetails($record->subject_id);
+            $row[] = $record->questions_qty;
+            $row[] = _d($record->exam_start) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_start)) . "</p>";
+            $row[] = _d($record->exam_end) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_end)) . "</p>";
+            $row[] = $record->duration;
+            $row[] = $status;
+            $row[] = $action;
+
+            $data[] = $row;
+        }
+
+        // Response
+        $response = [
+            "draw" => $draw,
+            "recordsTotal" => $totalRecords,
+            "recordsFiltered" => $totalRecordwithFilter,
+            "data" => $data,
+        ];
+
+        return json_encode($response);
+    }
+
+    public function getQuestionById($question_id, $exam_id)
+    {
+        $this->db->select('questions_manage.*, questions.id as qus_id, questions.*')
+            ->from('questions_manage')
+            ->join('questions', 'questions.id = questions_manage.question_id')
+            ->where('questions_manage.onlineexam_id', $exam_id)
+            ->where('questions_manage.question_id', $question_id)
+            ->limit(1);
+
+        return $this->db->get()->row();
     }
 
 

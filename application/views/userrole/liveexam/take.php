@@ -1,0 +1,136 @@
+<section class="panel">
+    <header class="panel-heading d-flex justify-content-between align-items-center">
+        <h4 class="panel-title">
+            <i class="fas fa-graduation-cap"></i>
+            <?= html_escape($exam->title) ?> - <?= translate('live_exam') ?>
+            <span class="badge badge-info text-right">
+                <?= translate('session_code') ?>: <?= html_escape($session->session_code) ?>
+            </span>
+        </h4>
+
+    </header>
+
+    <div class="panel-body">
+        <!-- Exam Info Inline -->
+        <div class="row mb-md">
+            <div class="col-md-12">
+                <p>
+                    <strong><?= translate('subject') ?>:</strong>
+                    <?= str_replace('<br>', ', ', $this->onlineexam_model->getSubjectDetails($exam->subject_id)); ?>
+                    &nbsp; | &nbsp;
+                    <strong><?= translate('total_questions') ?>:</strong> <?= $exam->questions_qty ?>
+                    &nbsp; | &nbsp;
+                    <strong><?= translate('duration') ?>:</strong> <?= $exam->duration ?>
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Side -->
+            <div class="col-md-5">
+                <!-- Timer -->
+                <section class="panel pg-fw mb-md">
+                    <div class="panel-body">
+                        <h5 class="chart-title mb-xs">
+                            <i class="fas fa-clock"></i> <?= translate('time_status') ?>
+                        </h5>
+                        <p><strong><?= translate('total_time') ?>:</strong> <?= $exam->duration ?></p>
+                        <p><strong><?= translate('remain_time') ?>:</strong>
+                            <span id="remain_time"><?= $exam->duration ?></span>
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Question Map -->
+                <section class="panel pg-fw">
+                  
+                    <div class="panel-body">
+                        
+                        <ul class="on_answer_box questionColor d-flex flex-wrap">
+                            <?php for ($i = 1; $i <= $exam->questions_qty; $i++): ?>
+                                <li class="mr-xs mb-xs">
+                                    <a href="javascript:void(0)" class="que_btn"
+                                        data-question-id="<?= $q->question_id ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Side: Question Full Width -->
+            <div class="col-md-7">
+                <div id="question_area" class="h-100">
+                    <div class="alert alert-info text-center p-lg">
+                        <?= translate('waiting_for_host') ?>...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<script type="text/javascript">
+    var session_id = "<?= $session->id ?>";
+    var exam_id = "<?= $exam->id ?>";
+    var interval = null;
+    var elapsed_seconds = 0;
+
+    // Poll current question
+    function pollCurrentQuestion() {
+        $.getJSON(base_url + "liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
+            if (resp.status === 1) {
+                // console.log("fjfj", resp);
+                $("#question_area").html(resp.html);
+
+                if (resp.current_step) {
+                    $(".que_btn").removeClass("active");
+                    $(".que_btn[data-question-id='" + resp.current_step + "']").addClass("active");
+                }
+
+
+
+            } else {
+                $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+            }
+        });
+    }
+
+    // Timer
+    function startTimer() {
+        elapsed_seconds = 0;
+        var duration = "<?= $exam->duration ?>"; // HH:MM:SS
+        var parts = duration.split(":");
+        var totalSeconds = (+parts[0] * 3600) + (+parts[1] * 60) + (+parts[2]);
+
+        interval = setInterval(function () {
+            elapsed_seconds++;
+            var remaining = totalSeconds - elapsed_seconds;
+
+            if (remaining <= 0) {
+                clearInterval(interval);
+                $("#remain_time").text("00:00:00");
+                $("#answerForm").submit(); // auto-submit
+                return;
+            }
+
+            var rh = Math.floor(remaining / 3600);
+            var rm = Math.floor((remaining % 3600) / 60);
+            var rs = remaining % 60;
+
+            $("#remain_time").text(
+                String(rh).padStart(2, "0") + ":" +
+                String(rm).padStart(2, "0") + ":" +
+                String(rs).padStart(2, "0")
+            );
+        }, 1000);
+    }
+
+    $(document).ready(function () {
+        pollCurrentQuestion(); // initial load
+        setInterval(pollCurrentQuestion, 5000); // poll every 5s
+        startTimer();
+    });
+</script>
