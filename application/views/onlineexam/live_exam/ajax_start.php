@@ -1,4 +1,4 @@
-<?php if (!empty($questions)) : ?>
+<?php if (!empty($questions)): ?>
     <?php $totalQuestions = count($questions); ?>
     <div class="row mt-lg">
 
@@ -16,20 +16,20 @@
                                 <i class="fas fa-user-friends"></i> <?= translate('participants') ?>
                             </h5>
                             <div class="mt-md">
-                                <ul id="host_participants_list" class="list-unstyled">
-                                    <?php if (!empty($participants)) : ?>
-                                        <?php foreach ($participants as $p) : ?>
+                                <ul id="host_participants_list" class="participants-grid">
+                                    <?php if (!empty($participants)): ?>
+                                        <?php foreach ($participants as $p): ?>
                                             <li id="p_<?= intval($p->student_id) ?>">
-                                                <strong><?= html_escape($p->name ?? ('#' . $p->student_id)) ?></strong>
-                                                <?php if (!empty($p->admission_no)) : ?>
-                                                    <span class="text-muted">(<?= html_escape($p->admission_no) ?>)</span>
+                                                <strong><?= html_escape($p->student_name ?? ('#' . $p->student_id)) ?></strong>
+                                                <?php if (!empty($p->register_no)): ?>
+                                                    <span class="text-muted">(<?= html_escape($p->register_no) ?>)</span>
                                                 <?php endif; ?>
                                                 <div class="small text-muted">
                                                     <?= !empty($p->joined_at) ? date('d-M H:i', strtotime($p->joined_at)) : '' ?>
                                                 </div>
                                             </li>
                                         <?php endforeach; ?>
-                                    <?php else : ?>
+                                    <?php else: ?>
                                         <li class="text-muted"><?= translate('no_participants_yet') ?></li>
                                     <?php endif; ?>
                                 </ul>
@@ -47,12 +47,20 @@
                             </h5>
                             <div class="mt-md">
                                 <div class="row">
-                                    <div class="col-sm-6"><h5><?= translate('total_time') ?>:</h5></div>
-                                    <div class="col-sm-6"><h5 class="text-dark"><?= $exam->duration ?></h5></div>
+                                    <div class="col-sm-6">
+                                        <h5><?= translate('total_time') ?>:</h5>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <h5 class="text-dark"><?= $exam->duration ?></h5>
+                                    </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-sm-6"><h5><?= translate('remain_time') ?>:</h5></div>
-                                    <div class="col-sm-6"><h5 class="remain_duration text-dark"><?= $exam->duration ?></h5></div>
+                                    <div class="col-sm-6">
+                                        <h5><?= translate('remain_time') ?>:</h5>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <h5 class="remain_duration text-dark"><?= $exam->duration ?></h5>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -69,12 +77,11 @@
                             <div class="mt-lg">
                                 <nav>
                                     <ul class="on_answer_box questionColor">
-                                        <?php foreach ($questions as $key => $q) : ?>
+                                        <?php foreach ($questions as $key => $q): ?>
                                             <li>
-                                                <a class="que_btn <?= $key == 0 ? 'active' : '' ?>"
-                                                   id="question<?= $key+1 ?>"
-                                                   href="javascript:void(0);">
-                                                    <?= $key+1 ?>
+                                                <a class="que_btn <?= $key == 0 ? 'active' : '' ?>" id="question<?= $key + 1 ?>"
+                                                    href="javascript:void(0);">
+                                                    <?= $key + 1 ?>
                                                 </a>
                                             </li>
                                         <?php endforeach; ?>
@@ -94,19 +101,20 @@
                 <div class="steps-container">
                     <ul class="steps hidden">
                         <?php foreach (range(1, $totalQuestions) as $i): ?>
-                            <li data-step="<?= $i ?>" class="<?= $i==1 ? 'active':'' ?>"></li>
+                            <li data-step="<?= $i ?>" class="<?= $i == 1 ? 'active' : '' ?>"></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
 
                 <div class="box-body step-content">
                     <?php foreach ($questions as $key => $q): ?>
-                        <div class="clearfix step-pane <?= $key==0 ? 'active':'' ?>" data-step="<?= $key+1 ?>" data-question-id="<?= $q->question_id ?>">
+                        <div class="clearfix step-pane <?= $key == 0 ? 'active' : '' ?>" data-step="<?= $key + 1 ?>"
+                            data-question-id="<?= $q->question_id ?>">
                             <section class="panel pg-fw">
                                 <div class="panel-body">
                                     <h5 class="chart-title mb-xs">
                                         <i class="fas fa-clipboard-question"></i>
-                                        <?= translate('question') ?> <?= $key+1 ?> of <?= $totalQuestions ?>
+                                        <?= translate('question') ?>         <?= $key + 1 ?> of <?= $totalQuestions ?>
                                     </h5>
                                     <div class="mt-lg">
                                         <p><?= $q->question ?></p>
@@ -128,6 +136,33 @@
                             <i class="fas fa-stop-circle"></i> <?= translate('end_session') ?>
                         </button>
                     </div>
+
+                    <!-- 🔹 Student Answers Panel -->
+                    <section class="panel pg-fw mt-md">
+                        <div class="panel-body">
+                            <h5 class="chart-title mb-xs">
+                                <i class="fas fa-reply-all"></i> <?= translate('student_answers') ?>
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed" id="host_answers_table">
+                                    <thead>
+                                        <tr>
+                                            <th><?= translate('student') ?></th>
+                                            <th><?= translate('answer') ?></th>
+                                            <th><?= translate('submitted_at') ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                <?= translate('no_answers_yet') ?>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>

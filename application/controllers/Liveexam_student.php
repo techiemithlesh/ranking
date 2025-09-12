@@ -122,6 +122,85 @@ class Liveexam_student extends User_Controller
         echo json_encode(['status' => 1, 'current_step' => $session->current_question_id, 'html' => $html]);
     }
 
+    public function submitAnswer()
+    {
+        if (!is_student_loggedin()) {
+            echo json_encode(['status' => 0, 'message' => 'Not authorized']);
+            return;
+        }
+
+        $studentID = get_loggedin_user_id();
+        $online_examID = $this->input->post('online_exam_id');
+        $sessionID = $this->input->post('session_id');
+        $questionID = $this->input->post('question_id');
+        $answers = $this->input->post('answer');
+
+        if (empty($online_examID) || empty($sessionID) || empty($questionID) || empty($answers)) {
+            echo json_encode(['status' => 0, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $answerValue = null;
+
+
+        if (!empty($answers[$questionID])) {
+            $qData = $answers[$questionID]; // e.g. [1] => "2" for MCQ
+            if (isset($qData[1])) {
+                $answerValue = $qData[1]; // MCQ
+            } elseif (isset($qData[2])) {
+                $answerValue = json_encode($qData[2]); // Multi-select
+            } elseif (isset($qData[3])) {
+                $answerValue = $qData[3]; // True/False
+            } elseif (isset($qData[4])) {
+                $answerValue = $qData[4]; // Text
+            }
+        }
+
+        if ($answerValue !== null) {
+            $data = [
+                'student_id' => $studentID,
+                'online_exam_id' => $online_examID,
+                'question_id' => $questionID,
+                'answer' => $answerValue,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        $exists = $this->db->where([
+            'student_id' => $studentID,
+            'online_exam_id' => $online_examID,
+            'question_id' => $questionID,
+        ])->get('online_exam_answer')->row();
+
+        if ($exists) {
+            $this->db->where('id', $exists->id)->update('online_exam_answer', $data);
+        } else {
+            $this->db->insert('online_exam_answer', $data);
+        }
+
+        $liveData = [
+            'session_id' => $sessionID,
+            'student_id' => $studentID,
+            'question_id' => $questionID,
+            'answer' => $answerValue,
+            'submitted_at' => date('Y-m-d H:i:s'),
+        ];
+
+        $existsLive = $this->db->where([
+            'session_id' => $sessionID,
+            'student_id' => $studentID,
+            'question_id' => $questionID,
+        ])->get('exam_session_answers')->row();
+
+        if ($existsLive) {
+            $this->db->where('id', $existsLive->id)->update('exam_session_answers', $liveData);
+        } else {
+            $this->db->insert('exam_session_answers', $liveData);
+        }
+
+        echo json_encode(['status' => 1, 'message' => 'Answer submitted successfully']);
+    }
+
 
 
 }

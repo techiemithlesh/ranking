@@ -241,17 +241,20 @@ class Live_exam_model extends MY_Model
             ->get()->row();
     }
 
-    public function getSessionStudents($session_id)
+    public function getParticipantsBySession($session_id)
     {
-        if (empty($session_id))
-            return [];
-
-        $this->db->select('ess.student_id, ess.joined_at, s.name, s.roll_no, s.admission_no');
-        $this->db->from('exam_session_students as ess');
-        $this->db->join('student as s', 's.id = ess.student_id', 'left');
-        $this->db->where('ess.session_id', intval($session_id));
-        $this->db->order_by('ess.joined_at', 'ASC');
-        return $this->db->get()->result();
+        return $this->db->select('
+            s.id as student_id,
+            CONCAT(s.first_name, " ", s.last_name) as student_name,
+            s.register_no,
+            ess.joined_at
+        ')
+            ->from('exam_session_students ess')
+            ->join('student s', 's.id = ess.student_id')
+            ->where('ess.session_id', $session_id)
+            ->order_by('ess.joined_at', 'ASC')
+            ->get()
+            ->result();
     }
 
     public function createSession($examID, $hostID, $hostRole, $question_id)
@@ -496,6 +499,27 @@ class Live_exam_model extends MY_Model
 
         return $this->db->get()->row();
     }
+
+
+    public function getAnswersBySession($session_id, $question_id)
+    {
+        return $this->db->select("
+            esa.*, 
+            CONCAT(s.first_name, ' ', s.last_name) as student_name, 
+            s.register_no, 
+            q.question as question_text
+        ")
+            ->from('exam_session_answers esa')
+            ->join('student s', 's.id = esa.student_id')
+            ->join('questions q', 'q.id = esa.question_id')
+            ->where('esa.session_id', $session_id)
+            ->where('esa.question_id', $question_id)
+            ->order_by('esa.submitted_at', 'DESC')
+            ->get()
+            ->result();
+    }
+
+
 
 
 

@@ -80,15 +80,19 @@
 	</div>
 </div>
 
+
 <script type="text/javascript">
-	var examDuration = "<?php echo $exam->duration; ?>";
+	var examDuration = "<?= $exam->duration; ?>";
 	var totalQuestions = 0;
 	var currentStep = 1;
 	var interval = null;
 	var elapsed_seconds = 0;
+
 	window._live_session = null;
 
+	// -----------------------------
 	// Start Hosting Exam
+	// -----------------------------
 	$(document).on("click", ".start_btn", function () {
 		var $this = $(this);
 		var examID = $this.attr("data-examid");
@@ -103,35 +107,32 @@
 				clearInterval(interval);
 			},
 			success: function (data) {
-				if (data.status === 1) {
-					if ($("#exam_questions").length) {
-						totalQuestions = parseInt(data.total_questions) || 0;
-						$("#exam_questions").html(data.page);
+				if (data.status === 1 && $("#exam_questions").length) {
+					totalQuestions = parseInt(data.total_questions) || 0;
+					$("#exam_questions").html(data.page);
 
-						// Reset to first question
-						currentStep = 1;
-						showStep(1);
+					// Reset & show first question
+					currentStep = 1;
+					showStep(1);
 
-						// Timer Start
-						startTimer();
+					// Start exam timer
+					startTimer();
 
-						// 🔹 Call session generate now
-						hostSessionGenerate(examID);
+					// Create live session
+					hostSessionGenerate(examID);
 
-						// Open Modal
-						$("#examModal").modal({
-							show: true,
-							backdrop: "static",
-							keyboard: false
-						});
-					}
+					// Open modal
+					$("#examModal").modal({
+						show: true,
+						backdrop: "static",
+						keyboard: false
+					});
 				} else {
-					alertMsg(data.message, "error", "Error", "");
+					alertMsg(data.message || "Error loading questions", "error", "Error", "");
 				}
 			},
 			error: function () {
 				alert("Error occurred, please try again.");
-				$this.button("reset");
 			},
 			complete: function () {
 				$this.button("reset");
@@ -139,11 +140,11 @@
 		});
 	});
 
-
+	// -----------------------------
+	// Generate Live Session
+	// -----------------------------
 	function hostSessionGenerate(examID) {
-
-		currentQuestionId = $(".step-pane[data-step='1']").data("question-id");
-		console.log("curren", currentQuestionId);
+		var currentQuestionId = $(".step-pane[data-step='1']").data("question-id");
 
 		$.ajax({
 			type: "POST",
@@ -153,21 +154,21 @@
 			success: function (resp) {
 				if (resp.status === 1) {
 					window._live_session = {
-						id: resp.session_id,               // make sure backend returns this
+						id: resp.session_id,
 						session_code: resp.session_code,
 						join_link: resp.join_link
 					};
 
-					console.log("Session started:", window._live_session);
-
 					// Show session info
 					$("#sessionInfo").html(
-						'<p><strong>Session Code:</strong> ' + resp.session_code + '</p>' +
-						'<p><strong>Join Link:</strong> ' +
-						'<input type="text" id="joinLink" value="' + resp.join_link + '" readonly style="width:80%;"> ' +
-						'<button onclick="copyJoinLink()">Copy</button></p>'
+						`<p><strong>Session Code:</strong> ${resp.session_code}</p>
+						 <p><strong>Join Link:</strong>
+						 <input type="text" id="joinLink" value="${resp.join_link}" readonly style="width:80%;">
+						 <button onclick="copyJoinLink()">Copy</button></p>`
 					);
 
+					// Start polling participants & answers
+					startHostPolling();
 				} else {
 					alertMsg(resp.message, "error", "Error", "");
 				}
@@ -185,32 +186,49 @@
 		alert("Join link copied!");
 	}
 
-	// Show Step (without FuelUX)
+	// -----------------------------
+	// Navigation
+	// -----------------------------
 	function showStep(step) {
 		if (step < 1 || step > totalQuestions) return;
 
 		currentStep = step;
 
-		// Hide all, show current
+		// Switch active question
 		$(".step-pane").removeClass("active");
-		$('[data-step="' + step + '"]').addClass("active");
+		$(`[data-step='${step}']`).addClass("active");
 
-		// Highlight active button
+		// Highlight active in map
 		$(".que_btn").removeClass("active");
 		$("#question" + step).addClass("active");
 
-		// Prev/Next button handling
+		// Button states
 		$("#prevbutton").prop("disabled", step === 1);
 		$("#nextbutton").prop("disabled", step === totalQuestions);
 
-		// update session current question
-		var qid = $(".step-pane[data-step='" + step + "']").data("question-id");
+		// Update current question in session
+		var qid = $(".step-pane[data-step='" + step + "']").attr("data-question-id");
 		if (window._live_session && qid) {
 			setSessionCurrentQuestion(window._live_session.id, qid);
 		}
 	}
 
+	$(document).on("click", "#prevbutton", function () {
+		showStep(currentStep - 1);
+	});
+
+	$(document).on("click", "#nextbutton", function () {
+		showStep(currentStep + 1);
+	});
+
+	$(document).on("click", ".que_btn", function () {
+		var step = parseInt(this.id.replace("question", ""));
+		showStep(step);
+	});
+
+	// -----------------------------
 	// Timer
+	// -----------------------------
 	function startTimer() {
 		elapsed_seconds = 0;
 		interval = setInterval(function () {
@@ -244,31 +262,93 @@
 		);
 	}
 
-
-	// Prev/Next buttons
-	$(document).on("click", "#prevbutton", function () {
-		showStep(currentStep - 1);
-	});
-	$(document).on("click", "#nextbutton", function () {
-		showStep(currentStep + 1);
-	});
-	$(document).on("click", ".que_btn", function () {
-		var step = parseInt(this.id.replace("question", ""));
-		showStep(step);
-	});
-
-	// Update current question API
+	// -----------------------------
+	// Update Session Current Question
+	// -----------------------------
 	function setSessionCurrentQuestion(sessionId, qid) {
-		console.log("seseesion called");
+
 		$.post(base_url + "liveexam/setCurrentQuestion",
 			{ session_id: sessionId, question_id: qid }
 		);
 	}
 
+	// -----------------------------
+	// Fetch Participants
+	// -----------------------------
+	function fetchParticipants() {
+		if (!window._live_session?.id) return;
+		$.getJSON(base_url + "liveexam/getParticipants", { session_id: window._live_session.id }, function (resp) {
+			console.log("siwndn", resp);
+			if (resp.status === 1) {
+				let listHtml = "";
+				if (resp.participants.length > 0) {
+					resp.participants.forEach(function (p) {
+						listHtml += `
+				<li id="p_${p.student_id}">
+					<strong>${p.student_name}</strong>
+					${p.register_no ? `<span class="text-muted">(${p.register_no})</span>` : ""}
+					<span class="text-muted small">
+						${p.joined_at ? new Date(p.joined_at).toLocaleTimeString() : ""}
+					</span>
+				</li>`;
+					});
+				} else {
+					listHtml = `<li class="text-muted">No participants yet</li>`;
+				}
+				$("#host_participants_list").html(listHtml);
+			}
+		});
+	}
+
+	// -----------------------------
+	// Fetch Answers
+	// -----------------------------
+	function fetchAnswers() {
+		if (!window._live_session?.id) return;
+
+		// get current visible question id
+		var qid = $(".step-pane[data-step='" + currentStep + "']").attr("data-question-id");
+		if (!qid) return;
+
+		$.getJSON(base_url + "liveexam/getSessionAnswers",
+			{ session_id: window._live_session.id, question_id: qid },
+			function (resp) {
+				if (resp.status === 1) {
+					let answersHtml = "";
+					if (resp.data.length > 0) {
+						resp.data.forEach(a => {
+							answersHtml += `
+							<tr>
+								<td>${a.student_name}</td>
+								<td>${a.answer}</td>
+								<td>${a.submitted_at}</td>
+							</tr>`;
+						});
+					} else {
+						answersHtml = `<tr><td colspan="3" class="text-muted text-center">
+						<?= translate('no_answers_yet') ?>
+					</td></tr>`;
+					}
+					$("#host_answers_table tbody").html(answersHtml);
+				}
+			}
+		);
+	}
+
+
+	// -----------------------------
+	// Polling
+	// -----------------------------
+	function startHostPolling() {
+		setInterval(fetchParticipants, 5000);
+		setInterval(fetchAnswers, 5000);
+	}
+
+	// -----------------------------
 	// End Session
+	// -----------------------------
 	$(document).on("click", "#end_session_btn", function () {
 		if (!confirm("Are you sure you want to end this live exam session?")) return;
-
 		$.ajax({
 			type: "POST",
 			url: base_url + "liveexam/endSession",

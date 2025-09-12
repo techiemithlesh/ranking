@@ -43,9 +43,9 @@
 
                 <!-- Question Map -->
                 <section class="panel pg-fw">
-                  
+
                     <div class="panel-body">
-                        
+
                         <ul class="on_answer_box questionColor d-flex flex-wrap">
                             <?php for ($i = 1; $i <= $exam->questions_qty; $i++): ?>
                                 <li class="mr-xs mb-xs">
@@ -130,7 +130,26 @@
 
     $(document).ready(function () {
         pollCurrentQuestion(); // initial load
-        setInterval(pollCurrentQuestion, 5000); // poll every 5s
+        setInterval(pollCurrentQuestion, 10000); // poll every 10s
         startTimer();
     });
+
+    $(document).on('submit', '#answerForm', function (e) {
+        e.preventDefault();
+        $.post(base_url + "liveexam_student/submitAnswer", $(this).serialize(), function (resp) {
+            try {
+                var data = JSON.parse(resp);
+                if (data.status == 1) {
+                    alertMsg("Answer saved", "success", "Success", "");
+                    // Optionally disable inputs so student can’t change after submit
+                    $("#answerForm input, #answerForm button").prop("disabled", true);
+                } else {
+                    alertMsg(data.message, "error", "Error", "");
+                }
+            } catch (e) {
+                alert("Invalid response from server");
+            }
+        });
+    });
+
 </script>

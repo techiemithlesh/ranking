@@ -124,7 +124,7 @@ class LiveExam extends Admin_Controller
             'status' => $status,
             'total_questions' => $totalQuestions,
             'message' => $message,
-            'page' => $pag_content,
+            'page' => $pag_content
         ));
     }
 
@@ -153,7 +153,7 @@ class LiveExam extends Admin_Controller
                 'message' => 'Session started successfully',
                 'session_id' => $session->id,
                 'session_code' => $session->session_code,
-                'join_link' => base_url('liveexam/join/' . $session->session_token)
+                'join_link' => base_url('liveexam_student/join/' . $session->session_token)
             ]);
         } else {
             echo json_encode(['status' => 0, 'message' => 'Failed to start session']);
@@ -199,6 +199,41 @@ class LiveExam extends Admin_Controller
         else
             echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
     }
+
+    public function getParticipants()
+    {
+        $session_id = $this->input->get('session_id');
+
+        $participants = $this->live_exam_model->getParticipantsBySession($session_id);
+
+        echo json_encode([
+            'status' => 1,
+            'participants' => $participants
+        ]);
+    }
+
+    public function getSessionAnswers()
+    {
+        $session_id = $this->input->get('session_id');
+        $question_id = $this->input->get('question_id');
+
+        if (empty($session_id) || empty($question_id)) {
+            echo json_encode([
+                'status' => 0,
+                'message' => 'Invalid request'
+            ]);
+            return;
+        }
+
+        $answers = $this->live_exam_model->getAnswersBySession($session_id, $question_id);
+
+        echo json_encode([
+            'status' => 1,
+            'data' => $answers
+        ]);
+    }
+
+
 
 
 }

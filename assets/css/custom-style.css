@@ -13286,3 +13286,37 @@ ul.stu-disabled li:last-child {
 	font-weight: 600;
 }
 
+
+.participants-grid {
+    display: flex;
+    flex-wrap: wrap;        /* allow multiple rows */
+    gap: 10px;              /* space between items */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 200px;      /* prevent panel from growing too tall */
+    overflow-y: auto;       /* scrollbar if needed */
+}
+
+.participants-grid li {
+    flex: 1 1 calc(20% - 10px);  /* ~5 per row */
+    min-width: 140px;            /* don't shrink too much */
+    max-width: 180px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px;
+    text-align: center;
+    font-size: 13px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.participants-grid li strong {
+    display: block;
+    font-weight: 600;
+}
+
+.participants-grid li .text-muted {
+    font-size: 12px;
+    display: block;
+}
