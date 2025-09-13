@@ -270,7 +270,7 @@ class Live_exam_model extends MY_Model
             'session_code' => $sessionCode,
             'session_token' => $sessionToken,
             'current_question_id' => $question_id,
-            'status' => 'active',
+            'status' => 'waiting',
             'started_at' => date('Y-m-d H:i:s')
         ];
 
@@ -338,6 +338,7 @@ class Live_exam_model extends MY_Model
         $this->db->where('id', $session_id);
         return $this->db->update('exam_sessions', [
             'status' => 'completed',
+            'status_reason' => 'normal_end',
             'ended_at' => date('Y-m-d H:i:s')
         ]);
     }

@@ -160,6 +160,33 @@ class LiveExam extends Admin_Controller
         }
     }
 
+    public function activateSession()
+    {
+        $session_id = $this->input->post('session_id');
+
+        $this->db->where('id', $session_id)
+            ->update('exam_sessions', [
+                'status' => 'active',
+                'last_ping_at' => date('Y-m-d H:i:s')
+            ]);
+
+        echo json_encode(['status' => 1]);
+    }
+
+    public function sessionHeartbeat()
+    {
+        $session_id = $this->input->post('session_id');
+
+        $this->db->where('id', $session_id)
+            ->where('status', 'active')
+            ->update('exam_sessions', [
+                'last_ping_at' => date('Y-m-d H:i:s')
+            ]);
+
+        echo json_encode(['status' => 1]);
+    }
+
+
     public function setCurrentQuestion()
     {
         if (!get_permission('live_exam', 'is_add')) {
@@ -234,6 +261,20 @@ class LiveExam extends Admin_Controller
     }
 
 
+
+    // ENDPOIN FOR BACKGROUND CHECK EXAM STILL RUNNING OR NOT
+
+    public function cleanupSessions()
+    {
+        $threshold = date('Y-m-d H:i:s', strtotime('-2 minutes'));
+        $this->db->where('status', 'active')
+            ->where('last_ping_at <', $threshold)
+            ->update('exam_sessions', [
+                'status' => 'aborted',
+                'status_reason' => 'timeout',
+                'ended_at' => date('Y-m-d H:i:s')
+            ]);
+    }
 
 
 }

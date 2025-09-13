@@ -85,10 +85,11 @@
 	var examDuration = "<?= $exam->duration; ?>";
 	var totalQuestions = 0;
 	var currentStep = 1;
-	var interval = null;
+	var timerInterval = null;
 	var elapsed_seconds = 0;
 
 	window._live_session = null;
+	var heartbeatTimer = null;
 
 	// -----------------------------
 	// Start Hosting Exam
@@ -104,21 +105,21 @@
 			dataType: "JSON",
 			beforeSend: function () {
 				$this.button("loading");
-				clearInterval(interval);
+				clearInterval(timerInterval);
 			},
 			success: function (data) {
 				if (data.status === 1 && $("#exam_questions").length) {
 					totalQuestions = parseInt(data.total_questions) || 0;
 					$("#exam_questions").html(data.page);
 
-					// Reset & show first question
+					// Reset to first question
 					currentStep = 1;
 					showStep(1);
 
-					// Start exam timer
+					// Start timer
 					startTimer();
 
-					// Create live session
+					// Create live session (waiting)
 					hostSessionGenerate(examID);
 
 					// Open modal
@@ -159,7 +160,6 @@
 						join_link: resp.join_link
 					};
 
-					// Show session info
 					$("#sessionInfo").html(
 						`<p><strong>Session Code:</strong> ${resp.session_code}</p>
 						 <p><strong>Join Link:</strong>
@@ -167,8 +167,8 @@
 						 <button onclick="copyJoinLink()">Copy</button></p>`
 					);
 
-					// Start polling participants & answers
-					startHostPolling();
+					// Start heartbeat polling
+					startHeartbeat();
 				} else {
 					alertMsg(resp.message, "error", "Error", "");
 				}
@@ -194,22 +194,21 @@
 
 		currentStep = step;
 
-		// Switch active question
 		$(".step-pane").removeClass("active");
 		$(`[data-step='${step}']`).addClass("active");
 
-		// Highlight active in map
 		$(".que_btn").removeClass("active");
 		$("#question" + step).addClass("active");
 
-		// Button states
 		$("#prevbutton").prop("disabled", step === 1);
 		$("#nextbutton").prop("disabled", step === totalQuestions);
 
-		// Update current question in session
 		var qid = $(".step-pane[data-step='" + step + "']").attr("data-question-id");
 		if (window._live_session && qid) {
 			setSessionCurrentQuestion(window._live_session.id, qid);
+
+			// refresh answers for this question
+			fetchAnswers();
 		}
 	}
 
@@ -231,7 +230,7 @@
 	// -----------------------------
 	function startTimer() {
 		elapsed_seconds = 0;
-		interval = setInterval(function () {
+		timerInterval = setInterval(function () {
 			$(".remain_duration").text(durationUpdate());
 		}, 1000);
 	}
@@ -247,7 +246,7 @@
 		var remaining = totalSeconds - elapsed_seconds;
 
 		if (remaining <= 0) {
-			clearInterval(interval);
+			clearInterval(timerInterval);
 			return "00:00:00";
 		}
 
@@ -266,7 +265,6 @@
 	// Update Session Current Question
 	// -----------------------------
 	function setSessionCurrentQuestion(sessionId, qid) {
-
 		$.post(base_url + "liveexam/setCurrentQuestion",
 			{ session_id: sessionId, question_id: qid }
 		);
@@ -278,19 +276,18 @@
 	function fetchParticipants() {
 		if (!window._live_session?.id) return;
 		$.getJSON(base_url + "liveexam/getParticipants", { session_id: window._live_session.id }, function (resp) {
-			console.log("siwndn", resp);
 			if (resp.status === 1) {
 				let listHtml = "";
 				if (resp.participants.length > 0) {
 					resp.participants.forEach(function (p) {
 						listHtml += `
-				<li id="p_${p.student_id}">
-					<strong>${p.student_name}</strong>
-					${p.register_no ? `<span class="text-muted">(${p.register_no})</span>` : ""}
-					<span class="text-muted small">
-						${p.joined_at ? new Date(p.joined_at).toLocaleTimeString() : ""}
-					</span>
-				</li>`;
+							<li id="p_${p.student_id}">
+								<strong>${p.student_name}</strong>
+								${p.register_no ? `<span class="text-muted">(${p.register_no})</span>` : ""}
+								<span class="text-muted small">
+									${p.joined_at ? new Date(p.joined_at).toLocaleTimeString() : ""}
+								</span>
+							</li>`;
 					});
 				} else {
 					listHtml = `<li class="text-muted">No participants yet</li>`;
@@ -301,12 +298,11 @@
 	}
 
 	// -----------------------------
-	// Fetch Answers
+	// Fetch Answers (only current question)
 	// -----------------------------
 	function fetchAnswers() {
 		if (!window._live_session?.id) return;
 
-		// get current visible question id
 		var qid = $(".step-pane[data-step='" + currentStep + "']").attr("data-question-id");
 		if (!qid) return;
 
@@ -314,9 +310,11 @@
 			{ session_id: window._live_session.id, question_id: qid },
 			function (resp) {
 				if (resp.status === 1) {
+					let answers = resp.data || resp.answers || [];
 					let answersHtml = "";
-					if (resp.data.length > 0) {
-						resp.data.forEach(a => {
+
+					if (answers.length > 0) {
+						answers.forEach(a => {
 							answersHtml += `
 							<tr>
 								<td>${a.student_name}</td>
@@ -326,8 +324,8 @@
 						});
 					} else {
 						answersHtml = `<tr><td colspan="3" class="text-muted text-center">
-						<?= translate('no_answers_yet') ?>
-					</td></tr>`;
+							<?= translate('no_answers_yet') ?>
+						</td></tr>`;
 					}
 					$("#host_answers_table tbody").html(answersHtml);
 				}
@@ -335,40 +333,72 @@
 		);
 	}
 
+	// -----------------------------
+	// Unified Heartbeat
+	// -----------------------------
+	function startHeartbeat() {
+		if (heartbeatTimer) clearInterval(heartbeatTimer);
+
+		heartbeatTimer = setInterval(function () {
+			if (!window._live_session?.id) return;
+
+			fetchParticipants();
+			fetchAnswers();
+
+			// simple ping (keeps session alive)
+			$.post(base_url + "liveexam/sessionHeartbeat",
+				{ session_id: window._live_session.id }
+			);
+		}, 5000);
+	}
 
 	// -----------------------------
-	// Polling
+	// Activate Session Once (modal fully shown)
 	// -----------------------------
-	function startHostPolling() {
-		setInterval(fetchParticipants, 5000);
-		setInterval(fetchAnswers, 5000);
-	}
+	$("#examModal").on("shown.bs.modal", function () {
+		if (window._live_session?.id) {
+			$.post(base_url + "liveexam/activateSession", { session_id: window._live_session.id });
+		}
+	});
 
 	// -----------------------------
 	// End Session
 	// -----------------------------
 	$(document).on("click", "#end_session_btn", function () {
 		if (!confirm("Are you sure you want to end this live exam session?")) return;
+		endLiveSession();
+	});
+
+	// If host closes modal without ending → auto abort
+	$("#examModal").on("hidden.bs.modal", function () {
+		if (window._live_session?.id) {
+			endLiveSession(true); // mark aborted
+		}
+	});
+
+	function endLiveSession(aborted = false) {
+		if (!window._live_session?.id) return;
 		$.ajax({
 			type: "POST",
 			url: base_url + "liveexam/endSession",
-			data: { session_id: window._live_session.id },
+			data: { session_id: window._live_session.id, aborted: aborted ? 1 : 0 },
 			success: function (res) {
 				try {
 					var data = JSON.parse(res);
 					if (data.status === 1) {
 						alertMsg("Session ended successfully!", "success", "Done", "");
 						$("#examModal").modal("hide");
+						clearInterval(heartbeatTimer);
 					} else {
 						alertMsg(data.message || "Unable to end session", "error", "Error", "");
 					}
 				} catch (e) {
-					alert("Invalid response from server.");
+					console.error("Invalid response", res);
 				}
 			},
 			error: function () {
 				alert("Error occurred while ending session.");
 			}
 		});
-	});
+	}
 </script>
