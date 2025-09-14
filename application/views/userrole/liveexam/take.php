@@ -77,28 +77,35 @@
     var exam_id = "<?= $exam->id ?>";
     var interval = null;
     var elapsed_seconds = 0;
+    var heartbeatTimer = null;
 
-    // Poll current question
+    // -----------------------------
+    // Poll Current Question
+    // -----------------------------
     function pollCurrentQuestion() {
         $.getJSON(base_url + "liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
             if (resp.status === 1) {
-                // console.log("fjfj", resp);
                 $("#question_area").html(resp.html);
 
                 if (resp.current_step) {
                     $(".que_btn").removeClass("active");
                     $(".que_btn[data-question-id='" + resp.current_step + "']").addClass("active");
                 }
-
-
-
             } else {
                 $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+
+                // if host ended session, stop polling
+                if (resp.message.toLowerCase().includes("ended")) {
+                    clearInterval(interval);
+                    clearInterval(heartbeatTimer);
+                }
             }
         });
     }
 
+    // -----------------------------
     // Timer
+    // -----------------------------
     function startTimer() {
         elapsed_seconds = 0;
         var duration = "<?= $exam->duration ?>"; // HH:MM:SS
@@ -128,12 +135,20 @@
         }, 1000);
     }
 
-    $(document).ready(function () {
-        pollCurrentQuestion(); // initial load
-        setInterval(pollCurrentQuestion, 10000); // poll every 10s
-        startTimer();
-    });
+    // -----------------------------
+    // Heartbeat (student presence)
+    // -----------------------------
+    function startHeartbeat() {
+        heartbeatTimer = setInterval(function () {
+            $.post(base_url + "liveexam_student/studentHeartbeat", {
+                session_id: session_id
+            });
+        }, 10000); // every 10s
+    }
 
+    // -----------------------------
+    // Submit Answer
+    // -----------------------------
     $(document).on('submit', '#answerForm', function (e) {
         e.preventDefault();
         $.post(base_url + "liveexam_student/submitAnswer", $(this).serialize(), function (resp) {
@@ -141,7 +156,6 @@
                 var data = JSON.parse(resp);
                 if (data.status == 1) {
                     alertMsg("Answer saved", "success", "Success", "");
-                    // Optionally disable inputs so student can’t change after submit
                     $("#answerForm input, #answerForm button").prop("disabled", true);
                 } else {
                     alertMsg(data.message, "error", "Error", "");
@@ -152,4 +166,13 @@
         });
     });
 
+    // -----------------------------
+    // Init on Load
+    // -----------------------------
+    $(document).ready(function () {
+        pollCurrentQuestion(); // initial load
+        setInterval(pollCurrentQuestion, 5000); // poll every 5s
+        startTimer();
+        startHeartbeat();
+    });
 </script>

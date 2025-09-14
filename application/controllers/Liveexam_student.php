@@ -201,6 +201,26 @@ class Liveexam_student extends User_Controller
         echo json_encode(['status' => 1, 'message' => 'Answer submitted successfully']);
     }
 
+    public function studentHeartbeat()
+    {
+        $session_id = $this->input->post('session_id');
+        $student_id = get_loggedin_user_id();
+
+        if (!$session_id || !$student_id) {
+            echo json_encode(['status' => 0, 'message' => 'Invalid data']);
+            return;
+        }
+
+        $this->db->where([
+            'session_id' => $session_id,
+            'student_id' => $student_id
+        ])->update('exam_session_students', [
+                    'last_ping_at' => date('Y-m-d H:i:s')
+                ]);
+
+        echo json_encode(['status' => 1]);
+    }
+
 
 
 }

@@ -243,6 +243,8 @@ class Live_exam_model extends MY_Model
 
     public function getParticipantsBySession($session_id)
     {
+         $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
+
         return $this->db->select('
             s.id as student_id,
             CONCAT(s.first_name, " ", s.last_name) as student_name,
@@ -252,6 +254,7 @@ class Live_exam_model extends MY_Model
             ->from('exam_session_students ess')
             ->join('student s', 's.id = ess.student_id')
             ->where('ess.session_id', $session_id)
+            ->where('ess.last_ping_at >=', $threshold)
             ->order_by('ess.joined_at', 'ASC')
             ->get()
             ->result();
