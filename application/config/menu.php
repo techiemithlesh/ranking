@@ -45,7 +45,7 @@ $config['menus'] = [
                 ['label' => 'Attendance', 'icon' => 'icons icon-chart', 'url' => 'userrole/attendance'],
                 ['label' => 'Events', 'icon' => 'icons icon-speech', 'url' => 'userrole/event'],
                 ['label' => 'Online Exam', 'icon' => 'icon-screen-desktop', 'url' => 'userrole/online_exam'],
-                ['label' => 'Live Exam', 'icon' => 'fas fa-users', 'url' => 'liveexam_student'],
+                ['label' => 'Live Exam', 'icon' => 'fas fa-users', 'url' => 'Liveexam_student'],
 
             ]
         ],

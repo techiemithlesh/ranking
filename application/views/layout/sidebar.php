@@ -1056,7 +1056,7 @@
                                         <li
                                             class="<?php if ($sub_page == 'live_exam/index' || $sub_page == 'live_exam/host')
                                                 echo 'nav-active'; ?>">
-                                            <a href="<?= base_url('liveexam') ?>">
+                                            <a href="<?= base_url('LiveExam') ?>">
                                                 <span><i class="fas fa-broadcast-tower"
                                                         aria-hidden="true"></i><?= translate('live_exam') ?></span>
                                             </a>
