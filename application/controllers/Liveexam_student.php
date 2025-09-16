@@ -32,11 +32,35 @@ class Liveexam_student extends User_Controller
                 'js/online-exam.js',
             ),
         );
+        $this->cleanupSessions();
         $this->data['title'] = translate('live_exams');
         $this->data['sub_page'] = 'userrole/liveexam/index';
         $this->data['main_menu'] = 'onlineexam';
 
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function cleanupSessions()
+    {
+        $threshold = date('Y-m-d H:i:s', strtotime('-2 minutes'));
+
+        // Clean active sessions with no heartbeat
+        $this->db->where('status', 'active')
+            ->where('last_ping_at <', $threshold)
+            ->update('exam_sessions', [
+                'status' => 'aborted',
+                'status_reason' => 'timeout',
+                'ended_at' => date('Y-m-d H:i:s')
+            ]);
+
+        // Clean waiting sessions never activated
+        $this->db->where('status', 'waiting')
+            ->where('created_at <', $threshold)
+            ->update('exam_sessions', [
+                'status' => 'aborted',
+                'status_reason' => 'never_started',
+                'ended_at' => date('Y-m-d H:i:s')
+            ]);
     }
 
     public function getExamListDT()
