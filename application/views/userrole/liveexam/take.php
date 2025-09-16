@@ -83,7 +83,7 @@
     // Poll Current Question
     // -----------------------------
     function pollCurrentQuestion() {
-        $.getJSON(base_url + "liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
+        $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
             if (resp.status === 1) {
                 $("#question_area").html(resp.html);
 
@@ -140,7 +140,7 @@
     // -----------------------------
     function startHeartbeat() {
         heartbeatTimer = setInterval(function () {
-            $.post(base_url + "liveexam_student/studentHeartbeat", {
+            $.post(base_url + "Liveexam_student/studentHeartbeat", {
                 session_id: session_id
             });
         }, 10000); // every 10s
@@ -151,7 +151,7 @@
     // -----------------------------
     $(document).on('submit', '#answerForm', function (e) {
         e.preventDefault();
-        $.post(base_url + "liveexam_student/submitAnswer", $(this).serialize(), function (resp) {
+        $.post(base_url + "Liveexam_student/submitAnswer", $(this).serialize(), function (resp) {
             try {
                 var data = JSON.parse(resp);
                 if (data.status == 1) {

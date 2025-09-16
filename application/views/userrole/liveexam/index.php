@@ -46,9 +46,7 @@
 <script type="text/javascript">
 	$(document).ready(function () {
 		// initiate Datatable
-		initDatatable('.exam-list', 'liveexam_student/getExamListDT', {}, 25);
-
-		
+		initDatatable('.exam-list', 'Liveexam_student/getExamListDT', {}, 25);
 	});
 
 

@@ -100,7 +100,7 @@
 
 		$.ajax({
 			type: "POST",
-			url: base_url + "liveexam/ajaxGetQuestions",
+			url: base_url + "LiveExam/ajaxGetQuestions",
 			data: { exam_id: examID },
 			dataType: "JSON",
 			beforeSend: function () {
@@ -149,7 +149,7 @@
 
 		$.ajax({
 			type: "POST",
-			url: base_url + "liveexam/startSession",
+			url: base_url + "LiveExam/startSession",
 			data: { exam_id: examID, current_question_id: currentQuestionId },
 			dataType: "JSON",
 			success: function (resp) {
@@ -265,7 +265,7 @@
 	// Update Session Current Question
 	// -----------------------------
 	function setSessionCurrentQuestion(sessionId, qid) {
-		$.post(base_url + "liveexam/setCurrentQuestion",
+		$.post(base_url + "LiveExam/setCurrentQuestion",
 			{ session_id: sessionId, question_id: qid }
 		);
 	}
@@ -275,7 +275,7 @@
 	// -----------------------------
 	function fetchParticipants() {
 		if (!window._live_session?.id) return;
-		$.getJSON(base_url + "liveexam/getParticipants", { session_id: window._live_session.id }, function (resp) {
+		$.getJSON(base_url + "LiveExam/getParticipants", { session_id: window._live_session.id }, function (resp) {
 			if (resp.status === 1) {
 				let listHtml = "";
 				if (resp.participants.length > 0) {
@@ -306,7 +306,7 @@
 		var qid = $(".step-pane[data-step='" + currentStep + "']").attr("data-question-id");
 		if (!qid) return;
 
-		$.getJSON(base_url + "liveexam/getSessionAnswers",
+		$.getJSON(base_url + "LiveExam/getSessionAnswers",
 			{ session_id: window._live_session.id, question_id: qid },
 			function (resp) {
 				if (resp.status === 1) {
@@ -346,7 +346,7 @@
 			fetchAnswers();
 
 			// simple ping (keeps session alive)
-			$.post(base_url + "liveexam/sessionHeartbeat",
+			$.post(base_url + "LiveExam/sessionHeartbeat",
 				{ session_id: window._live_session.id }
 			);
 		}, 5000);
@@ -357,7 +357,7 @@
 	// -----------------------------
 	$("#examModal").on("shown.bs.modal", function () {
 		if (window._live_session?.id) {
-			$.post(base_url + "liveexam/activateSession", { session_id: window._live_session.id });
+			$.post(base_url + "LiveExam/activateSession", { session_id: window._live_session.id });
 		}
 	});
 
@@ -380,7 +380,7 @@
 		if (!window._live_session?.id) return;
 		$.ajax({
 			type: "POST",
-			url: base_url + "liveexam/endSession",
+			url: base_url + "LiveExam/endSession",
 			data: { session_id: window._live_session.id, aborted: aborted ? 1 : 0 },
 			success: function (res) {
 				try {
