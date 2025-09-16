@@ -153,7 +153,7 @@ class LiveExam extends Admin_Controller
                 'message' => 'Session started successfully',
                 'session_id' => $session->id,
                 'session_code' => $session->session_code,
-                'join_link' => base_url('liveexam_student/join/' . $session->session_token)
+                'join_link' => base_url('Liveexam_student/join/' . $session->session_token)
             ]);
         } else {
             echo json_encode(['status' => 0, 'message' => 'Failed to start session']);

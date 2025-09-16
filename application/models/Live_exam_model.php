@@ -109,7 +109,7 @@ class Live_exam_model extends MY_Model
             //             <i class="fas fa-broadcast-tower"></i></button>';
 
             if ($record->publish_status == 1) {
-                $action .= '<a href="' . base_url('liveexam/host/' . $record->id) . '" class="btn btn-circle btn-success icon" data-toggle="tooltip" data-original-title="' . translate('Host Live Exam') . '"> <i class="fas fa-broadcast-tower"></i></a>';
+                $action .= '<a href="' . base_url('LiveExam/host/' . $record->id) . '" class="btn btn-circle btn-success icon" data-toggle="tooltip" data-original-title="' . translate('Host Live Exam') . '"> <i class="fas fa-broadcast-tower"></i></a>';
             }
 
             $row[] = $count++;
