@@ -314,18 +314,33 @@ class Live_exam_model extends MY_Model
 
     public function addStudentToSession($session_id, $student_id)
     {
-        $exists = $this->db->where('session_id', $session_id)
+        $existing = $this->db
+            ->where('session_id', $session_id)
             ->where('student_id', $student_id)
             ->get('exam_session_students')
             ->row();
-        if (!$exists) {
+
+        if ($existing) {
+            // Resume: just mark active again
+            $this->db->where('id', $existing->id)
+                ->update('exam_session_students', [
+                    'last_ping_at' => date('Y-m-d H:i:s'),
+                    'status' => 'active'
+                ]);
+            return $existing->id;
+        } else {
+            // First join
             $this->db->insert('exam_session_students', [
                 'session_id' => $session_id,
                 'student_id' => $student_id,
-                'joined_at' => date('Y-m-d H:i:s')
+                'joined_at' => date('Y-m-d H:i:s'),
+                'last_ping_at' => date('Y-m-d H:i:s'),
+                'status' => 'active'
             ]);
+            return $this->db->insert_id();
         }
     }
+
 
     public function endSession($session_id, $host_id)
     {

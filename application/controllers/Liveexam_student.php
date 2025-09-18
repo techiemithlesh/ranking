@@ -80,15 +80,14 @@ class Liveexam_student extends User_Controller
             access_denied();
         }
 
-        ini_set('display_errors', 1);
-        error_reporting(E_ALL);
 
         // 🔹 Find the live session
         $session = $this->live_exam_model->getSessionByCode($session_code);
-        if (empty($session) || $session->status !== 'active') {
+        if (empty($session) || !in_array($session->status, ['active', 'waiting'])) {
             set_alert('error', translate('invalid_or_expired_session'));
             redirect(base_url('liveexam_student'));
         }
+
 
         // 🔹 Fetch the exam details
         $exam = $this->live_exam_model->getExamDetailsForLive($session->exam_id);
@@ -116,24 +115,65 @@ class Liveexam_student extends User_Controller
         $session_id = $this->input->get('session_id');
         $session = $this->live_exam_model->getSession($session_id);
 
-        if (!$session || $session->status !== 'active') {
-            echo json_encode(['status' => 0, 'message' => 'Session ended or invalid']);
+        if (!$session) {
+            echo json_encode([
+                'status' => 0,
+                'code' => 'invalid',
+                'message' => 'Invalid session'
+            ]);
             return;
         }
 
+        // 🔹 Handle session end states first
+        if ($session->status === 'completed') {
+            echo json_encode([
+                'status' => 0,
+                'code' => 'completed',
+                'message' => 'Thank you for attending the exam. Your result will be processed soon.'
+            ]);
+            return;
+        }
+
+        if ($session->status === 'aborted') {
+            echo json_encode([
+                'status' => 0,
+                'code' => 'aborted',
+                'message' => 'The exam was aborted by the host.'
+            ]);
+            return;
+        }
+
+        if ($session->status !== 'active') {
+            echo json_encode([
+                'status' => 0,
+                'code' => 'inactive',
+                'message' => 'Session ended or inactive'
+            ]);
+            return;
+        }
+
+        // 🔹 Waiting for host to start
         if (empty($session->current_question_id)) {
-            echo json_encode(['status' => 0, 'message' => 'Waiting for host to start...']);
+            echo json_encode([
+                'status' => 0,
+                'code' => 'waiting',
+                'message' => 'Waiting for host to start...'
+            ]);
             return;
         }
 
-        // Fetch single question
+        // 🔹 Fetch current question
         $question = $this->live_exam_model->getQuestionById(
             $session->current_question_id,
             $session->exam_id
         );
 
         if (!$question) {
-            echo json_encode(['status' => 0, 'message' => 'No question available']);
+            echo json_encode([
+                'status' => 0,
+                'code' => 'no_question',
+                'message' => 'No question available'
+            ]);
             return;
         }
 
@@ -146,8 +186,15 @@ class Liveexam_student extends User_Controller
 
         $html = $this->load->view('userrole/liveexam/_question', $data, true);
 
-        echo json_encode(['status' => 1, 'current_step' => $session->current_question_id, 'current_index' => $question->question_index, 'html' => $html]);
+        echo json_encode([
+            'status' => 1,
+            'code' => 'active',
+            'current_step' => $session->current_question_id,
+            'current_index' => $question->question_index,
+            'html' => $html
+        ]);
     }
+
 
     public function submitAnswer()
     {
@@ -164,6 +211,13 @@ class Liveexam_student extends User_Controller
 
         if (empty($online_examID) || empty($sessionID) || empty($questionID) || empty($answers)) {
             echo json_encode(['status' => 0, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $session = $this->live_exam_model->getSession($sessionID);
+
+        if (!$session || $session->status !== 'active') {
+            echo json_encode(['status' => 0, 'message' => 'Exam ended or inactive']);
             return;
         }
 
@@ -242,11 +296,35 @@ class Liveexam_student extends User_Controller
             'session_id' => $session_id,
             'student_id' => $student_id
         ])->update('exam_session_students', [
+                    'last_ping_at' => date('Y-m-d H:i:s'),
+                    'status' => 'active'
+                ]);
+
+        echo json_encode(['status' => 1]);
+    }
+
+    public function leaveSession()
+    {
+        $session_id = $this->input->post('session_id');
+        $student_id = get_loggedin_user_id();
+
+        if (!$session_id || !$student_id) {
+            echo json_encode(['status' => 0, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $this->db->where([
+            'session_id' => $session_id,
+            'student_id' => $student_id
+        ])->update('exam_session_students', [
+                    'status' => 'left',
                     'last_ping_at' => date('Y-m-d H:i:s')
                 ]);
 
         echo json_encode(['status' => 1]);
     }
+
+
 
 
 

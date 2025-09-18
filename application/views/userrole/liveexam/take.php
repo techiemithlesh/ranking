@@ -79,6 +79,14 @@
     var elapsed_seconds = 0;
     var heartbeatTimer = null;
 
+
+    window.addEventListener("beforeunload", function () {
+        navigator.sendBeacon(base_url + "Liveexam_student/leaveSession",
+            new URLSearchParams({ session_id: session_id })
+        );
+    });
+
+
     // -----------------------------
     // Poll Current Question
     // -----------------------------
@@ -96,10 +104,19 @@
                     $(".que_btn[data-question-index='" + resp.current_index + "']").addClass("active");
                 }
             } else {
-                $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+                // 🔹 Handle special end states
+                if (resp.code === "completed") {
+                    alertMsg(resp.message, "success", "Exam Completed", "");
+                    window.location.href = base_url + "liveexam_student";
+                } else if (resp.code === "aborted") {
+                    alertMsg(resp.message, "error", "Exam Aborted", "");
+                    window.location.href = base_url + "liveexam_student";
+                } else {
+                    $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+                }
 
-                // stop timers if session ended
-                if (resp.message.toLowerCase().includes("ended")) {
+                // Stop timers
+                if (["completed", "aborted", "inactive"].includes(resp.code)) {
                     clearInterval(pollInterval);
                     clearInterval(heartbeatTimer);
                 }
