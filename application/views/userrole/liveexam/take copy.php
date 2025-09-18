@@ -75,7 +75,7 @@
 <script type="text/javascript">
     var session_id = "<?= $session->id ?>";
     var exam_id = "<?= $exam->id ?>";
-    var pollInterval = null;
+    var interval = null;
     var elapsed_seconds = 0;
     var heartbeatTimer = null;
 
@@ -85,10 +85,7 @@
     function pollCurrentQuestion() {
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
             if (resp.status === 1) {
-                // ✅ Only reload question if it changed
-                if ($("#question_area").data("qid") !== resp.current_step) {
-                    $("#question_area").html(resp.html).data("qid", resp.current_step);
-                }
+                $("#question_area").html(resp.html);
 
                 if (resp.current_step) {
                     $(".que_btn").removeClass("active");
@@ -97,9 +94,9 @@
             } else {
                 $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
 
-                // stop timers if session ended
+                // if host ended session, stop polling
                 if (resp.message.toLowerCase().includes("ended")) {
-                    clearInterval(pollInterval);
+                    clearInterval(interval);
                     clearInterval(heartbeatTimer);
                 }
             }
@@ -115,12 +112,12 @@
         var parts = duration.split(":");
         var totalSeconds = (+parts[0] * 3600) + (+parts[1] * 60) + (+parts[2]);
 
-        var timerInterval = setInterval(function () {
+        interval = setInterval(function () {
             elapsed_seconds++;
             var remaining = totalSeconds - elapsed_seconds;
 
             if (remaining <= 0) {
-                clearInterval(timerInterval);
+                clearInterval(interval);
                 $("#remain_time").text("00:00:00");
                 $("#answerForm").submit(); // auto-submit
                 return;
@@ -154,28 +151,18 @@
     // -----------------------------
     $(document).on('submit', '#answerForm', function (e) {
         e.preventDefault();
-
-        var form = $(this);
-
-        // ✅ Prevent poll overwrite during submission
-        clearInterval(pollInterval);
-
-        $.post(base_url + "Liveexam_student/submitAnswer", form.serialize(), function (resp) {
+        $.post(base_url + "Liveexam_student/submitAnswer", $(this).serialize(), function (resp) {
             try {
                 var data = JSON.parse(resp);
                 if (data.status == 1) {
                     alertMsg("Answer saved", "success", "Success", "");
-                    // ✅ Lock the form once submitted
-                    form.find("input, button").prop("disabled", true);
+                    $("#answerForm input, #answerForm button").prop("disabled", true);
                 } else {
                     alertMsg(data.message, "error", "Error", "");
                 }
             } catch (e) {
                 alert("Invalid response from server");
             }
-        }).always(function () {
-            // ✅ Resume polling after submit
-            pollInterval = setInterval(pollCurrentQuestion, 5000);
         });
     });
 
@@ -184,7 +171,7 @@
     // -----------------------------
     $(document).ready(function () {
         pollCurrentQuestion(); // initial load
-        pollInterval = setInterval(pollCurrentQuestion, 5000); // poll every 5s
+        setInterval(pollCurrentQuestion, 5000); // poll every 5s
         startTimer();
         startHeartbeat();
     });

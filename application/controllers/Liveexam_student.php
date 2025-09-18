@@ -32,11 +32,11 @@ class Liveexam_student extends User_Controller
                 'js/online-exam.js',
             ),
         );
+
         $this->cleanupSessions();
         $this->data['title'] = translate('live_exams');
         $this->data['sub_page'] = 'userrole/liveexam/index';
         $this->data['main_menu'] = 'onlineexam';
-
         $this->load->view('layout/index', $this->data);
     }
 
