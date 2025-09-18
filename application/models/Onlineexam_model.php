@@ -1119,7 +1119,7 @@ class Onlineexam_model extends MY_Model
         if ($random_type == 1) {
             $this->db->order_by('rand()');
         } else {
-            $this->db->order_by('questions_manage.id', 'DESC');
+            $this->db->order_by('questions_manage.id', 'ASC');
         }
         $query = $this->db->get();
         return $query->result();

@@ -43,20 +43,20 @@
 
                 <!-- Question Map -->
                 <section class="panel pg-fw">
-
                     <div class="panel-body">
-
                         <ul class="on_answer_box questionColor d-flex flex-wrap">
                             <?php for ($i = 1; $i <= $exam->questions_qty; $i++): ?>
                                 <li class="mr-xs mb-xs">
-                                    <a href="javascript:void(0)" class="que_btn"
-                                        data-question-id="<?= $q->question_id ?>"><?= $i ?></a>
+                                    <a href="javascript:void(0)" class="que_btn <?= ($i == 1 ? 'active' : '') ?>"
+                                        data-question-index="<?= $i ?>">
+                                        <?= $i ?>
+                                    </a>
                                 </li>
                             <?php endfor; ?>
                         </ul>
-
                     </div>
                 </section>
+
             </div>
 
             <!-- Right Side: Question Full Width -->
@@ -84,6 +84,7 @@
     // -----------------------------
     function pollCurrentQuestion() {
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
+            console.log("jfjf", resp);
             if (resp.status === 1) {
                 // ✅ Only reload question if it changed
                 if ($("#question_area").data("qid") !== resp.current_step) {
@@ -92,7 +93,7 @@
 
                 if (resp.current_step) {
                     $(".que_btn").removeClass("active");
-                    $(".que_btn[data-question-id='" + resp.current_step + "']").addClass("active");
+                    $(".que_btn[data-question-index='" + resp.current_index + "']").addClass("active");
                 }
             } else {
                 $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');

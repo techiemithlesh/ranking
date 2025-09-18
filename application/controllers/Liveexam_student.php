@@ -80,6 +80,9 @@ class Liveexam_student extends User_Controller
             access_denied();
         }
 
+        ini_set('display_errors', 1);
+        error_reporting(E_ALL);
+
         // 🔹 Find the live session
         $session = $this->live_exam_model->getSessionByCode($session_code);
         if (empty($session) || $session->status !== 'active') {
@@ -143,7 +146,7 @@ class Liveexam_student extends User_Controller
 
         $html = $this->load->view('userrole/liveexam/_question', $data, true);
 
-        echo json_encode(['status' => 1, 'current_step' => $session->current_question_id, 'html' => $html]);
+        echo json_encode(['status' => 1, 'current_step' => $session->current_question_id, 'current_index' => $question->question_index, 'html' => $html]);
     }
 
     public function submitAnswer()

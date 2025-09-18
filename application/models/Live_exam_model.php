@@ -243,7 +243,7 @@ class Live_exam_model extends MY_Model
 
     public function getParticipantsBySession($session_id)
     {
-         $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
+        $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
 
         return $this->db->select('
             s.id as student_id,
@@ -492,17 +492,50 @@ class Live_exam_model extends MY_Model
         return json_encode($response);
     }
 
+    // public function getQuestionById($question_id, $exam_id)
+    // {
+    //     $this->db->select('questions_manage.*, questions.id as qus_id, questions.*')
+    //         ->from('questions_manage')
+    //         ->join('questions', 'questions.id = questions_manage.question_id')
+    //         ->where('questions_manage.onlineexam_id', $exam_id)
+    //         ->where('questions_manage.question_id', $question_id)
+    //         ->limit(1);
+
+    //     return $this->db->get()->row();
+    // }
+
+
     public function getQuestionById($question_id, $exam_id)
     {
-        $this->db->select('questions_manage.*, questions.id as qus_id, questions.*')
-            ->from('questions_manage')
-            ->join('questions', 'questions.id = questions_manage.question_id')
-            ->where('questions_manage.onlineexam_id', $exam_id)
-            ->where('questions_manage.question_id', $question_id)
-            ->limit(1);
+        $sql = "
+        SELECT qm.*, q.*, q.id AS qus_id, ranked.question_index
+        FROM questions_manage qm
+        JOIN questions q ON q.id = qm.question_id
+        JOIN (
+            SELECT question_id, ROW_NUMBER() OVER (ORDER BY qm.id ASC) AS question_index
+            FROM questions_manage qm
+            WHERE qm.onlineexam_id = ?
+        ) ranked ON ranked.question_id = qm.question_id
+        WHERE qm.onlineexam_id = ? AND qm.question_id = ?
+        LIMIT 1
+    ";
 
-        return $this->db->get()->row();
+        return $this->db->query($sql, [$exam_id, $exam_id, $question_id])->row();
     }
+
+
+    public function getExamQuestions($exam_id)
+    {
+        return $this->db->select('qm.id as qm_id, qm.question_id, q.question, q.question_type')
+            ->from('questions_manage qm')
+            ->join('questions q', 'q.id = qm.question_id')
+            ->where('qm.onlineexam_id', $exam_id)
+            ->order_by('qm.id', 'ASC')
+            ->get()
+            ->result();
+    }
+
+
 
 
     public function getAnswersBySession($session_id, $question_id)
