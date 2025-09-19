@@ -275,19 +275,32 @@
 	// -----------------------------
 	function fetchParticipants() {
 		if (!window._live_session?.id) return;
+
 		$.getJSON(base_url + "LiveExam/getParticipants", { session_id: window._live_session.id }, function (resp) {
 			if (resp.status === 1) {
 				let listHtml = "";
 				if (resp.participants.length > 0) {
 					resp.participants.forEach(function (p) {
+						let badgeClass = "badge-secondary";
+						let statusLabel = p.live_status;
+
+						if (p.live_status === "active") {
+							badgeClass = "badge-success"; statusLabel = "Active"
+						} else if (p.live_status === "left") {
+							badgeClass = "badge-danger"; statusLabel = "Left";
+						} else if (p.live_status === "completed") {
+							badgeClass = "badge-info"; statusLabel = "Completed";
+						}
+
 						listHtml += `
-							<li id="p_${p.student_id}">
-								<strong>${p.student_name}</strong>
-								${p.register_no ? `<span class="text-muted">(${p.register_no})</span>` : ""}
-								<span class="text-muted small">
-									${p.joined_at ? new Date(p.joined_at).toLocaleTimeString() : ""}
-								</span>
-							</li>`;
+						<li id="p_${p.student_id}">
+							<strong>${p.student_name}</strong>
+							${p.register_no ? `<span class="text-muted">(${p.register_no})</span>` : ""}
+							<span class="badge ${badgeClass} ml-2">${statusLabel}</span>
+							<div class="small text-muted">
+								Joined: ${p.joined_at ? new Date(p.joined_at).toLocaleTimeString() : ""}
+							</div>
+						</li>`;
 					});
 				} else {
 					listHtml = `<li class="text-muted">No participants yet</li>`;
@@ -296,6 +309,7 @@
 			}
 		});
 	}
+
 
 	// -----------------------------
 	// Fetch Answers (only current question)

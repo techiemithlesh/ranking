@@ -241,20 +241,37 @@ class Live_exam_model extends MY_Model
             ->get()->row();
     }
 
+    // public function getParticipantsBySession($session_id)
+    // {
+    //     $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
+
+    //     return $this->db->select('
+    //         s.id as student_id,
+    //         CONCAT(s.first_name, " ", s.last_name) as student_name,
+    //         s.register_no,
+    //         ess.status as live_status,
+    //         ess.joined_at')
+    //         ->from('exam_session_students ess')
+    //         ->join('student s', 's.id = ess.student_id')
+    //         ->where('ess.session_id', $session_id)
+    //         ->where('ess.last_ping_at >=', $threshold)
+    //         ->order_by('ess.joined_at', 'ASC')
+    //         ->get()
+    //         ->result();
+    // }
+
     public function getParticipantsBySession($session_id)
     {
-        $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
-
         return $this->db->select('
             s.id as student_id,
             CONCAT(s.first_name, " ", s.last_name) as student_name,
             s.register_no,
-            ess.joined_at
-        ')
+            ess.status as live_status,
+            ess.joined_at,
+            ess.last_ping_at')
             ->from('exam_session_students ess')
             ->join('student s', 's.id = ess.student_id')
             ->where('ess.session_id', $session_id)
-            ->where('ess.last_ping_at >=', $threshold)
             ->order_by('ess.joined_at', 'ASC')
             ->get()
             ->result();
@@ -507,19 +524,6 @@ class Live_exam_model extends MY_Model
         return json_encode($response);
     }
 
-    // public function getQuestionById($question_id, $exam_id)
-    // {
-    //     $this->db->select('questions_manage.*, questions.id as qus_id, questions.*')
-    //         ->from('questions_manage')
-    //         ->join('questions', 'questions.id = questions_manage.question_id')
-    //         ->where('questions_manage.onlineexam_id', $exam_id)
-    //         ->where('questions_manage.question_id', $question_id)
-    //         ->limit(1);
-
-    //     return $this->db->get()->row();
-    // }
-
-
     public function getQuestionById($question_id, $exam_id)
     {
         $sql = "
@@ -550,9 +554,6 @@ class Live_exam_model extends MY_Model
             ->result();
     }
 
-
-
-
     public function getAnswersBySession($session_id, $question_id)
     {
         return $this->db->select("
@@ -572,7 +573,15 @@ class Live_exam_model extends MY_Model
     }
 
 
+    public function cleanupInactiveStudents($session_id)
+    {
+        $threshold = date("Y-m-d H:i:s", strtotime("-15 seconds"));
 
+        $this->db->where('session_id', $session_id)
+            ->where('status', 'active')
+            ->where('last_ping_at <', $threshold)
+            ->update('exam_session_students', ['status' => 'offline']);
+    }
 
 
 }

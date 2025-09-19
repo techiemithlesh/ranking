@@ -231,6 +231,8 @@ class LiveExam extends Admin_Controller
     {
         $session_id = $this->input->get('session_id');
 
+        $this->live_exam_model->cleanupInactiveStudents($session_id);
+
         $participants = $this->live_exam_model->getParticipantsBySession($session_id);
 
         echo json_encode([
@@ -238,6 +240,7 @@ class LiveExam extends Admin_Controller
             'participants' => $participants
         ]);
     }
+
 
     public function getSessionAnswers()
     {

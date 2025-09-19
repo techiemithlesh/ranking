@@ -24,6 +24,9 @@
                                                 <?php if (!empty($p->register_no)): ?>
                                                     <span class="text-muted">(<?= html_escape($p->register_no) ?>)</span>
                                                 <?php endif; ?>
+                                                <span class="badge">
+                                                    <?=!empty($p->live_status) ?>
+                                                </span>
                                                 <div class="small text-muted">
                                                     <?= !empty($p->joined_at) ? date('d-M H:i', strtotime($p->joined_at)) : '' ?>
                                                 </div>
