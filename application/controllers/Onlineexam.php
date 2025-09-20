@@ -84,7 +84,7 @@ class Onlineexam extends Admin_Controller
             exit();
         }
         $onlineexam = $this->app_lib->getTableHybrid('online_exam', array('t.id' => $id), true);
-        
+
         if (empty($onlineexam)) {
             set_alert('error', 'Exam not found.');
             redirect($_SERVER['HTTP_REFERER']);
@@ -296,7 +296,6 @@ class Onlineexam extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-
     public function question_edit_save($id = '')
     {
         if (!get_permission('question_bank', 'is_edit')) {
@@ -317,7 +316,6 @@ class Onlineexam extends Admin_Controller
             exit();
         }
     }
-
     protected function question_validation()
     {
         $questionType = $this->input->post('question_type');
@@ -341,7 +339,6 @@ class Onlineexam extends Admin_Controller
             $this->form_validation->set_rules('answer', translate('answer'), 'trim|required');
         }
     }
-
     public function question_save()
     {
         if (!get_permission('question_bank', 'is_add')) {
@@ -358,16 +355,12 @@ class Onlineexam extends Admin_Controller
         }
         echo json_encode($array);
     }
-
     public function getQuestion()
     {
         $id = $this->input->post('id');
         $this->data['questions'] = $this->onlineexam_model->get('questions', array('id' => $id), true);
         $this->load->view('onlineexam/question_view', $this->data);
     }
-
-
-
     public function question_delete($id = '')
     {
         if (get_permission('question_bank', 'is_delete')) {
@@ -401,9 +394,6 @@ class Onlineexam extends Admin_Controller
             exit;
         }
     }
-
-
-
     public function getBranchesByClass()
     {
         $classId = $this->input->post('class_id');
@@ -425,7 +415,6 @@ class Onlineexam extends Admin_Controller
             echo json_encode([]);
         }
     }
-
 
     public function assignQuestionsToBranches()
     {
@@ -470,7 +459,6 @@ class Onlineexam extends Admin_Controller
 
         responseMsg('success', 'Questions assigned to branches successfully.');
     }
-
     public function assign_question()
     {
         if (!get_permission('question_bank', 'is_add')) {
@@ -488,8 +476,6 @@ class Onlineexam extends Admin_Controller
         }
         echo json_encode($array);
     }
-
-
     public function manage_question($examid = '')
     {
         if (!get_permission('add_questions', 'is_add')) {
@@ -508,7 +494,6 @@ class Onlineexam extends Admin_Controller
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
-
     public function getQuestionDT()
     {
         if ($_POST) {
@@ -516,7 +501,6 @@ class Onlineexam extends Admin_Controller
             echo $this->onlineexam_model->questionList($postData);
         }
     }
-
     public function question_assign()
     {
         if (!get_permission('add_questions', 'is_add')) {
@@ -692,9 +676,7 @@ class Onlineexam extends Admin_Controller
         echo json_encode($array);
     }
 
-
     // delete question group from database
-
     public function group_delete($id)
     {
         if (!get_permission('question_group', 'is_delete')) {
@@ -732,9 +714,6 @@ class Onlineexam extends Admin_Controller
         redirect(base_url('onlineexam/question_group'));
     }
 
-
-
-
     // question group details send by ajax
     public function groupDetails()
     {
@@ -771,9 +750,7 @@ class Onlineexam extends Admin_Controller
     public function unique_group($name)
     {
         $group_id = $this->input->post('group_id');
-
         $this->db->where('name', $name);
-
         if (!empty($group_id)) {
             $this->db->where('id !=', $group_id);
         }
@@ -799,8 +776,6 @@ class Onlineexam extends Admin_Controller
             return false;
         }
     }
-
-
     public function exam_status()
     {
         $id = $this->input->post('id');
@@ -810,11 +785,18 @@ class Onlineexam extends Admin_Controller
         } else {
             $arrayData['publish_status'] = 0;
         }
-        if (!is_superadmin_loggedin()) {
-            $this->db->where('branch_id', get_loggedin_branch_id());
-        }
+        // if (!is_superadmin_loggedin()) {
+        //     $this->db->where('created_by_branch', get_loggedin_branch_id());
+        // }
         $this->db->where('id', $id);
         $this->db->update('online_exam', $arrayData);
+
+        if ($this->db->affected_rows() === 0) {
+            echo json_encode(['msg' => 'Update failed: No permission or exam not found for your branch', 'status' => false]);
+            return;
+        }
+
+        log_message("debug", $this->db->last_query());
 
         if ($status == 'true') {
             $onlineExam = $this->db->where('id', $id)->get('online_exam')->row();
@@ -840,7 +822,6 @@ class Onlineexam extends Admin_Controller
         $return = array('msg' => translate('information_has_been_updated_successfully'), 'status' => true);
         echo json_encode($return);
     }
-
     public function make_result_publish($id = '')
     {
         if (!is_superadmin_loggedin()) {
@@ -870,7 +851,6 @@ class Onlineexam extends Admin_Controller
         }
         echo $html;
     }
-
     public function getExamByClass()
     {
         $html = '';
@@ -901,7 +881,6 @@ class Onlineexam extends Admin_Controller
         }
         echo $html;
     }
-
     public function result()
     {
         // check access permission
@@ -928,7 +907,6 @@ class Onlineexam extends Admin_Controller
         $this->data['sub_page'] = 'onlineexam/result';
         $this->load->view('layout/index', $this->data);
     }
-
     public function position_generate()
     {
         // check access permission
@@ -950,7 +928,6 @@ class Onlineexam extends Admin_Controller
         $this->data['sub_page'] = 'onlineexam/position_generate';
         $this->load->view('layout/index', $this->data);
     }
-
     public function save_position()
     {
         if ($_POST) {
@@ -995,7 +972,6 @@ class Onlineexam extends Admin_Controller
             echo json_encode($array);
         }
     }
-
     public function getStudent_result()
     {
         if (get_permission('exam_result', 'is_view')) {
@@ -1040,7 +1016,6 @@ class Onlineexam extends Admin_Controller
         );
         $this->load->view('layout/index', $this->data);
     }
-
     /* csv file to import question stored in the database here */
     public function questionCsvImport()
     {
@@ -1145,7 +1120,6 @@ class Onlineexam extends Admin_Controller
             echo json_encode($array);
         }
     }
-
     public function csvfileHandleUpload($str, $fields)
     {
         $allowedExts = array_map('trim', array_map('strtolower', explode(',', 'csv')));
@@ -1215,7 +1189,6 @@ class Onlineexam extends Admin_Controller
         }
         echo $html;
     }
-
     public function assignBranchToExam()
     {
         if (!is_superadmin_loggedin()) {
@@ -1248,6 +1221,5 @@ class Onlineexam extends Admin_Controller
 
         echo json_encode(['status' => 'success', 'message' => 'Branch assignment updated successfully.']);
     }
-
 
 }

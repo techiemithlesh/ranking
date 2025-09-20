@@ -35,15 +35,15 @@ class Live_exam_model extends MY_Model
 
         // WHERE CLAUSE BUILD
         if (is_superadmin_loggedin()) {
-            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 1";
         } else {
             $branchID = $this->db->escape(get_loggedin_branch_id());
-            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 1 AND (
             `online_exam`.`created_by_branch` = $branchID 
             OR `online_exam`.`id` IN (
                 SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
             )
-        )";
+         )";
         }
 
         // Append search filter
@@ -54,10 +54,10 @@ class Live_exam_model extends MY_Model
 
         // Total records without filtering (build fresh WHERE clause without search filter)
         if (is_superadmin_loggedin()) {
-            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND  is_live=1";
         } else {
             $branchID = $this->db->escape(get_loggedin_branch_id());
-            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live=1 AND (
             `online_exam`.`created_by_branch` = $branchID 
             OR `online_exam`.`id` IN (
                 SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
@@ -88,7 +88,7 @@ class Live_exam_model extends MY_Model
 
         $records = $this->db->query($sql)->result();
 
-        log_message('debug', $this->db->last_query());
+        // log_message('debug', $this->db->last_query());
 
         $data = array();
         $count = $start + 1;
@@ -102,11 +102,11 @@ class Live_exam_model extends MY_Model
 
             if ($record->publish_status == 0) {
                 $action .= '<a href="' . base_url('onlineexam/manage_question/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('add_questions') . '"> <i class="fas fa-question"></i></a>';
+                /**
+                 * Branch Assignment.
+                 */
+                $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
             }
-
-            // $action .= '<button class="btn btn-circle btn-success icon" data-toggle="tooltip" 
-            //             title="Host Live Exam" onclick="hostLiveExam(' . $record->id . ')">
-            //             <i class="fas fa-broadcast-tower"></i></button>';
 
             if ($record->publish_status == 1) {
                 $action .= '<a href="' . base_url('LiveExam/host/' . $record->id) . '" class="btn btn-circle btn-success icon" data-toggle="tooltip" data-original-title="' . translate('Host Live Exam') . '"> <i class="fas fa-broadcast-tower"></i></a>';

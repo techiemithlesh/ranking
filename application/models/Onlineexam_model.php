@@ -223,10 +223,10 @@ class Onlineexam_model extends MY_Model
 
         // WHERE CLAUSE BUILD
         if (is_superadmin_loggedin()) {
-            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 0 ";
         } else {
             $branchID = $this->db->escape(get_loggedin_branch_id());
-            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            $whereClause = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 0 AND (
             `online_exam`.`created_by_branch` = $branchID 
             OR `online_exam`.`id` IN (
                 SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
@@ -242,10 +242,10 @@ class Onlineexam_model extends MY_Model
 
         // Total records without filtering (build fresh WHERE clause without search filter)
         if (is_superadmin_loggedin()) {
-            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' ";
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 0 ";
         } else {
             $branchID = $this->db->escape(get_loggedin_branch_id());
-            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND (
+            $countWhere = " WHERE `online_exam`.`session_id` = '$sessionID' AND is_live = 0 AND (
             `online_exam`.`created_by_branch` = $branchID 
             OR `online_exam`.`id` IN (
                 SELECT `exam_id` FROM `exam_assignment` WHERE `branch_id` = $branchID
@@ -314,8 +314,6 @@ class Onlineexam_model extends MY_Model
                 $examURL = base_url('userrole/onlineexam_take/' . $record->id);
                 $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Share Link" onclick="shareExamLink(\'' . $examURL . '\')"><i class="fas fa-share-alt"></i></button>';
             }
-
-
 
             $row[] = $count++;
             if (is_superadmin_loggedin()) {

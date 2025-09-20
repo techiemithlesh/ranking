@@ -385,31 +385,19 @@
 				data: { exam_id: examID, branches: branches },
 				dataType: 'json',
 				success: function (response) {
-					;
 					if (response.status === 'success') {
-						swal({
-							toast: true,
-							position: 'top-end',
-							title: response.message,
-							showConfirmButton: false,
-							timer: 8000
-						});
+						alertMsg(response.message, "success", "Success", "");
 						$.magnificPopup.close();
 						$('#search-btn').trigger('click');
 					} else {
-						alert('Failed to assign branches.');
+						alertMsg("Failed to assign branches.", "error", "Error", "");
 					}
 				},
 				error: function () {
-					Swal.fire({
-						title: 'Error',
-						text: 'An unexpected error occurred.',
-						confirmButtonText: 'OK'
-					});
+					alertMsg("An unexpected error occurred.", "error", "Error", "");
 				}
 			});
 		});
-
 
 	});
 

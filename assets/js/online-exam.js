@@ -167,6 +167,7 @@ $(document).on("click", ".exam-status", function () {
             },
             dataType: "json",
             success: function (data) {
+                console.log("data", data);
                 if (data.status == true) {
                     swal({
                         title: "Successfully",
