@@ -225,6 +225,28 @@
 							<span class="error"></span>
 						</div>
 					</div>
+					<!-- EXAM MODE (Live or Normal) -->
+					<div class="form-group">
+						<label class="col-md-3 control-label"><?= translate('exam') . " " . translate('mode') ?> <span
+								class="required">*</span></label>
+						<div class="col-md-6">
+							<?php
+							$arrayMode = array(
+								'' => translate('select'),
+								0 => translate('normal_exam'),
+								1 => translate('live_exam'),
+							);
+							echo form_dropdown(
+								"is_live",
+								$arrayMode,
+								set_value('is_live'),
+								"class='form-control' id='isLiveExam' data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity'"
+							);
+							?>
+							<span class="error"></span>
+						</div>
+					</div>
+
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?= translate('result_publish') ?> <span
 								class="required">*</span></label>
@@ -363,7 +385,7 @@
 				data: { exam_id: examID, branches: branches },
 				dataType: 'json',
 				success: function (response) {
-					// console.log("re++s", response);
+					;
 					if (response.status === 'success') {
 						swal({
 							toast: true,

@@ -84,15 +84,15 @@ class Onlineexam extends Admin_Controller
             exit();
         }
         $onlineexam = $this->app_lib->getTableHybrid('online_exam', array('t.id' => $id), true);
+        
         if (empty($onlineexam)) {
-            set_alert('error', 'Question not found.');
+            set_alert('error', 'Exam not found.');
             redirect($_SERVER['HTTP_REFERER']);
         }
 
         // Restrict branch users from editing global exams
         if (!is_superadmin_loggedin()) {
             $loggedin_branch_id = get_loggedin_branch_id();
-
             if (empty($onlineexam['created_by_branch']) || $onlineexam['created_by_branch'] != $loggedin_branch_id) {
                 set_alert('error', 'You are not allowed to edit this global exam.');
                 redirect($_SERVER['HTTP_REFERER']);
@@ -100,7 +100,6 @@ class Onlineexam extends Admin_Controller
         }
 
         $this->data['onlineexam'] = $onlineexam;
-
         $this->data['title'] = translate('online_exam');
         $this->data['sub_page'] = 'onlineexam/edit';
         $this->data['main_menu'] = 'onlineexam';
@@ -124,6 +123,7 @@ class Onlineexam extends Admin_Controller
         $this->form_validation->set_rules('instruction', translate('instruction'), 'trim|required');
         $this->form_validation->set_rules('question_type', translate('question_type'), 'trim|required');
         $this->form_validation->set_rules('publish_result', translate('result_publish'), 'trim|required');
+        $this->form_validation->set_rules('is_live', translate('is_live'), 'trim|required');
         $this->form_validation->set_rules('exam_type', translate('exam_type'), 'trim|required');
         $examType = $this->input->post('exam_type');
         if (!empty($examType) && $examType == 1) {

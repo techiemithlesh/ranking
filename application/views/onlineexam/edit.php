@@ -195,6 +195,25 @@
 							<span class="error"></span>
 						</div>
 					</div>
+
+					<!-- EXAM MODE (Live or Normal) -->
+
+					<div class="form-group">
+						<label class="col-md-3 control-label"><?= translate('exam') . " " . translate('mode') ?> <span class="required">*</span></label>
+						<div class="col-md-6">
+							<?php
+								$arrayClass = array(
+									'' => translate('select'),
+									0 => "Normal Exam",
+									1 => "Live Exam",
+								);
+								echo form_dropdown("is_live", $arrayClass, $onlineexam['is_live'], "class='form-control' id='isLiveExam'
+								data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
+							?>
+							<span class="error"></span>
+						</div>
+					</div>
+
 					<div class="form-group">
 						<label class="col-md-3 control-label"><?=translate('result_publish')?> <span class="required">*</span></label>
 						<div class="col-md-6">
