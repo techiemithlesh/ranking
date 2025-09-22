@@ -71,7 +71,7 @@
         th,
         td {
             border: 1px solid #444;
-            padding: 6px;
+            padding: 8px;
             text-align: center;
         }
 
@@ -97,54 +97,32 @@
         }
 
         .result-box {
-            margin-top: 15px;
-            padding: 10px;
+            margin-top: 20px;
+            padding: 12px;
             border: 2px solid #2980b9;
             border-radius: 6px;
             text-align: center;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             background: #ecf6fc;
         }
 
-        .chart-box {
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        .chart-box img {
-            width: 220px;
-        }
-
         .signatures {
-            margin-top: 25px;
+            margin-top: 40px;
             width: 100%;
         }
 
         .signatures td {
             text-align: center;
-            padding: 15px;
+            padding: 20px;
             font-size: 12px;
         }
 
         .footer {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
+            text-align: center;
+            margin-top: 20px;
             font-size: 11px;
             color: #666;
-        }
-
-        /* QR code bottom-right */
-        .qr-code {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
-            text-align: center;
-        }
-
-        .qr-code img {
-            width: 90px;
         }
     </style>
 </head>
@@ -159,11 +137,10 @@
         <table>
             <tr>
                 <td style="width:80px; text-align:left;">
-                    <img src="<?= !empty($branchData['logo']) ? base_url($branchData['logo']) : base_url('assets/reports/school_logo.jpg') ?>"
-                        alt="School Logo">
+                    <img src="<?= !empty($branchData['logo']) ? base_url($branchData['logo']) : base_url('assets/reports/school_logo.jpg') ?>" alt="School Logo">
                 </td>
                 <td>
-                    <h2 style="text-transform: uppercase;"><?= $branchData['school_name'] ?> - Exam Report Card</h1>
+                    <h1 style="text-transform: uppercase;"><?=$branchData['school_name'] ?> - Exam Report Card</h1>
                 </td>
                 <td style="width:80px;"></td>
             </tr>
@@ -179,7 +156,6 @@
         <p><strong>Exam:</strong> <?= $report['exam_name']; ?></p>
         <p><strong>Exam Date:</strong> <?= $report['exam_date']; ?></p>
         <p><strong>Time Taken:</strong> <?= isset($report['time_taken']) ? $report['time_taken'] : 'N/A'; ?></p>
-        <p><strong>Rank:</strong> <?= $report['rank']; ?> / <?= $report['total_students']; ?></p>
     </div>
 
     <!-- Performance Table -->
@@ -206,12 +182,6 @@
         </tr>
     </table>
 
-    <!-- Chart -->
-    <div class="chart-box">
-        <img src="<?= $chart_url; ?>"><br>
-        <small>Performance Breakdown</small>
-    </div>
-
     <!-- Result Highlight -->
     <div class="result-box">
         Final Result: <?= $report['percentage']; ?>% —
@@ -229,15 +199,8 @@
         </tr>
     </table>
 
-    <!-- Footer -->
     <div class="footer">
         <p>Generated on <?= date('d M Y H:i'); ?> by FutureCampus</p>
-    </div>
-
-    <!-- QR Code bottom-right -->
-    <div class="qr-code">
-        <img src="<?= $qr_code; ?>"><br>
-         <small>Scan to Verify Report</small>
     </div>
 
 </body>

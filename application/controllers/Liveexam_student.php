@@ -19,6 +19,8 @@ class Liveexam_student extends User_Controller
         parent::__construct();
         $this->load->model('live_exam_model');
         $this->load->model('onlineexam_model');
+        $this->load->library('pdf');
+        $this->load->library('ciqrcode');
     }
 
     public function index()
@@ -387,7 +389,7 @@ class Liveexam_student extends User_Controller
         echo json_encode(['status' => 1]);
     }
 
-    public function studentReport($sessionCode = null)
+    public function studentReport_f($sessionCode = null)
     {
 
         if (!is_student_loggedin()) {
@@ -432,6 +434,156 @@ class Liveexam_student extends User_Controller
     }
 
 
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+    //     $branch_id = get_loggedin_branch_id();
+
+    //     $data['student'] = $this->application_model->getStudentDetails($studentId);
+    //     $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
+    //     $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
+
+    //     // ✅ QR Code
+    //     $this->load->library('ciqrcode');
+    //     $qrText = base_url("report/verify?session=" . $sessionCode . "&student=" . $studentId);
+    //     $params['data'] = $qrText;
+    //     $params['level'] = 'H';
+    //     $params['size'] = 5;
+    //     $params['savename'] = FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png";
+    //     $this->ciqrcode->generate($params);
+    //     $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
+
+    //     // ✅ Chart
+    //     $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
+    //         'type' => 'pie',
+    //         'data' => [
+    //             'labels' => ['Correct', 'Wrong', 'Unanswered'],
+    //             'datasets' => [
+    //                 [
+    //                     'data' => [
+    //                         $data['report']['correct_ans'],
+    //                         $data['report']['wrong_ans'],
+    //                         $data['report']['total_question'] - $data['report']['total_answered']
+    //                     ]
+    //                 ]
+    //             ]
+    //         ]
+    //     ]));
+    //     $data['chart_url'] = $chartUrl;
+
+    //     // Generate HTML
+    //     $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
+
+    //     // PDF
+    //     $this->load->library('pdf');
+    //     $this->pdf->loadHtml($html);
+    //     $this->pdf->setPaper('A4', 'portrait');
+    //     $this->pdf->render();
+
+    //     // File name
+    //     $studentName = $data['student']['first_name'] . ' ' . $data['student']['last_name'];
+    //     $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
+    //     $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
+    //     $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
+
+    //     $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
+
+    //     $this->pdf->stream($fileName, ["Attachment" => 0]);
+    // }
+
+
+    /**
+     * ✅ Private helper to generate report PDF
+     */
+    private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
+    {
+        $branch_id = get_loggedin_branch_id();
+
+        // Get data
+        $data['student'] = $this->application_model->getStudentDetails($studentId);
+        $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
+        $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
+
+        // ✅ QR Code
+        $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
+        $params['data'] = $qrText;
+        $params['level'] = 'H';
+        $params['size'] = 5;
+        $params['savename'] = FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png";
+        $this->ciqrcode->generate($params);
+        $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
+
+        // ✅ Chart
+        $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
+            'type' => 'pie',
+            'data' => [
+                'labels' => ['Correct', 'Wrong', 'Unanswered'],
+                'datasets' => [
+                    [
+                        'data' => [
+                            $data['report']['correct_ans'],
+                            $data['report']['wrong_ans'],
+                            $data['report']['total_question'] - $data['report']['total_answered']
+                        ]
+                    ]
+                ]
+            ]
+        ]));
+        $data['chart_url'] = $chartUrl;
+
+        // Load HTML view
+        $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
+
+        // PDF
+        $this->pdf->loadHtml($html);
+        $this->pdf->setPaper('A4', 'portrait');
+        $this->pdf->render();
+
+        // File name
+        $studentName = $data['student']['first_name'] . ' ' . $data['student']['last_name'];
+        $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
+        $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
+        $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
+
+        $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
+
+        // Stream
+        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+    }
+
+    /**
+     * ✅ For logged-in students (download mode)
+     */
+    public function studentReport($sessionCode = null)
+    {
+        if (!is_student_loggedin()) {
+            set_alert('info', 'You are not authorised to check this report !');
+            return redirect(base_url('liveexam_student'));
+        }
+
+        $studentId = get_loggedin_user_id();
+        $this->generateReportPdf($sessionCode, $studentId, false); // force download
+    }
+
+    /**
+     * ✅ For QR verification (preview mode, no login required)
+     */
+    public function verify()
+    {
+        $sessionCode = $this->input->get('session');
+        $studentId = $this->input->get('student');
+
+        if (empty($sessionCode) || empty($studentId)) {
+            show_error("Invalid verification link.", 400);
+        }
+
+        $this->generateReportPdf($sessionCode, $studentId, true); // always preview
+    }
 
 
 }
