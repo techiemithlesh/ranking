@@ -381,7 +381,6 @@ class Live_exam_model extends MY_Model
         $response = array();
         $sessionID = get_session_id();
 
-        // Read datatable params
         $draw = intval($postData['draw'] ?? 1);
         $start = intval($postData['start'] ?? 0);
         $rowperpage = intval($postData['length'] ?? 10);
@@ -432,7 +431,7 @@ class Live_exam_model extends MY_Model
         sess.id as session_id,
         sess.session_code,
         sess.status as session_status
-    ');
+        ');
         $this->db->from('online_exam as oe');
         $this->db->join('class', 'class.id = oe.class_id', 'left');
         $this->db->join('subject as subj', 'subj.id = oe.subject_id', 'left');
@@ -440,6 +439,7 @@ class Live_exam_model extends MY_Model
 
         $this->db->where('oe.session_id', $sessionID);
         $this->db->where('oe.publish_status', 1);
+        $this->db->where('oe.is_live', 1);
         $this->db->where('oe.class_id', $class_id);
         $this->db->group_start();
         $this->db->where('oe.created_by_branch', $branch_id);
@@ -468,6 +468,8 @@ class Live_exam_model extends MY_Model
 
         $query = $this->db->get();
         $records = $query->result();
+
+        // log_message('debug', 'the query is: '. $this->db->last_query());
 
         // Count total
         $totalRecords = $totalRecordwithFilter;

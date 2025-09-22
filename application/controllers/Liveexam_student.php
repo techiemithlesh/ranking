@@ -40,6 +40,17 @@ class Liveexam_student extends User_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    public function getExamListDT()
+    {
+        if ($_POST) {
+            $this->load->model('onlineexam_model');
+            $postData = $this->input->post();
+            $currencySymbol = $this->data['global_config']['currency_symbol'];
+            echo $this->live_exam_model->liveExamListForStudentDT($postData, $currencySymbol);
+
+        }
+    }
+
     public function cleanupSessions()
     {
         $threshold = date('Y-m-d H:i:s', strtotime('-2 minutes'));
@@ -63,23 +74,11 @@ class Liveexam_student extends User_Controller
             ]);
     }
 
-    public function getExamListDT()
-    {
-        if ($_POST) {
-            $this->load->model('onlineexam_model');
-            $postData = $this->input->post();
-            $currencySymbol = $this->data['global_config']['currency_symbol'];
-            echo $this->live_exam_model->liveExamListForStudentDT($postData, $currencySymbol);
-
-        }
-    }
-
     public function join($session_code)
     {
         if (!is_student_loggedin()) {
             access_denied();
         }
-
 
         // 🔹 Find the live session
         $session = $this->live_exam_model->getSessionByCode($session_code);
@@ -87,7 +86,6 @@ class Liveexam_student extends User_Controller
             set_alert('error', translate('invalid_or_expired_session'));
             redirect(base_url('liveexam_student'));
         }
-
 
         // 🔹 Fetch the exam details
         $exam = $this->live_exam_model->getExamDetailsForLive($session->exam_id);
@@ -109,7 +107,6 @@ class Liveexam_student extends User_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
     public function getCurrentQuestion()
     {
         $session_id = $this->input->get('session_id');
@@ -194,7 +191,6 @@ class Liveexam_student extends User_Controller
             'html' => $html
         ]);
     }
-
 
     // public function submitAnswer()
     // {
@@ -390,7 +386,6 @@ class Liveexam_student extends User_Controller
 
         echo json_encode(['status' => 1]);
     }
-
 
     public function studentReport(){
 
