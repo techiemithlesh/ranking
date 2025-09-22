@@ -231,7 +231,6 @@ class Live_exam_model extends MY_Model
         return $record;
     }
 
-
     public function getActiveSessionByExam($exam_id)
     {
         return $this->db->from('live_exam_sessions')
@@ -357,8 +356,6 @@ class Live_exam_model extends MY_Model
             return $this->db->insert_id();
         }
     }
-
-
     public function endSession($session_id, $host_id)
     {
         // Verify ownership
@@ -377,7 +374,6 @@ class Live_exam_model extends MY_Model
             'ended_at' => date('Y-m-d H:i:s')
         ]);
     }
-
 
     // STUDENT
     public function liveExamListForStudentDT($postData, $currency_symbol = '')
@@ -542,7 +538,6 @@ class Live_exam_model extends MY_Model
         return $this->db->query($sql, [$exam_id, $exam_id, $question_id])->row();
     }
 
-
     public function getExamQuestions($exam_id)
     {
         return $this->db->select('qm.id as qm_id, qm.question_id, q.question, q.question_type')
@@ -571,8 +566,6 @@ class Live_exam_model extends MY_Model
             ->get()
             ->result();
     }
-
-
     public function cleanupInactiveStudents($session_id)
     {
         $threshold = date("Y-m-d H:i:s", strtotime("-15 seconds"));
@@ -583,5 +576,60 @@ class Live_exam_model extends MY_Model
             ->update('exam_session_students', ['status' => 'offline']);
     }
 
+    public function getExamResults($onlineexamID = null, $studentID = 0)
+    {
+        $sql = "SELECT `questions_manage`.*, `questions`.`id` as `qus_id`, `questions`.*, `exam_session_answers`.`answer` as `sb_ans`, `exam_session_answers`.`id` as `ans_id` FROM `questions_manage` INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` LEFT JOIN `exam_session_answers` ON `exam_session_answers`.`online_exam_id` = `questions_manage`.`onlineexam_id` and `online_exam_answer`.`question_id` = `questions`.`id` and `online_exam_answer`.`student_id` = " . $this->db->escape($studentID) . " WHERE `questions_manage`.`onlineexam_id` = " . $this->db->escape($onlineexamID) . " ORDER BY `questions_manage`.`id` ASC";
+        $query = $this->db->query($sql);
+
+        return $query->result();
+    }
+
+    public function getSessionReport($session_code, $student_id){
+        $result = $this->getExamResults( $session_code, $student_id);
+        $correct_ans = 0;
+        $total_question = 0;
+        $total_neg_marks = 0;
+        $total_marks = 0;
+        $total_obtain_marks = 0;
+        $wrong_ans = 0;
+        $total_answered = 0;
+        if (!empty($result)) {
+            $total_question = count($result);
+            foreach ($result as $key => $value) {
+                $total_marks = $total_marks + $value->marks;
+                if (!empty($value->ans_id)) {
+                    $total_answered++;
+                    if ($value->type == 1 || $value->type == 3) {
+                        if ($value->sb_ans == $value->answer) {
+                            $correct_ans++;
+                            $total_obtain_marks = $total_obtain_marks + $value->marks;
+                        } else {
+                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
+                            $wrong_ans++;
+                        }
+                    } elseif ($value->type == 2) {
+                        if ($this->array_equal(json_decode($value->answer), json_decode($value->sb_ans))) {
+                            $correct_ans++;
+                            $total_obtain_marks = $total_obtain_marks + $value->marks;
+                        } else {
+                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
+                            $wrong_ans++;
+                        }
+                    } elseif ($value->type == 4) {
+                        $correctAns = str_replace(" ", "_", $value->answer);
+                        $studentAns = str_replace(" ", "_", $value->sb_ans);
+                        if (strtolower($correctAns) == strtolower($studentAns)) {
+                            $correct_ans++;
+                            $total_obtain_marks = $total_obtain_marks + $value->marks;
+                        } else {
+                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
+                            $wrong_ans++;
+                        }
+                    }
+                }
+            }
+        }
+        return ['total_marks' => $total_marks, 'total_obtain_marks' => $total_obtain_marks, 'correct_ans' => $correct_ans, 'total_question' => $total_question, 'total_neg_marks' => $total_neg_marks, 'wrong_ans' => $wrong_ans, 'total_answered' => $total_answered];
+    }
 
 }

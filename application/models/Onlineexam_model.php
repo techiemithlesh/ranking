@@ -347,9 +347,6 @@ class Onlineexam_model extends MY_Model
             "data" => $data,
         ));
     }
-
-
-
     public function getSelectExamList($class_id)
     {
         $arrayData = array("" => translate('select'));
@@ -494,8 +491,6 @@ class Onlineexam_model extends MY_Model
         }
         return $list;
     }
-
-
 
     public function question_type()
     {
@@ -968,8 +963,6 @@ class Onlineexam_model extends MY_Model
             "data" => $data,
         ));
     }
-
-
     public function questionListDT($postData)
     {
         $response = array();
@@ -1020,8 +1013,8 @@ class Onlineexam_model extends MY_Model
             $branchID = get_loggedin_branch_id();
 
             $this->db->select('questions.id, questions.question, questions.type, questions.level, 
-            branch.name as branch_name, subject.name as subject_name, class.name as class_name, 
-            section.name as section_name, question_group.name as group_name');
+                branch.name as branch_name, subject.name as subject_name, class.name as class_name, 
+                section.name as section_name, question_group.name as group_name');
             $this->db->from('question_assignments');
             $this->db->join('questions', 'questions.id = question_assignments.question_id', 'inner');
             $this->db->join('branch', 'branch.id = question_assignments.branch_id', 'inner');
@@ -1101,8 +1094,6 @@ class Onlineexam_model extends MY_Model
 
         return json_encode($response);
     }
-
-
     public function getStudentSubmitted($online_examID = null)
     {
         $r = $this->db->select('id')->where(array('student_id' => get_loggedin_user_id(), 'online_exam_id' => $online_examID))->get('online_exam_submitted')->row();
@@ -1182,7 +1173,6 @@ class Onlineexam_model extends MY_Model
         $records = $this->db->query($sql)->row();
         return $records;
     }
-
 
     public function getStudentAttempt($onlineexamID)
     {
@@ -1360,7 +1350,6 @@ class Onlineexam_model extends MY_Model
             is_array($a) && is_array($b) && count($a) == count($b) && array_diff($a, $b) === array_diff($b, $a)
         );
     }
-
     public function getQuestionsFilteredDT($postData)
     {
         $response = array();
@@ -1505,7 +1494,6 @@ class Onlineexam_model extends MY_Model
         );
         return $response;
     }
-
     public function assignQuestionToBranch($question_id, $branch_id, $created_by = null)
     {
         $data = [
@@ -1524,7 +1512,6 @@ class Onlineexam_model extends MY_Model
             $this->db->insert('question_assignments', $data);
         }
     }
-
     public function getAllExams()
     {
         return $this->db->get('online_exam')->result_array();
@@ -1540,6 +1527,5 @@ class Onlineexam_model extends MY_Model
         $this->db->group_by('online_exam.id');
         return $this->db->get()->result_array();
     }
-
 
 }

@@ -39,11 +39,9 @@ class LiveExam extends Admin_Controller
 
     public function index()
     {
-
         if (!get_permission('live_exam', 'is_view')) {
             access_denied();
         }
-
         $this->data['title'] = translate('live_exam');
         $this->data['sub_page'] = 'onlineexam/live_exam/index';
         $this->data['main_menu'] = 'onlineexam';
@@ -93,7 +91,6 @@ class LiveExam extends Admin_Controller
 
         $this->load->view('layout/index', $data);
     }
-
 
     public function ajaxGetQuestions()
     {
@@ -158,7 +155,6 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Failed to start session']);
         }
     }
-
     public function activateSession()
     {
         $session_id = $this->input->post('session_id');
@@ -171,7 +167,6 @@ class LiveExam extends Admin_Controller
 
         echo json_encode(['status' => 1]);
     }
-
     public function sessionHeartbeat()
     {
         $session_id = $this->input->post('session_id');
@@ -184,7 +179,6 @@ class LiveExam extends Admin_Controller
 
         echo json_encode(['status' => 1]);
     }
-
     public function setCurrentQuestion()
     {
         if (!get_permission('live_exam', 'is_add')) {
@@ -208,7 +202,6 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Failed to update']);
         }
     }
-
     public function endSession()
     {
         $session_id = $this->input->post('session_id');
@@ -236,7 +229,6 @@ class LiveExam extends Admin_Controller
             'participants' => $participants
         ]);
     }
-
     public function getSessionAnswers()
     {
         $session_id = $this->input->get('session_id');
@@ -257,7 +249,6 @@ class LiveExam extends Admin_Controller
             'data' => $answers
         ]);
     }
-
     /* ENDPOINT FOR BACKGROUND CHECK EXAM STILL RUNNING OR NOT */
     public function cleanupSessions()
     {
