@@ -161,7 +161,7 @@ class Report extends Admin_Controller
           AND branch_id = '$branch_id' 
           AND DATE(date) BETWEEN '$firstDate' AND '$lastDate' 
           AND status = 'P'
-    ");
+        ");
 
         $queryAbsent = $this->db->query("
         SELECT * FROM student_attendance 
@@ -169,7 +169,7 @@ class Report extends Admin_Controller
           AND branch_id = '$branch_id' 
           AND DATE(date) BETWEEN '$firstDate' AND '$lastDate' 
           AND status = 'A'
-    ");
+        ");
 
         $presentDays = sizeof($queryPresent->result());
         $absentDays = sizeof($queryAbsent->result());

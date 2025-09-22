@@ -297,8 +297,6 @@ class Application_model extends CI_Model
         );
         return $arrayData;
     }
-
-
     public function unread_notifications_alert($limit = null)
     {
         $role_id = loggedin_role_id();

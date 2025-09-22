@@ -538,8 +538,6 @@ class App_lib
 
         return $role_array;
     }
-
-
     public function generateCSRF()
     {
         return '<input type="hidden" name="' . $this->CI->security->get_csrf_token_name() . '" value="' . $this->CI->security->get_csrf_hash() . '" />';
@@ -676,7 +674,6 @@ class App_lib
         return $name;
     }
 
-
     public function getSessionList()
     {
         $this->CI->db->select('id, school_year');
@@ -691,7 +688,6 @@ class App_lib
         }
         return $sessionList;
     }
-
 
     function getClassTeacher($classID = '')
     {
@@ -720,7 +716,6 @@ class App_lib
             return false;
         }
     }
-
     function getSchoolConfig($branchID = '', $select = '*')
     {
         $ci = &get_instance();
@@ -729,8 +724,6 @@ class App_lib
         $result = $ci->db->query($sql)->row();
         return $result;
     }
-
-
     public function get_global_classes()
     {
         $CI = &get_instance();
@@ -757,7 +750,6 @@ class App_lib
 
         return $output;
     }
-
     public function getSelectListGlobal($table)
     {
         $CI = &get_instance();
@@ -774,7 +766,6 @@ class App_lib
 
         return $output;
     }
-
     public function getSelectClassList()
     {
         $CI = &get_instance();

@@ -578,60 +578,280 @@ class Live_exam_model extends MY_Model
             ->update('exam_session_students', ['status' => 'offline']);
     }
 
-    public function getExamResults($onlineexamID = null, $studentID = 0)
+    /**
+     * Get exam results for a student based on session_code
+     * Joins exam_sessions → questions_manage → questions → exam_session_answers
+     */
+    public function getExamResults($sessionCode = null, $studentID = 0)
     {
-        $sql = "SELECT `questions_manage`.*, `questions`.`id` as `qus_id`, `questions`.*, `exam_session_answers`.`answer` as `sb_ans`, `exam_session_answers`.`id` as `ans_id` FROM `questions_manage` INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` LEFT JOIN `exam_session_answers` ON `exam_session_answers`.`online_exam_id` = `questions_manage`.`onlineexam_id` and `online_exam_answer`.`question_id` = `questions`.`id` and `online_exam_answer`.`student_id` = " . $this->db->escape($studentID) . " WHERE `questions_manage`.`onlineexam_id` = " . $this->db->escape($onlineexamID) . " ORDER BY `questions_manage`.`id` ASC";
-        $query = $this->db->query($sql);
+        $sql = "
+            SELECT 
+                qm.*, 
+                q.id as qus_id, 
+                q.question, 
+                q.type, 
+                q.mark, 
+                esa.answer as sb_ans, 
+                esa.id as ans_id,
+                es.started_at as exam_date
+            FROM exam_sessions es
+            INNER JOIN questions_manage qm 
+                ON qm.onlineexam_id = es.exam_id
+            INNER JOIN questions q 
+                ON q.id = qm.question_id
+            LEFT JOIN exam_session_answers esa 
+                ON esa.session_id = es.id 
+               AND esa.question_id = q.id 
+               AND esa.student_id = " . $this->db->escape($studentID) . "
+            WHERE es.session_code = " . $this->db->escape($sessionCode) . "
+            ORDER BY qm.id ASC
+        ";
 
+        $query = $this->db->query($sql);
         return $query->result();
     }
 
-    public function getSessionReport($session_code, $student_id){
-        $result = $this->getExamResults( $session_code, $student_id);
-        $correct_ans = 0;
-        $total_question = 0;
-        $total_neg_marks = 0;
+
+    /**
+     * Get student’s session report (marks, correct, wrong, negative, etc.)
+     */
+    // public function getSessionReport($session_code, $student_id)
+    // {
+    //     // ✅ Get exam info (to check negative marking rule)
+    //     $exam = $this->db->select('oe.title,oe.neg_mark')
+    //         ->from('exam_sessions es')
+    //         ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
+    //         ->where('es.session_code', $session_code)
+    //         ->get()
+    //         ->row_array();
+
+    //     $neg_mark_enabled = isset($exam['neg_mark']) && $exam['neg_mark'] == 1;
+
+    //     $examTitle = $exam['title'] ?? '';
+
+    //     // ✅ Get questions + answers for this session
+    //     $result = $this->getExamResults($session_code, $student_id);
+
+    //     // printVar($result);
+    //     // die;
+
+    //     $correct_ans = 0;
+    //     $total_question = 0;
+    //     $total_neg_marks = 0;
+    //     $total_marks = 0;
+    //     $total_obtain_marks = 0;
+    //     $wrong_ans = 0;
+    //     $total_answered = 0;
+
+    //     if (!empty($result)) {
+    //         $total_question = count($result);
+
+    //         foreach ($result as $value) {
+    //             $total_marks += $value->marks;
+
+    //             if (!empty($value->ans_id)) {
+    //                 $total_answered++;
+
+    //                 $isCorrect = false;
+
+    //                 if ($value->type == 1 || $value->type == 3) {
+    //                     $isCorrect = ($value->sb_ans == $value->answer);
+    //                 } elseif ($value->type == 2) {
+    //                     $isCorrect = $this->array_equal(json_decode($value->answer), json_decode($value->sb_ans));
+    //                 } elseif ($value->type == 4) {
+    //                     $correctAns = str_replace(" ", "_", $value->answer);
+    //                     $studentAns = str_replace(" ", "_", $value->sb_ans);
+    //                     $isCorrect = (strtolower($correctAns) == strtolower($studentAns));
+    //                 }
+
+    //                 if ($isCorrect) {
+    //                     $correct_ans++;
+    //                     $total_obtain_marks += $value->marks;
+    //                 } else {
+    //                     $wrong_ans++;
+
+    //                     if ($neg_mark_enabled) {
+    //                         $total_neg_marks += 1; // one negative mark
+    //                         $total_obtain_marks -= 1; // deduct from total
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     return [
+    //         'exam_name' => $examTitle,
+    //         'total_marks' => $total_marks,
+    //         'total_obtain_marks' => max(0, $total_obtain_marks), // never negative
+    //         'correct_ans' => $correct_ans,
+    //         'total_question' => $total_question,
+    //         'total_neg_marks' => $total_neg_marks,
+    //         'wrong_ans' => $wrong_ans,
+    //         'total_answered' => $total_answered
+    //     ];
+    // }
+
+    /**
+     * Helper to compare arrays for multiple-choice answers
+     */
+    private function array_equal($a, $b)
+    {
+        if (is_array($a) && is_array($b)) {
+            sort($a);
+            sort($b);
+            return $a == $b;
+        }
+        return false;
+    }
+
+
+    public function getLiveExamSessionReport($session_code, $studentID)
+    {
+        // 1. Get exam + session + student info
+        $exam = $this->db->select('
+            oe.id as exam_id, 
+            oe.title as exam_name, 
+            oe.neg_mark, 
+            oe.passing_mark, 
+            es.started_at, 
+            es.ended_at, 
+            ess.joined_at, 
+            ess.last_ping_at
+        ')
+            ->from('exam_sessions es')
+            ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
+            ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
+            ->where('es.session_code', $session_code)
+            ->get()
+            ->row_array();
+
+        if (empty($exam)) {
+            return [];
+        }
+
+        $examID = $exam['exam_id'];
+        $examTitle = $exam['exam_name'];
+        $neg_mark_enabled = (int) $exam['neg_mark'] === 1;
+        $passing_mark = (float) $exam['passing_mark'];
+
+        // 2. Fetch all questions & answers
+        $sql = "
+        SELECT 
+            qm.*, 
+            q.id as qus_id, 
+            q.question, 
+            q.type, 
+            q.mark as marks,
+            q.answer,
+            esa.answer as sb_ans, 
+            esa.id as ans_id
+        FROM exam_sessions es
+        INNER JOIN questions_manage qm 
+            ON qm.onlineexam_id = es.exam_id
+        INNER JOIN questions q 
+            ON q.id = qm.question_id
+        LEFT JOIN exam_session_answers esa 
+            ON esa.session_id = es.id 
+           AND esa.question_id = q.id 
+           AND esa.student_id = " . $this->db->escape($studentID) . "
+        WHERE es.session_code = " . $this->db->escape($session_code) . "
+        ORDER BY qm.id ASC
+    ";
+
+        $result = $this->db->query($sql)->result();
+
+        // log_message('debug', 'The Query is: ' . $this->db->last_query());
+
+        // 3. Initialize counters
         $total_marks = 0;
         $total_obtain_marks = 0;
+        $total_neg_marks = 0;
+        $correct_ans = 0;
         $wrong_ans = 0;
         $total_answered = 0;
+        $total_question = 0;
+
+        // 4. Process results
         if (!empty($result)) {
             $total_question = count($result);
-            foreach ($result as $key => $value) {
-                $total_marks = $total_marks + $value->marks;
+
+            foreach ($result as $value) {
+                $marks = (float) $value->marks;
+                $total_marks += $marks;
+
                 if (!empty($value->ans_id)) {
                     $total_answered++;
+
+                    $isCorrect = false;
+
                     if ($value->type == 1 || $value->type == 3) {
-                        if ($value->sb_ans == $value->answer) {
-                            $correct_ans++;
-                            $total_obtain_marks = $total_obtain_marks + $value->marks;
-                        } else {
-                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
-                            $wrong_ans++;
-                        }
+                        // Single choice / True-False
+                        $isCorrect = ($value->sb_ans == $value->answer);
                     } elseif ($value->type == 2) {
-                        if ($this->array_equal(json_decode($value->answer), json_decode($value->sb_ans))) {
-                            $correct_ans++;
-                            $total_obtain_marks = $total_obtain_marks + $value->marks;
-                        } else {
-                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
-                            $wrong_ans++;
-                        }
+                        // Multiple choice
+                        $isCorrect = $this->array_equal(json_decode($value->answer), json_decode($value->sb_ans));
                     } elseif ($value->type == 4) {
-                        $correctAns = str_replace(" ", "_", $value->answer);
-                        $studentAns = str_replace(" ", "_", $value->sb_ans);
-                        if (strtolower($correctAns) == strtolower($studentAns)) {
-                            $correct_ans++;
-                            $total_obtain_marks = $total_obtain_marks + $value->marks;
-                        } else {
-                            $total_neg_marks = $total_neg_marks + $value->neg_marks;
-                            $wrong_ans++;
+                        // Fill in the blank
+                        $correctAns = strtolower(trim(str_replace(" ", "_", $value->answer)));
+                        $studentAns = strtolower(trim(str_replace(" ", "_", $value->sb_ans)));
+                        $isCorrect = ($correctAns == $studentAns);
+                    }
+
+                    if ($isCorrect) {
+                        $correct_ans++;
+                        $total_obtain_marks += $marks;
+                    } else {
+                        $wrong_ans++;
+                        if ($neg_mark_enabled) {
+                            $total_neg_marks += 1;   // ❗ adjust if penalty is % of marks
+                            $total_obtain_marks -= 1;
                         }
                     }
                 }
             }
         }
-        return ['total_marks' => $total_marks, 'total_obtain_marks' => $total_obtain_marks, 'correct_ans' => $correct_ans, 'total_question' => $total_question, 'total_neg_marks' => $total_neg_marks, 'wrong_ans' => $wrong_ans, 'total_answered' => $total_answered];
+
+        // Prevent negative marks
+        if ($total_obtain_marks < 0) {
+            $total_obtain_marks = 0;
+        }
+
+        // 5. Time taken (student-specific)
+        $time_taken = "N/A";
+        if (!empty($exam['joined_at']) && !empty($exam['last_ping_at'])) {
+            $start = strtotime($exam['joined_at']);
+            $end = strtotime($exam['last_ping_at']);
+            if ($end > $start) {
+                $diff = $end - $start;
+                $minutes = floor($diff / 60);
+                $seconds = $diff % 60;
+                $time_taken = $minutes . " min " . $seconds . " sec";
+            }
+        }
+
+        // 6. Percentage & result
+        $percentage = $total_marks > 0 ? round(($total_obtain_marks / $total_marks) * 100, 2) : 0;
+        $result_status = ($total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
+
+        // 7. Return report
+        return [
+            'exam_name' => $examTitle,
+            'exam_date' => !empty($exam['started_at']) ? date("d M Y", strtotime($exam['started_at'])) : "N/A",
+            'time_taken' => $time_taken,
+            'total_marks' => $total_marks,
+            'total_obtain_marks' => $total_obtain_marks,
+            'total_neg_marks' => $total_neg_marks,
+            'correct_ans' => $correct_ans,
+            'wrong_ans' => $wrong_ans,
+            'total_answered' => $total_answered,
+            'total_question' => $total_question,
+            'percentage' => $percentage,
+            'result_status' => $result_status
+        ];
     }
+
+
+
+
 
 }
