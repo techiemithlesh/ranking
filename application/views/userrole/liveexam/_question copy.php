@@ -6,7 +6,6 @@
         'opt_3' => 3,
         'opt_4' => 4,
     ];
-    $answered = !empty($student_answer);
     ?>
     <?= form_open('#', ['id' => 'answerForm']) ?>
         <input type="hidden" name="online_exam_id" value="<?= $exam_id ?>">
@@ -28,12 +27,9 @@
                             <?php foreach ($quesOption as $k => $v): ?>
                                 <?php if (!empty($question->{$k})): ?>
                                     <div class="radio-custom radio-success mt-md">
-                                        <input type="radio"
-                                               value="<?= $v ?>"
+                                        <input type="radio" value="<?= $v ?>"
                                                name="answer[<?= $question->question_id ?>][<?= $question->type ?>]"
-                                               id="opt<?= $question->question_id . $v ?>"
-                                               <?= ($student_answer == $v ? 'checked' : '') ?>
-                                               <?= $answered ? 'disabled' : '' ?>>
+                                               id="opt<?= $question->question_id . $v ?>">
                                         <label for="opt<?= $question->question_id . $v ?>">
                                             <?= $question->{$k} ?>
                                         </label>
@@ -48,9 +44,7 @@
                                         <label class="i-checks">
                                             <input type="checkbox"
                                                    name="answer[<?= $question->question_id ?>][<?= $question->type ?>][]"
-                                                   value="<?= $v ?>"
-                                                   <?= (is_array($student_answer) && in_array($v, $student_answer)) ? 'checked' : '' ?>
-                                                   <?= $answered ? 'disabled' : '' ?>> <i></i>
+                                                   value="<?= $v ?>"> <i></i>
                                             <?= $question->{$k} ?>
                                         </label>
                                     </div>
@@ -61,17 +55,13 @@
                             <div class="radio-custom radio-success mt-md">
                                 <input type="radio" value="1"
                                        name="answer[<?= $question->question_id ?>][<?= $question->type ?>]"
-                                       id="tf1<?= $question->question_id ?>"
-                                       <?= ($student_answer == 1 ? 'checked' : '') ?>
-                                       <?= $answered ? 'disabled' : '' ?>>
+                                       id="tf1<?= $question->question_id ?>">
                                 <label for="tf1<?= $question->question_id ?>">TRUE</label>
                             </div>
                             <div class="radio-custom radio-success mt-md">
                                 <input type="radio" value="2"
                                        name="answer[<?= $question->question_id ?>][<?= $question->type ?>]"
-                                       id="tf0<?= $question->question_id ?>"
-                                       <?= ($student_answer == 2 ? 'checked' : '') ?>
-                                       <?= $answered ? 'disabled' : '' ?>>
+                                       id="tf0<?= $question->question_id ?>">
                                 <label for="tf0<?= $question->question_id ?>">FALSE</label>
                             </div>
 
@@ -79,9 +69,7 @@
                             <div class="form-group">
                                 <label class="control-label">Answer</label>
                                 <input type="text" class="form-control"
-                                       name="answer[<?= $question->question_id ?>][<?= $question->type ?>]"
-                                       value="<?= html_escape($student_answer) ?>"
-                                       <?= $answered ? 'readonly' : '' ?>>
+                                       name="answer[<?= $question->question_id ?>][<?= $question->type ?>]">
                             </div>
                         <?php endif; ?>
 
@@ -107,8 +95,7 @@
                 </div>
 
                 <div class="text-center mt-lg">
-                    <button type="submit" class="btn btn-success"
-                        <?= $answered ? 'disabled' : '' ?>>
+                    <button type="submit" class="btn btn-success">
                         <?= translate('submit_answer') ?>
                     </button>
                 </div>
