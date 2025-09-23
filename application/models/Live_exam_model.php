@@ -319,6 +319,16 @@ class Live_exam_model extends MY_Model
         return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
     }
 
+    public function getSessionWithStatus($session_id)
+    {
+        return $this->db
+            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, ended_at, current_question_id, is_published')
+            ->from('exam_sessions')
+            ->where('id', intval($session_id))
+            ->get()
+            ->row();
+    }
+
     public function getSessionByCode($session_code)
     {
         return $this->db->where('session_code', $session_code)
@@ -356,7 +366,26 @@ class Live_exam_model extends MY_Model
             return $this->db->insert_id();
         }
     }
-    public function endSession($session_id, $host_id)
+    // public function endSession($session_id, $host_id)
+    // {
+    //     // Verify ownership
+    //     $this->db->where('id', $session_id);
+    //     $this->db->where('host_id', $host_id);
+    //     $session = $this->db->get('exam_sessions')->row();
+
+    //     if (!$session) {
+    //         return false; // not found or not owned by this host
+    //     }
+
+    //     $this->db->where('id', $session_id);
+    //     return $this->db->update('exam_sessions', [
+    //         'status' => 'completed',
+    //         'status_reason' => 'normal_end',
+    //         'ended_at' => date('Y-m-d H:i:s')
+    //     ]);
+    // }
+
+    public function endSession($session_id, $host_id, $aborted = 0, $publish = 0)
     {
         // Verify ownership
         $this->db->where('id', $session_id);
@@ -364,16 +393,21 @@ class Live_exam_model extends MY_Model
         $session = $this->db->get('exam_sessions')->row();
 
         if (!$session) {
-            return false; // not found or not owned by this host
+            return false;
         }
 
+        $update = [
+            'status' => $aborted ? 'aborted' : 'completed',
+            'status_reason' => $aborted ? 'aborted_by_host' : 'normal_end',
+            'ended_at' => date('Y-m-d H:i:s'),
+            'is_published' => $aborted ? 0 : $publish,
+        ];
+
         $this->db->where('id', $session_id);
-        return $this->db->update('exam_sessions', [
-            'status' => 'completed',
-            'status_reason' => 'normal_end',
-            'ended_at' => date('Y-m-d H:i:s')
-        ]);
+        return $this->db->update('exam_sessions', $update);
     }
+
+
 
     // STUDENT
     public function liveExamListForStudentDT($postData, $currency_symbol = '')

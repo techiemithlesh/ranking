@@ -116,17 +116,6 @@
             width: 220px;
         }
 
-        .signatures {
-            margin-top: 25px;
-            width: 100%;
-        }
-
-        .signatures td {
-            text-align: center;
-            padding: 15px;
-            font-size: 12px;
-        }
-
         .footer {
             position: absolute;
             bottom: 20px;
@@ -219,15 +208,6 @@
             ? '<span class="grade-pass">PASS</span>'
             : '<span class="grade-fail">FAIL</span>'); ?>
     </div>
-
-    <!-- Signatures -->
-    <table class="signatures">
-        <tr>
-            <td>_________________<br>Class Teacher</td>
-            <td>_________________<br>Principal</td>
-            <td>_________________<br>Student</td>
-        </tr>
-    </table>
 
     <!-- Footer -->
     <div class="footer">

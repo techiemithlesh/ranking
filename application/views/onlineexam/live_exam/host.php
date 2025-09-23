@@ -87,6 +87,7 @@
 	var currentStep = 1;
 	var timerInterval = null;
 	var elapsed_seconds = 0;
+	let sessionEndedManually = false;
 
 	window._live_session = null;
 	var heartbeatTimer = null;
@@ -380,22 +381,32 @@
 	// -----------------------------
 	$(document).on("click", "#end_session_btn", function () {
 		if (!confirm("Are you sure you want to end this live exam session?")) return;
+		sessionEndedManually = true; // mark as manual end
 		endLiveSession();
 	});
 
+
 	// If host closes modal without ending → auto abort
 	$("#examModal").on("hidden.bs.modal", function () {
-		if (window._live_session?.id) {
+		if (window._live_session?.id && !sessionEndedManually) {
 			endLiveSession(true); // mark aborted
 		}
 	});
 
 	function endLiveSession(aborted = false) {
 		if (!window._live_session?.id) return;
+
+		let publish = 0;
+		if (!aborted) {
+			if (confirm("Do you want to publish the results now?")) {
+				publish = 1;
+			}
+		}
+
 		$.ajax({
 			type: "POST",
 			url: base_url + "LiveExam/endSession",
-			data: { session_id: window._live_session.id, aborted: aborted ? 1 : 0 },
+			data: { session_id: window._live_session.id, aborted: aborted ? 1 : 0, publish: publish },
 			success: function (res) {
 				try {
 					var data = JSON.parse(res);

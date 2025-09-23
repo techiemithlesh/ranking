@@ -103,6 +103,7 @@ class Liveexam_student extends User_Controller
         // 🔹 Prepare data for view
         $this->data['exam'] = $exam;
         $this->data['session'] = $session;
+
         $this->data['title'] = translate('join_live_exam');
         $this->data['sub_page'] = 'userrole/liveexam/take';
         $this->data['main_menu'] = 'onlineexam';
@@ -110,89 +111,105 @@ class Liveexam_student extends User_Controller
         $this->load->view('layout/index', $this->data);
     }
     public function getCurrentQuestion()
-    {
-        $session_id = $this->input->get('session_id');
-        $session = $this->live_exam_model->getSession($session_id);
+{
+    $session_id = $this->input->get('session_id');
+    $session = $this->live_exam_model->getSessionWithStatus($session_id);
 
-        if (!$session) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'invalid',
-                'message' => 'Invalid session'
-            ]);
-            return;
-        }
-
-        // 🔹 Handle session end states first
-        if ($session->status === 'completed') {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'completed',
-                'message' => 'Thank you for attending the exam. Your result will be processed soon.'
-            ]);
-            return;
-        }
-
-        if ($session->status === 'aborted') {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'aborted',
-                'message' => 'The exam was aborted by the host.'
-            ]);
-            return;
-        }
-
-        if ($session->status !== 'active') {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'inactive',
-                'message' => 'Session ended or inactive'
-            ]);
-            return;
-        }
-
-        // 🔹 Waiting for host to start
-        if (empty($session->current_question_id)) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'waiting',
-                'message' => 'Waiting for host to start...'
-            ]);
-            return;
-        }
-
-        // 🔹 Fetch current question
-        $question = $this->live_exam_model->getQuestionById(
-            $session->current_question_id,
-            $session->exam_id
-        );
-
-        if (!$question) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'no_question',
-                'message' => 'No question available'
-            ]);
-            return;
-        }
-
-        $data = [
-            'question' => $question,
-            'exam_id' => $session->exam_id,
-            'session_id' => $session->id,
-            'exam' => $this->live_exam_model->getExamDetailsForLive($session->exam_id)
-        ];
-
-        $html = $this->load->view('userrole/liveexam/_question', $data, true);
-
+    if (!$session) {
         echo json_encode([
-            'status' => 1,
-            'code' => 'active',
-            'current_step' => $session->current_question_id,
-            'current_index' => $question->question_index,
-            'html' => $html
+            'status' => 0,
+            'code' => 'invalid',
+            'message' => 'Invalid session',
+            'is_published' => 0,
+            'session_code' => null
         ]);
+        return;
     }
+
+    // 🔹 Handle session end states first
+    if ($session->status === 'completed') {
+        echo json_encode([
+            'status' => 0,
+            'code' => 'completed',
+            'message' => 'Thank you for attending the exam. Your result will be processed soon.',
+            'is_published' => (int) $session->is_published,
+            'session_code' => $session->session_code
+        ]);
+        return;
+    }
+
+    if ($session->status === 'aborted') {
+        echo json_encode([
+            'status' => 0,
+            'code' => 'aborted',
+            'message' => 'The exam was aborted by the host.',
+            'is_published' => (int) $session->is_published,
+            'session_code' => (int)$session->session_code
+        ]);
+        return;
+    }
+
+    if ($session->status !== 'active') {
+        echo json_encode([
+            'status' => 0,
+            'code' => 'inactive',
+            'message' => 'Session ended or inactive',
+            'is_published' => (int) $session->is_published,
+            'session_code' => (int)$session->session_code
+        ]);
+        return;
+    }
+
+    // 🔹 Waiting for host to start
+    if (empty($session->current_question_id)) {
+        echo json_encode([
+            'status' => 0,
+            'code' => 'waiting',
+            'message' => 'Waiting for host to start...',
+            'is_published' => (int) $session->is_published,
+            'session_code' => (int)$session->session_code
+        ]);
+        return;
+    }
+
+    // 🔹 Fetch current question
+    $question = $this->live_exam_model->getQuestionById(
+        $session->current_question_id,
+        $session->exam_id
+    );
+
+    if (!$question) {
+        echo json_encode([
+            'status' => 0,
+            'code' => 'no_question',
+            'message' => 'No question available',
+            'is_published' => (int) $session->is_published,
+            'session_code' => (int)$session->session_code
+        ]);
+        return;
+    }
+
+    $data = [
+        'question'   => $question,
+        'exam_id'    => $session->exam_id,
+        'session_id' => $session->id,
+        'exam'       => $this->live_exam_model->getExamDetailsForLive($session->exam_id)
+    ];
+
+    $html = $this->load->view('userrole/liveexam/_question', $data, true);
+
+    echo json_encode([
+        'status'        => 1,
+        'code'          => 'active',
+        'current_step'  => $session->current_question_id,
+        'current_index' => $question->question_index,
+        'is_published'  => (int) $session->is_published,
+        'session_code'  => (int)$session->session_code,
+        'html'          => $html
+    ]);
+}
+
+
 
     // public function submitAnswer()
     // {
@@ -502,12 +519,20 @@ class Liveexam_student extends User_Controller
      */
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
+        
+        log_message('debug', 'The student id: '. $studentId);
+        log_message('debug', 'The session code: '. $sessionCode);
+
         $branch_id = get_loggedin_branch_id();
+        
+        $this->db->reset_query(); 
 
         // Get data
         $data['student'] = $this->application_model->getStudentDetails($studentId);
         $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
         $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
+
+        log_message('debug', 'The Query Build' . $this->db->last_query());
 
         // ✅ QR Code
         $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
@@ -581,6 +606,8 @@ class Liveexam_student extends User_Controller
         if (empty($sessionCode) || empty($studentId)) {
             show_error("Invalid verification link.", 400);
         }
+
+       
 
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }

@@ -79,19 +79,20 @@
     var elapsed_seconds = 0;
     var heartbeatTimer = null;
 
+
     window.addEventListener("beforeunload", function () {
         navigator.sendBeacon(base_url + "Liveexam_student/leaveSession",
             new URLSearchParams({ session_id: session_id })
         );
     });
 
+
     // -----------------------------
     // Poll Current Question
     // -----------------------------
     function pollCurrentQuestion() {
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", { session_id: session_id }, function (resp) {
-            console.log("poll response", resp);
-
+            console.log("jfjf", resp);
             if (resp.status === 1) {
                 // ✅ Only reload question if it changed
                 if ($("#question_area").data("qid") !== resp.current_step) {
@@ -105,50 +106,19 @@
             } else {
                 // 🔹 Handle special end states
                 if (resp.code === "completed") {
-                    clearInterval(pollInterval);
-                    clearInterval(heartbeatTimer);
-
-                    if (resp.is_published == 1) {
-                        swal({
-                            title: "Exam Completed!",
-                            text: "Congratulations! Your result is ready.",
-                            type: "success",
-                            confirmButtonText: "Download Report",
-                            allowOutsideClick: false
-                        }).then(() => {
-                            window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
-
-                            // Redirect to dashboard after short delay
-                            setTimeout(() => {
-                                window.location.href = base_url + "liveexam_student";
-                            }, 10000);
-                        });
-                    } else {
-                        swal({
-                            title: "Thank You!",
-                            text: "You have successfully completed the exam. Results will be published soon.",
-                            type: "success",
-                            confirmButtonText: "OK",
-                            allowOutsideClick: false
-                        }).then(() => {
-                            window.location.href = base_url + "liveexam_student";
-                        });
-                    }
+                    alertMsg(resp.message, "success", "Exam Completed", "");
+                    window.location.href = base_url + "liveexam_student";
                 } else if (resp.code === "aborted") {
-                    clearInterval(pollInterval);
-                    clearInterval(heartbeatTimer);
-
-                    swal({
-                        title: "Exam Aborted",
-                        text: "The exam was aborted by the host.",
-                        type: "warning",
-                        confirmButtonText: "OK",
-                        allowOutsideClick: false
-                    }).then(() => {
-                        window.location.href = base_url + "liveexam_student";
-                    });
+                    alertMsg(resp.message, "error", "Exam Aborted", "");
+                    window.location.href = base_url + "liveexam_student";
                 } else {
                     $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+                }
+
+                // Stop timers
+                if (["completed", "aborted", "inactive"].includes(resp.code)) {
+                    clearInterval(pollInterval);
+                    clearInterval(heartbeatTimer);
                 }
             }
         });

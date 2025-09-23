@@ -21,7 +21,7 @@ class LiveExam extends Admin_Controller
         $this->load->model('live_exam_model');
         $this->load->model('sms_model');
         $this->load->model('subject_model');
-       $this->load->model('email_model');
+        $this->load->model('email_model');
         $this->data['headerelements'] = array(
             'css' => array(
                 'vendor/summernote/summernote.css',
@@ -205,12 +205,16 @@ class LiveExam extends Admin_Controller
     public function endSession()
     {
         $session_id = $this->input->post('session_id');
+        $aborted = (int) $this->input->post('aborted');
+        $publish = (int) $this->input->post('publish'); // 0 = no, 1 = yes
+
 
         if (empty($session_id)) {
             echo json_encode(['status' => 0, 'message' => 'Missing session id']);
             exit;
         }
-        $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id());
+        $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
+        
         if ($ok)
             echo json_encode(['status' => 1, 'message' => 'Session ended']);
         else
