@@ -657,8 +657,8 @@ class Liveexam_student extends User_Controller
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
 
-        log_message('debug', 'The student id: '. $studentId);
-        log_message('debug', 'The session code: '. $sessionCode);
+        log_message('debug', 'The student id: ' . $studentId);
+        log_message('debug', 'The session code: ' . $sessionCode);
 
         $branch_id = get_loggedin_branch_id();
 
@@ -721,18 +721,40 @@ class Liveexam_student extends User_Controller
     /**
      * ✅ For logged-in students (download mode)
      */
+    // public function studentReport($sessionCode = null)
+    // {
+    //     log_message('debug', 'Controller Reached');
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+    //     log_message('debug', 'The student Report Method' . $studentId);
+    //     $this->generateReportPdf($sessionCode, $studentId, false); // force download
+    // }
+
     public function studentReport($sessionCode = null)
     {
         log_message('debug', 'Controller Reached');
+
         if (!is_student_loggedin()) {
             set_alert('info', 'You are not authorised to check this report !');
             return redirect(base_url('liveexam_student'));
         }
 
         $studentId = get_loggedin_user_id();
-        log_message('debug', 'The student Report Method' . $studentId);
-        $this->generateReportPdf($sessionCode, $studentId, false); // force download
+        log_message('debug', 'The student Report Method ' . $studentId);
+
+        // 🔹 Instead of generating PDF, just return raw debug info
+        header('Content-Type: application/json');
+        echo json_encode([
+            'session_code' => $sessionCode,
+            'student_id' => $studentId
+        ]);
+        exit;
     }
+
 
     /**
      * ✅ For QR verification (preview mode, no login required)
@@ -749,6 +771,6 @@ class Liveexam_student extends User_Controller
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
 
-   
+
 
 }
