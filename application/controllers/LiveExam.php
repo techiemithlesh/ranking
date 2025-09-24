@@ -36,7 +36,6 @@ class LiveExam extends Admin_Controller
 
     }
 
-
     public function index()
     {
         if (!get_permission('live_exam', 'is_view')) {
@@ -91,7 +90,6 @@ class LiveExam extends Admin_Controller
 
         $this->load->view('layout/index', $data);
     }
-
     public function ajaxGetQuestions()
     {
         $status = 0;
@@ -214,7 +212,7 @@ class LiveExam extends Admin_Controller
             exit;
         }
         $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
-        
+
         if ($ok)
             echo json_encode(['status' => 1, 'message' => 'Session ended']);
         else
@@ -276,5 +274,106 @@ class LiveExam extends Admin_Controller
                 'ended_at' => date('Y-m-d H:i:s')
             ]);
     }
+
+    /**
+     * REPORTING 
+     */
+
+    public function getSessionReport()
+    {
+        if (isset($_POST['search'])) {
+            $branchID = $this->application_model->get_branch_id();
+            if (is_superadmin_loggedin() == true) {
+                $this->form_validation->set_rules('branch_id', 'Branch', 'trim|required');
+            }
+            $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
+            $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
+            $this->form_validation->set_rules('exam_id', 'Exam', 'trim|required');
+            $this->form_validation->set_rules('session_code', 'Session', 'trim|required');
+
+            if ($this->form_validation->run() == true) {
+
+                $classID = $this->input->post('class_id');
+                $sectionId = $this->input->post('section_id');
+                $examID = $this->input->post('exam_id');
+                $studentId = $this->input->post('student_id');
+                $sessionCode = $this->input->post('session_code');
+
+                $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode,$branchID, $classID, $sectionId);
+
+                // printVar($this->data['reports']);
+                // die;
+
+            }
+        }
+
+        $this->data['title'] = translate('live_exam_report');
+        $this->data['sub_page'] = 'onlineexam/live_exam/report';
+        $this->data['main_menu'] = 'onlineexam';
+        $this->load->view('layout/index', $this->data);
+    }
+
+
+    public function getLiveExamByClass()
+    {
+        $html = '';
+        $classID = $this->input->post('class_id');
+        if (!empty($classID)) {
+            $this->db->where('class_id', $classID);
+            $this->db->where('session_id', get_session_id());
+            if (!is_superadmin_loggedin()) {
+                $this->db->where('branch_id', get_loggedin_branch_id());
+            }
+            if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
+                $this->db->where('created_by', get_loggedin_user_id());
+            }
+            $this->db->where('publish_status', 1);
+            $this->db->where('is_live', 1);
+            $query = $this->db->get('online_exam');
+            if ($query->num_rows() > 0) {
+                $subjects = $query->result();
+                $html .= '<option value="">' . translate('select') . '</option>';
+                foreach ($subjects as $row) {
+                    $html .= '<option value="' . $row->id . '">' . $row->title . '</option>';
+                }
+            } else {
+                $html .= '<option value="">' . translate('no_information_available') . '</option>';
+            }
+        } else {
+            $html .= '<option value="">' . translate('select') . '</option>';
+        }
+        echo $html;
+    }
+
+    public function getSessionsByExam()
+    {
+        $exam_id = $this->input->post('exam_id');
+
+        $sessions = $this->live_exam_model->getSessionsByExam($exam_id);
+
+        $options = "<option value=''>" . translate('select') . "</option>";
+        foreach ($sessions as $s) {
+            $start = date('d M Y - h:i A', strtotime($s['started_at']));
+            $end = !empty($s['ended_at']) ? date('h:i A', strtotime($s['ended_at'])) : 'Ongoing';
+            $label = $start . " to " . $end;
+
+            // Time slot label
+            $hour = date('H', strtotime($s['started_at']));
+            if ($hour < 12) {
+                $slot = "(Morning)";
+            } elseif ($hour < 17) {
+                $slot = "(Afternoon)";
+            } else {
+                $slot = "(Evening)";
+            }
+
+            // Append session option
+            $options .= "<option value='{$s['session_code']}'>{$label} {$slot}</option>";
+        }
+
+        echo $options;
+    }
+
+
 
 }

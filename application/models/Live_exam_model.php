@@ -775,15 +775,14 @@ class Live_exam_model extends MY_Model
     {
         // 1. Get exam + session + student info
         $exam = $this->db->select('
-            oe.id as exam_id, 
-            oe.title as exam_name, 
-            oe.neg_mark, 
-            oe.passing_mark, 
-            es.started_at, 
-            es.ended_at, 
-            ess.joined_at, 
-            ess.last_ping_at
-        ')
+                oe.id as exam_id, 
+                oe.title as exam_name, 
+                oe.neg_mark, 
+                oe.passing_mark, 
+                es.started_at, 
+                es.ended_at, 
+                ess.joined_at, 
+                ess.last_ping_at')
             ->from('exam_sessions es')
             ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
             ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
@@ -946,6 +945,53 @@ class Live_exam_model extends MY_Model
     }
 
 
+    public function getSessionsByExam($exam_id)
+    {
+        return $this->db->select('id, session_code, started_at, ended_at')
+            ->from('exam_sessions')
+            ->where('exam_id', $exam_id)
+            ->order_by('started_at', 'DESC')
+            ->get()
+            ->result_array();
+    }
+
+
+    public function getSessionReportForAdmin($session_code, $branch_id = null, $class_id = null, $section_id = null)
+    {
+        // Get all students of this session
+        $students = $this->db
+            ->select('es.session_code, s.id as student_id, s.first_name, s.last_name, e.roll, c.name as class_name, sec.name as section_name')
+            ->from('exam_session_students ess')
+            ->join('enroll e', 'e.student_id = ess.student_id')
+            ->join('student s', 's.id = ess.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->join('exam_sessions es', 'es.id = ess.session_id')
+            ->where('es.session_code', $session_code);
+
+        if ($branch_id) {
+            $students->where('e.branch_id', $branch_id);
+        }
+        if ($class_id) {
+            $students->where('e.class_id', $class_id);
+        }
+        if ($section_id) {
+            $students->where('e.section_id', $section_id);
+        }
+
+        $students = $students->get()->result_array();
+
+        $report = [];
+        foreach ($students as $stu) {
+            $studentReport = $this->getLiveExamSessionReport($session_code, $stu['student_id']);
+            $report[] = array_merge($stu, $studentReport, [
+                'student_name' => $stu['first_name'] . ' ' . $stu['last_name'],
+                'session_code' => $stu['session_code']
+            ]);
+        }
+
+        return $report;
+    }
 
 
 

@@ -348,9 +348,6 @@ class Liveexam_student extends User_Controller
         ]);
     }
 
-
-
-
     // public function submitAnswer()
     // {
     //     if (!is_student_loggedin()) {
@@ -660,8 +657,8 @@ class Liveexam_student extends User_Controller
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
 
-        // log_message('debug', 'The student id: '. $studentId);
-        // log_message('debug', 'The session code: '. $sessionCode);
+        log_message('debug', 'The student id: '. $studentId);
+        log_message('debug', 'The session code: '. $sessionCode);
 
         $branch_id = get_loggedin_branch_id();
 
@@ -672,7 +669,7 @@ class Liveexam_student extends User_Controller
         $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
         $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
 
-        // log_message('debug', 'The Query Build' . $this->db->last_query());
+        log_message('debug', 'The Query Build' . $this->db->last_query());
 
         // ✅ QR Code
         $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
@@ -732,6 +729,7 @@ class Liveexam_student extends User_Controller
         }
 
         $studentId = get_loggedin_user_id();
+        log_message('debug', 'The student Report Method' . $studentId);
         $this->generateReportPdf($sessionCode, $studentId, false); // force download
     }
 
@@ -750,5 +748,6 @@ class Liveexam_student extends User_Controller
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
 
+   
 
 }

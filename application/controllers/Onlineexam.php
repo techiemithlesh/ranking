@@ -1222,4 +1222,9 @@ class Onlineexam extends Admin_Controller
         echo json_encode(['status' => 'success', 'message' => 'Branch assignment updated successfully.']);
     }
 
+
+   
+
+    
+
 }
