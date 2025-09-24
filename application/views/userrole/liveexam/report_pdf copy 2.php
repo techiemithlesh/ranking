@@ -20,7 +20,8 @@
             font-size: 80px;
             color: #000;
             transform: rotate(-30deg);
-            z-index: 0; /* ✅ safe value */
+            z-index: 0;
+            /* ✅ set to 0 instead of negative */
         }
 
         .header-bar {
@@ -44,7 +45,7 @@
             height: 50px;
         }
 
-        .header-bar h2 {
+        .header-bar h1 {
             margin: 0;
             font-size: 20px;
         }
@@ -124,6 +125,7 @@
             color: #666;
         }
 
+        /* QR code bottom-right */
         .qr-code {
             position: absolute;
             bottom: 40px;
@@ -147,11 +149,11 @@
         <table>
             <tr>
                 <td style="width:80px; text-align:left;">
-                    <img src="<?= !empty($branchData['logo']) ? base_url(html_escape($branchData['logo'])) : base_url('assets/reports/school_logo.jpg') ?>"
+                    <img src="<?= !empty($branchData['logo']) ? base_url($branchData['logo']) : base_url('assets/reports/school_logo.jpg') ?>"
                         alt="School Logo">
                 </td>
                 <td>
-                    <h2><?= html_escape($branchData['school_name']); ?> - Exam Report Card</h2>
+                    <h2><?= $branchData['school_name'] ?> - Exam Report Card</h1>
                 </td>
                 <td style="width:80px;"></td>
             </tr>
@@ -160,14 +162,14 @@
 
     <!-- Student & Exam Info -->
     <div class="student-info">
-        <p><strong>Student Name:</strong> <?= html_escape($student['first_name'] . ' ' . $student['last_name']); ?></p>
-        <p><strong>Roll No:</strong> <?= html_escape($student['roll']); ?></p>
-        <p><strong>Class:</strong> <?= html_escape($student['class_name']); ?></p>
-        <p><strong>Section:</strong> <?= html_escape($student['section_name']); ?></p>
-        <p><strong>Exam:</strong> <?= html_escape($report['exam_name']); ?></p>
-        <p><strong>Exam Date:</strong> <?= html_escape($report['exam_date']); ?></p>
-        <p><strong>Time Taken:</strong> <?= !empty($report['time_taken']) ? html_escape($report['time_taken']) : 'N/A'; ?></p>
-        <p><strong>Rank:</strong> <?= html_escape($report['rank']); ?> / <?= html_escape($report['total_students']); ?></p>
+        <p><strong>Student Name:</strong> <?= $student['first_name'] . ' ' . $student['last_name']; ?></p>
+        <p><strong>Roll No:</strong> <?= $student['roll']; ?></p>
+        <p><strong>Class:</strong> <?= $student['class_name']; ?></p>
+        <p><strong>Section:</strong> <?= $student['section_name']; ?></p>
+        <p><strong>Exam:</strong> <?= $report['exam_name']; ?></p>
+        <p><strong>Exam Date:</strong> <?= $report['exam_date']; ?></p>
+        <p><strong>Time Taken:</strong> <?= isset($report['time_taken']) ? $report['time_taken'] : 'N/A'; ?></p>
+        <p><strong>Rank:</strong> <?= $report['rank']; ?> / <?= $report['total_students']; ?></p>
     </div>
 
     <!-- Performance Table -->
@@ -183,26 +185,29 @@
             <th>Negative Marks</th>
         </tr>
         <tr>
-            <td><?= (int) $report['total_question']; ?></td>
-            <td><?= (int) $report['total_answered']; ?></td>
-            <td><?= (int) $report['correct_ans']; ?></td>
-            <td><?= (int) $report['wrong_ans']; ?></td>
-            <td><?= (float) $report['total_marks']; ?></td>
-            <td><?= (float) $report['total_obtain_marks']; ?></td>
-            <td><?= (float) $report['percentage']; ?>%</td>
-            <td><?= (float) $report['total_neg_marks']; ?></td>
+            <td><?= $report['total_question']; ?></td>
+            <td><?= $report['total_answered']; ?></td>
+            <td><?= $report['correct_ans']; ?></td>
+            <td><?= $report['wrong_ans']; ?></td>
+            <td><?= $report['total_marks']; ?></td>
+            <td><?= $report['total_obtain_marks']; ?></td>
+            <td>
+                <?= (float) $report['percentage']; ?>%
+            </td>
+
+            <td><?= $report['total_neg_marks']; ?></td>
         </tr>
     </table>
 
     <!-- Chart -->
     <div class="chart-box">
-        <img src="<?= html_escape($chart_url); ?>"><br>
+        <img src="<?= $chart_url; ?>"><br>
         <small>Performance Breakdown</small>
     </div>
 
     <!-- Result Highlight -->
     <div class="result-box">
-        Final Result: <?= (float) $report['percentage']; ?>% —
+        Final Result: <?= $report['percentage']; ?>% —
         <?= ($report['result_status'] === 'Pass'
             ? '<span class="grade-pass">PASS</span>'
             : '<span class="grade-fail">FAIL</span>'); ?>
@@ -215,7 +220,7 @@
 
     <!-- QR Code bottom-right -->
     <div class="qr-code">
-        <img src="<?= html_escape($qr_code); ?>"><br>
+        <img src="<?= $qr_code; ?>"><br>
         <small>Scan to Verify Report</small>
     </div>
 
