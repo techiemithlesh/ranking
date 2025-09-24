@@ -147,8 +147,8 @@
         <table>
             <tr>
                 <td style="width:80px; text-align:left;">
-                    <img src="<?= !empty($branchData['logo']) ? base_url(html_escape($branchData['logo'])) : base_url('assets/reports/school_logo.jpg') ?>"
-                        alt="School Logo">
+                    <!-- <img src="<?= !empty($branchData['logo']) ? base_url(html_escape($branchData['logo'])) : base_url('assets/reports/school_logo.jpg') ?>"
+                        alt="School Logo"> -->
                 </td>
                 <td>
                     <h2><?= html_escape($branchData['school_name']); ?> - Exam Report Card</h2>
@@ -214,10 +214,10 @@
     </div>
 
     <!-- QR Code bottom-right -->
-    <div class="qr-code">
+    <!-- <div class="qr-code">
         <img src="<?= html_escape($qr_code); ?>"><br>
         <small>Scan to Verify Report</small>
-    </div>
+    </div> -->
 
 </body>
 
