@@ -153,7 +153,7 @@
                         alt="School Logo">
                 </td>
                 <td>
-                    <h2 style="text-transform: uppercase;"><?= $branchData['school_name'] ?> - Exam Report Card</h1>
+                    <h2><?= $branchData['school_name'] ?> - Exam Report Card</h1>
                 </td>
                 <td style="width:80px;"></td>
             </tr>
