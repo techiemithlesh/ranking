@@ -16,17 +16,23 @@ class Liveexam_student extends User_Controller
 
     public function __construct()
     {
-        parent::__construct();
+        $method = $this->router->fetch_method();
+
+        if ($method === 'verify') {
+            // Skip User_Controller login check
+            MY_Controller::__construct(); // load only base
+        } else {
+            // Keep normal login enforcement
+            parent::__construct();
+        }
+
+        // parent::__construct();
         $this->load->model('live_exam_model');
         $this->load->model('onlineexam_model');
         $this->load->library('pdf');
         $this->load->library('ciqrcode');
 
-        // ✅ Skip login redirect if method is "verify"
-        if ($this->router->fetch_method() === 'verify') {
-            // Temporarily override the session redirect
-            return;
-        }
+        
     }
 
     public function index()
