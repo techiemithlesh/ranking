@@ -190,7 +190,10 @@
             <td><?= $report['wrong_ans']; ?></td>
             <td><?= $report['total_marks']; ?></td>
             <td><?= $report['total_obtain_marks']; ?></td>
-            <td><?= round(($report['total_obtain_marks'] / max(1, $report['total_marks'])) * 100, 2); ?>%</td>
+            <td>
+                <?= (float) $report['percentage']; ?>%
+            </td>
+
             <td><?= $report['total_neg_marks']; ?></td>
         </tr>
     </table>
@@ -217,7 +220,7 @@
     <!-- QR Code bottom-right -->
     <div class="qr-code">
         <img src="<?= $qr_code; ?>"><br>
-         <small>Scan to Verify Report</small>
+        <small>Scan to Verify Report</small>
     </div>
 
 </body>

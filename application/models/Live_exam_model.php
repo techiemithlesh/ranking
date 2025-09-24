@@ -771,18 +771,161 @@ class Live_exam_model extends MY_Model
         ];
     }
 
+    // public function getLiveExamSessionReport($session_code, $studentID)
+    // {
+    //     // 1. Get exam + session + student info
+    //     $exam = $this->db->select('
+    //             oe.id as exam_id, 
+    //             oe.title as exam_name, 
+    //             oe.neg_mark, 
+    //             oe.passing_mark, 
+    //             es.started_at, 
+    //             es.ended_at, 
+    //             ess.joined_at, 
+    //             ess.last_ping_at')
+    //         ->from('exam_sessions es')
+    //         ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
+    //         ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
+    //         ->where('es.session_code', $session_code)
+    //         ->get()
+    //         ->row_array();
+
+    //     if (empty($exam)) {
+    //         return [];
+    //     }
+
+    //     $examID = $exam['exam_id'];
+    //     $examTitle = $exam['exam_name'];
+    //     $neg_mark_enabled = (int) $exam['neg_mark'] === 1;
+    //     $passing_mark = (float) $exam['passing_mark'];
+
+    //     // 2. Fetch all questions & answers
+    //     $sql = "
+    //     SELECT 
+    //         qm.*, 
+    //         q.id as qus_id, 
+    //         q.question, 
+    //         q.type, 
+    //         q.mark as marks, 
+    //         q.answer, 
+    //         esa.answer as sb_ans, 
+    //         esa.id as ans_id
+    //     FROM exam_sessions es
+    //     INNER JOIN questions_manage qm 
+    //         ON qm.onlineexam_id = es.exam_id
+    //     INNER JOIN questions q 
+    //         ON q.id = qm.question_id
+    //     LEFT JOIN exam_session_answers esa 
+    //         ON esa.session_id = es.id 
+    //        AND esa.question_id = q.id 
+    //        AND esa.student_id = " . $this->db->escape($studentID) . "
+    //     WHERE es.session_code = " . $this->db->escape($session_code) . "
+    //     ORDER BY qm.id ASC
+    // ";
+
+    //     $result = $this->db->query($sql)->result();
+
+    //     // 3. Initialize counters
+    //     $total_marks = 0;
+    //     $total_obtain_marks = 0;
+    //     $total_neg_marks = 0;
+    //     $correct_ans = 0;
+    //     $wrong_ans = 0;
+    //     $total_answered = 0;
+    //     $total_question = 0;
+
+    //     // 4. Process results
+    //     if (!empty($result)) {
+    //         $total_question = count($result);
+
+    //         foreach ($result as $value) {
+    //             $marks = (float) $value->marks;
+    //             $total_marks += $marks;
+
+    //             if (!empty($value->ans_id)) {
+    //                 $total_answered++;
+
+    //                 $isCorrect = false;
+
+    //                 if ($value->type == 1 || $value->type == 3) {
+    //                     $isCorrect = ($value->sb_ans == $value->answer);
+    //                 } elseif ($value->type == 2) {
+    //                     $isCorrect = $this->array_equal(json_decode($value->answer), json_decode($value->sb_ans));
+    //                 } elseif ($value->type == 4) {
+    //                     $correctAns = strtolower(trim(str_replace(" ", "_", $value->answer)));
+    //                     $studentAns = strtolower(trim(str_replace(" ", "_", $value->sb_ans)));
+    //                     $isCorrect = ($correctAns == $studentAns);
+    //                 }
+
+    //                 if ($isCorrect) {
+    //                     $correct_ans++;
+    //                     $total_obtain_marks += $marks;
+    //                 } else {
+    //                     $wrong_ans++;
+    //                     if ($neg_mark_enabled) {
+    //                         $total_neg_marks += 1;
+    //                         $total_obtain_marks -= 1;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     if ($total_obtain_marks < 0) {
+    //         $total_obtain_marks = 0;
+    //     }
+
+    //     // 5. Time taken
+    //     $time_taken = "N/A";
+    //     if (!empty($exam['joined_at']) && !empty($exam['last_ping_at'])) {
+    //         $start = strtotime($exam['joined_at']);
+    //         $end = strtotime($exam['last_ping_at']);
+    //         if ($end > $start) {
+    //             $diff = $end - $start;
+    //             $minutes = floor($diff / 60);
+    //             $seconds = $diff % 60;
+    //             $time_taken = $minutes . " min " . $seconds . " sec";
+    //         }
+    //     }
+
+    //     // 6. Percentage & result
+    //     $percentage = $total_marks > 0 ? round(($total_obtain_marks / $total_marks) * 100, 2) : 0;
+    //     $result_status = ($total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
+
+    //     // 7. Rank calculation
+    //     $rankData = $this->getStudentRank($session_code, $studentID);
+
+    //     // 8. Return
+    //     return [
+    //         'exam_name' => $examTitle,
+    //         'exam_date' => !empty($exam['started_at']) ? date("d M Y", strtotime($exam['started_at'])) : "N/A",
+    //         'time_taken' => $time_taken,
+    //         'total_marks' => $total_marks,
+    //         'total_obtain_marks' => $total_obtain_marks,
+    //         'total_neg_marks' => $total_neg_marks,
+    //         'correct_ans' => $correct_ans,
+    //         'wrong_ans' => $wrong_ans,
+    //         'total_answered' => $total_answered,
+    //         'total_question' => $total_question,
+    //         'percentage' => $percentage,
+    //         'result_status' => $result_status,
+    //         'rank' => $rankData['rank'],
+    //         'total_students' => $rankData['total_students']
+    //     ];
+    // }
+
     public function getLiveExamSessionReport($session_code, $studentID)
     {
         // 1. Get exam + session + student info
         $exam = $this->db->select('
-                oe.id as exam_id, 
-                oe.title as exam_name, 
-                oe.neg_mark, 
-                oe.passing_mark, 
-                es.started_at, 
-                es.ended_at, 
-                ess.joined_at, 
-                ess.last_ping_at')
+            oe.id as exam_id, 
+            oe.title as exam_name, 
+            oe.neg_mark, 
+            oe.passing_mark, 
+            es.started_at, 
+            es.ended_at, 
+            ess.joined_at, 
+            ess.last_ping_at')
             ->from('exam_sessions es')
             ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
             ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
@@ -806,7 +949,7 @@ class Live_exam_model extends MY_Model
             q.id as qus_id, 
             q.question, 
             q.type, 
-            q.mark as marks, 
+            CAST(q.mark AS DECIMAL(10,2)) as marks, 
             q.answer, 
             esa.answer as sb_ans, 
             esa.id as ans_id
@@ -826,9 +969,9 @@ class Live_exam_model extends MY_Model
         $result = $this->db->query($sql)->result();
 
         // 3. Initialize counters
-        $total_marks = 0;
-        $total_obtain_marks = 0;
-        $total_neg_marks = 0;
+        $total_marks = 0.0;
+        $total_obtain_marks = 0.0;
+        $total_neg_marks = 0.0;
         $correct_ans = 0;
         $wrong_ans = 0;
         $total_answered = 0;
@@ -889,58 +1032,58 @@ class Live_exam_model extends MY_Model
         }
 
         // 6. Percentage & result
-        $percentage = $total_marks > 0 ? round(($total_obtain_marks / $total_marks) * 100, 2) : 0;
-        $result_status = ($total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
+        $percentage = $total_marks > 0 ? round(((float) $total_obtain_marks / (float) $total_marks) * 100, 2) : 0.0;
+        $result_status = ((float) $total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
 
         // 7. Rank calculation
         $rankData = $this->getStudentRank($session_code, $studentID);
 
-        // 8. Return
+        // 8. Return (all casted safely)
         return [
             'exam_name' => $examTitle,
             'exam_date' => !empty($exam['started_at']) ? date("d M Y", strtotime($exam['started_at'])) : "N/A",
             'time_taken' => $time_taken,
-            'total_marks' => $total_marks,
-            'total_obtain_marks' => $total_obtain_marks,
-            'total_neg_marks' => $total_neg_marks,
-            'correct_ans' => $correct_ans,
-            'wrong_ans' => $wrong_ans,
-            'total_answered' => $total_answered,
-            'total_question' => $total_question,
-            'percentage' => $percentage,
+            'total_marks' => (float) $total_marks,
+            'total_obtain_marks' => (float) $total_obtain_marks,
+            'total_neg_marks' => (float) $total_neg_marks,
+            'correct_ans' => (int) $correct_ans,
+            'wrong_ans' => (int) $wrong_ans,
+            'total_answered' => (int) $total_answered,
+            'total_question' => (int) $total_question,
+            'percentage' => (float) $percentage,
             'result_status' => $result_status,
-            'rank' => $rankData['rank'],
-            'total_students' => $rankData['total_students']
+            'rank' => (int) $rankData['rank'],
+            'total_students' => (int) $rankData['total_students']
         ];
     }
 
     public function getStudentRank($session_code, $studentID)
     {
         $sql = "
-        SELECT esa.student_id, SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) as obtain_marks
+        SELECT esa.student_id, 
+        CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
         FROM exam_sessions es
         INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
         INNER JOIN questions q ON q.id = qm.question_id
         LEFT JOIN exam_session_answers esa ON esa.session_id = es.id AND esa.question_id = q.id
         WHERE es.session_code = " . $this->db->escape($session_code) . "
         GROUP BY esa.student_id
-        ORDER BY obtain_marks DESC
-    ";
+        ORDER BY obtain_marks DESC";
 
         $students = $this->db->query($sql)->result_array();
         $rank = null;
         $total_students = count($students);
 
         foreach ($students as $i => $s) {
-            if ($s['student_id'] == $studentID) {
+            if ((int) $s['student_id'] === (int) $studentID) {
                 $rank = $i + 1;
                 break;
             }
         }
 
         return [
-            'rank' => $rank,
-            'total_students' => $total_students
+            'rank' => (int) $rank,
+            'total_students' => (int) $total_students
         ];
     }
 

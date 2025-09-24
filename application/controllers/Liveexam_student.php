@@ -723,6 +723,7 @@ class Liveexam_student extends User_Controller
      */
     public function studentReport($sessionCode = null)
     {
+        log_message('debug', 'Controller Reached');
         if (!is_student_loggedin()) {
             set_alert('info', 'You are not authorised to check this report !');
             return redirect(base_url('liveexam_student'));
