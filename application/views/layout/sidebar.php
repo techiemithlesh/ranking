@@ -1864,7 +1864,7 @@
                                         <ul class="nav nav-children">
                                             <li class="<?php if ($sub_page == 'onlineexam/live_exam/report')
                                                 echo 'nav-active'; ?>">
-                                                <a href="#">
+                                                <a href="<?= base_url('LiveExam/getSessionReport') ?>">
                                                     <?= translate('session_report') ?>
                                                 </a>
                                             </li>
