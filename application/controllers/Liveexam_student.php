@@ -657,8 +657,8 @@ class Liveexam_student extends User_Controller
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
 
-        log_message('debug', 'The student id: '. $studentId);
-        log_message('debug', 'The session code: '. $sessionCode);
+        log_message('debug', 'The student id: ' . $studentId);
+        log_message('debug', 'The session code: ' . $sessionCode);
 
         $branch_id = get_loggedin_branch_id();
 
@@ -704,6 +704,23 @@ class Liveexam_student extends User_Controller
         // PDF
         $this->pdf->loadHtml($html);
         $this->pdf->setPaper('A4', 'portrait');
+
+        $options = $this->pdf->getOptions();
+        $options->set('debugPng', true);
+        $options->set('debugKeepTemp', true);
+        $options->set('debugCss', true);
+        $options->set('debugLayout', true);
+        $options->set('debugLayoutLines', true);
+        $options->set('debugLayoutBlocks', true);
+        $options->set('debugLayoutInline', true);
+        $options->set('debugLayoutPaddingBox', true);
+
+        $this->pdf->setOptions($options);
+
+        file_put_contents(FCPATH . "uploads/debug_report.html", $html);
+
+
+
         $this->pdf->render();
 
         // File name
@@ -715,7 +732,16 @@ class Liveexam_student extends User_Controller
         $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
 
         // Stream
-        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+        // $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+
+        try {
+            $this->pdf->render();
+            $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+        } catch (Exception $e) {
+            log_message('error', 'DOMPDF error: ' . $e->getMessage());
+            echo "<pre>DOMPDF crashed:\n" . $e->getMessage() . "\n</pre>";
+        }
+
     }
 
     /**
@@ -749,6 +775,6 @@ class Liveexam_student extends User_Controller
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
 
-   
+
 
 }
