@@ -11,17 +11,19 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * @copyright : Reserved Eduproject GlobalTech Team
  */
 
-class Liveexam_student extends User_Controller
+class Liveexam_student extends Public_Controller
 {
 
     public function __construct()
     {
-        parent::__construct(); // ✅ load base only (NOT User_Controller)
 
-        // ✅ Apply login enforcement for everything EXCEPT verify
-        $method = $this->router->fetch_class(); // works here after parent::__construct()
+        parent::__construct();
 
-        if (strtolower($this->router->fetch_method()) !== 'verify') {
+        // figure out which method is being called
+        $method = strtolower($this->router->fetch_method() ?? '');
+
+        // ✅ Only enforce login if not "verify"
+        if ($method !== 'verify') {
             if (!is_student_loggedin() && !is_parent_loggedin()) {
                 $this->session->set_userdata('redirect_url', current_url());
                 redirect(base_url('authentication'), 'refresh');
@@ -32,6 +34,8 @@ class Liveexam_student extends User_Controller
         $this->load->model('onlineexam_model');
         $this->load->library('pdf');
         $this->load->library('ciqrcode');
+
+
     }
 
     public function index()

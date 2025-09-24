@@ -61,3 +61,9 @@ class Authentication_Controller extends MY_Controller
         $this->load->model('authentication_model');
     }
 }
+
+class Public_Controller extends MY_Controller{
+    public function __construct(){
+        parent::__construct();
+    }
+}
