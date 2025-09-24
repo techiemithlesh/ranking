@@ -21,6 +21,12 @@ class Liveexam_student extends User_Controller
         $this->load->model('onlineexam_model');
         $this->load->library('pdf');
         $this->load->library('ciqrcode');
+
+        // ✅ Skip login redirect if method is "verify"
+        if ($this->router->fetch_method() === 'verify') {
+            // Temporarily override the session redirect
+            return;
+        }
     }
 
     public function index()
@@ -521,7 +527,6 @@ class Liveexam_student extends User_Controller
 
         echo json_encode(['status' => 1]);
     }
-
     public function leaveSession()
     {
         $session_id = $this->input->post('session_id');
@@ -543,114 +548,6 @@ class Liveexam_student extends User_Controller
         echo json_encode(['status' => 1]);
     }
 
-    public function studentReport_f($sessionCode = null)
-    {
-
-        if (!is_student_loggedin()) {
-            set_alert('info', 'You are not authorised to check this report !');
-            return redirect(base_url('liveexam_student'));
-        }
-
-
-        $studentId = get_loggedin_user_id();
-        $branch_id = get_loggedin_branch_id();
-
-        $data['student'] = $this->application_model->getStudentDetails($studentId);
-
-        $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
-
-        $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
-        // printVar($data['report']);
-        // die;
-        $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
-
-        // Generate PDF
-        $this->load->library('pdf');
-        $this->pdf->loadHtml($html);
-        $this->pdf->setPaper('A4', 'portrait');
-        $this->pdf->render();
-
-        // ✅ Build unique file name
-        $studentName = isset($data['student']['first_name']) ?
-            $data['student']['first_name'] . ' ' . $data['student']['last_name'] : 'Student';
-
-        $examName = !empty($data['report']['exam_name']) ? $data['report']['exam_name'] : 'Exam';
-
-        // Remove spaces/special chars for file safety
-        $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
-        $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $examName));
-        $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
-
-        $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
-
-        // Preview in browser (0 = preview, 1 = download)
-        $this->pdf->stream($fileName, array("Attachment" => 1));
-    }
-
-
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-    //     $branch_id = get_loggedin_branch_id();
-
-    //     $data['student'] = $this->application_model->getStudentDetails($studentId);
-    //     $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
-    //     $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
-
-    //     // ✅ QR Code
-    //     $this->load->library('ciqrcode');
-    //     $qrText = base_url("report/verify?session=" . $sessionCode . "&student=" . $studentId);
-    //     $params['data'] = $qrText;
-    //     $params['level'] = 'H';
-    //     $params['size'] = 5;
-    //     $params['savename'] = FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png";
-    //     $this->ciqrcode->generate($params);
-    //     $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
-
-    //     // ✅ Chart
-    //     $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
-    //         'type' => 'pie',
-    //         'data' => [
-    //             'labels' => ['Correct', 'Wrong', 'Unanswered'],
-    //             'datasets' => [
-    //                 [
-    //                     'data' => [
-    //                         $data['report']['correct_ans'],
-    //                         $data['report']['wrong_ans'],
-    //                         $data['report']['total_question'] - $data['report']['total_answered']
-    //                     ]
-    //                 ]
-    //             ]
-    //         ]
-    //     ]));
-    //     $data['chart_url'] = $chartUrl;
-
-    //     // Generate HTML
-    //     $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
-
-    //     // PDF
-    //     $this->load->library('pdf');
-    //     $this->pdf->loadHtml($html);
-    //     $this->pdf->setPaper('A4', 'portrait');
-    //     $this->pdf->render();
-
-    //     // File name
-    //     $studentName = $data['student']['first_name'] . ' ' . $data['student']['last_name'];
-    //     $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
-    //     $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
-    //     $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
-
-    //     $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
-
-    //     $this->pdf->stream($fileName, ["Attachment" => 0]);
-    // }
-
-
     /**
      * ✅ Private helper to generate report PDF
      */
@@ -661,7 +558,6 @@ class Liveexam_student extends User_Controller
         // log_message('debug', 'The session code: ' . $sessionCode);
 
         $branch_id = get_loggedin_branch_id();
-
         $this->db->reset_query();
 
         // Get data
@@ -698,29 +594,11 @@ class Liveexam_student extends User_Controller
         ]));
         $data['chart_url'] = $chartUrl;
 
-        // Load HTML view
         $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
 
         // PDF
         $this->pdf->loadHtml($html);
         $this->pdf->setPaper('A4', 'portrait');
-
-        // $options = $this->pdf->getOptions();
-        // $options->set('debugPng', true);
-        // $options->set('debugKeepTemp', true);
-        // $options->set('debugCss', true);
-        // $options->set('debugLayout', true);
-        // $options->set('debugLayoutLines', true);
-        // $options->set('debugLayoutBlocks', true);
-        // $options->set('debugLayoutInline', true);
-        // $options->set('debugLayoutPaddingBox', true);
-
-        // $this->pdf->setOptions($options);
-
-        file_put_contents(FCPATH . "uploads/debug_report.html", $html);
-
-
-
         $this->pdf->render();
 
         // File name
@@ -731,16 +609,8 @@ class Liveexam_student extends User_Controller
 
         $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
 
-        // Stream
-        // $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
-
-        try {
-            $this->pdf->render();
-            $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
-        } catch (Exception $e) {
-            log_message('error', 'DOMPDF error: ' . $e->getMessage());
-            echo "<pre>DOMPDF crashed:\n" . $e->getMessage() . "\n</pre>";
-        }
+        // Stream 
+        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
 
     }
 
@@ -749,14 +619,12 @@ class Liveexam_student extends User_Controller
      */
     public function studentReport($sessionCode = null)
     {
-        log_message('debug', 'Controller Reached');
         if (!is_student_loggedin()) {
             set_alert('info', 'You are not authorised to check this report !');
             return redirect(base_url('liveexam_student'));
         }
 
         $studentId = get_loggedin_user_id();
-        log_message('debug', 'The student Report Method' . $studentId);
         $this->generateReportPdf($sessionCode, $studentId, false); // force download
     }
 
@@ -771,7 +639,6 @@ class Liveexam_student extends User_Controller
         if (empty($sessionCode) || empty($studentId)) {
             show_error("Invalid verification link.", 400);
         }
-
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
 
