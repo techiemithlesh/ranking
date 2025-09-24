@@ -1053,9 +1053,8 @@
 
                                     <!-- 🔹 NEW MENU FOR LIVE EXAM -->
                                     <?php if (get_permission('live_exam', 'is_view')) { ?>
-                                        <li
-                                            class="<?php if ($sub_page == 'live_exam/index' || $sub_page == 'live_exam/host')
-                                                echo 'nav-active'; ?>">
+                                        <li class="<?php if ($sub_page == 'live_exam/index' || $sub_page == 'live_exam/host')
+                                            echo 'nav-active'; ?>">
                                             <a href="<?= base_url('LiveExam') ?>">
                                                 <span><i class="fas fa-broadcast-tower"
                                                         aria-hidden="true"></i><?= translate('live_exam') ?></span>
@@ -1620,7 +1619,8 @@
                             $main_menu == 'leave_reports' ||
                             $main_menu == 'exam_reports' ||
                             $main_menu == 'skill_report' ||
-                            $main_menu == 'online_exam_smart_progress'
+                            $main_menu == 'online_exam_smart_progress' ||
+                            $main_menu == 'live_exam'
                         )
                             echo 'nav-expanded nav-active'; ?>">
                             <a>
@@ -1855,6 +1855,23 @@
                                         <span><?= translate('progress_tracker') ?></span>
                                     </a>
                                 </li>
+
+                                <!-- ✅ New Live Exam Menu -->
+                                <?php if (get_permission('live_exam', 'is_view')) { ?>
+                                    <li class="nav-parent <?php if ($main_menu == 'live_exam')
+                                        echo 'nav-expanded nav-active'; ?>">
+                                        <a><i class="fas fa-bolt"></i><span><?= translate('live_exam') ?></span></a>
+                                        <ul class="nav nav-children">
+                                            <li class="<?php if ($sub_page == 'onlineexam/live_exam/report')
+                                                echo 'nav-active'; ?>">
+                                                <a href="#">
+                                                    <?= translate('session_report') ?>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                <?php } ?>
+
                             </ul>
                         </li>
                     <?php } ?>

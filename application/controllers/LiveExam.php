@@ -366,6 +366,4 @@ class LiveExam extends Admin_Controller
         echo $options;
     }
 
-
-
 }

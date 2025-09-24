@@ -89,7 +89,7 @@ class Liveexam_student extends Public_Controller
                 'status_reason' => 'never_started',
                 'ended_at' => date('Y-m-d H:i:s')
             ]);
-    }
+     }
 
     public function join($session_code)
     {
@@ -562,19 +562,14 @@ class Liveexam_student extends Public_Controller
      */
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
-
-        // log_message('debug', 'The student id: ' . $studentId);
-        // log_message('debug', 'The session code: ' . $sessionCode);
-
-        $branch_id = get_loggedin_branch_id();
         $this->db->reset_query();
 
         // Get data
         $data['student'] = $this->application_model->getStudentDetails($studentId);
+        $branch_id = $data['student']['branch_id'];
+        
         $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
         $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
-
-        // log_message('debug', 'The Query Build' . $this->db->last_query());
 
         // ✅ QR Code
         $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
@@ -650,7 +645,5 @@ class Liveexam_student extends Public_Controller
         }
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
-
-
 
 }
