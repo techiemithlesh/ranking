@@ -20,7 +20,8 @@
             font-size: 80px;
             color: #000;
             transform: rotate(-30deg);
-            z-index: -1000;
+            z-index: 0;
+            /* ✅ set to 0 instead of negative */
         }
 
         .header-bar {
