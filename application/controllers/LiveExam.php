@@ -288,21 +288,13 @@ class LiveExam extends Admin_Controller
             }
             $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
             $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
-            $this->form_validation->set_rules('exam_id', 'Exam', 'trim|required');
             $this->form_validation->set_rules('session_code', 'Session', 'trim|required');
 
             if ($this->form_validation->run() == true) {
-
                 $classID = $this->input->post('class_id');
                 $sectionId = $this->input->post('section_id');
-                $examID = $this->input->post('exam_id');
-                $studentId = $this->input->post('student_id');
                 $sessionCode = $this->input->post('session_code');
-
                 $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode,$branchID, $classID, $sectionId);
-
-                // printVar($this->data['reports']);
-                // die;
 
             }
         }
