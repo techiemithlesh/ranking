@@ -1071,8 +1071,13 @@ class Live_exam_model extends MY_Model
         ORDER BY obtain_marks DESC";
 
         $students = $this->db->query($sql)->result_array();
+
+        log_message('debug', 'The Total Students Query'.$this->db->last_query());
+
         $rank = null;
         $total_students = count($students);
+
+        log_message('debug', 'The Total Student'. $total_students);
 
         foreach ($students as $i => $s) {
             if ((int) $s['student_id'] === (int) $studentID) {
