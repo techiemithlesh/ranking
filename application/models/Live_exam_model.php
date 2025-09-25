@@ -1059,16 +1059,30 @@ class Live_exam_model extends MY_Model
 
     public function getStudentRank($session_code, $studentID)
     {
-        $sql = "
-        SELECT esa.student_id, 
-        CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
-        FROM exam_sessions es
-        INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
-        INNER JOIN questions q ON q.id = qm.question_id
-        LEFT JOIN exam_session_answers esa ON esa.session_id = es.id AND esa.question_id = q.id
-        WHERE es.session_code = " . $this->db->escape($session_code) . "
-        GROUP BY esa.student_id
-        ORDER BY obtain_marks DESC";
+        // $sql = "
+        // SELECT esa.student_id, 
+        // CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
+        // FROM exam_sessions es
+        // INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
+        // INNER JOIN questions q ON q.id = qm.question_id
+        // LEFT JOIN exam_session_answers esa ON esa.session_id = es.id AND esa.question_id = q.id
+        // WHERE es.session_code = " . $this->db->escape($session_code) . "
+        // GROUP BY esa.student_id
+        // ORDER BY obtain_marks DESC";
+
+        $sql = "SELECT ess.student_id,
+                CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
+                FROM exam_sessions es
+                INNER JOIN exam_session_students ess ON ess.session_id = es.id
+                INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
+                INNER JOIN questions q ON q.id = qm.question_id
+                LEFT JOIN exam_session_answers esa 
+                    ON esa.session_id = es.id 
+                AND esa.student_id = ess.student_id 
+                AND esa.question_id = q.id
+                WHERE es.session_code = " . $this->db->escape($session_code) . "
+                GROUP BY ess.student_id
+                ORDER BY obtain_marks DESC";
 
         $students = $this->db->query($sql)->result_array();
 
@@ -1140,8 +1154,6 @@ class Live_exam_model extends MY_Model
 
         return $report;
     }
-
-
 
 
 }
