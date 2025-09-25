@@ -1857,7 +1857,7 @@
                                 </li>
 
                                 <!-- ✅ New Live Exam Menu -->
-                                <?php if (get_permission('live_exam', 'is_view')) { ?>
+                                <!-- <?php if (get_permission('live_exam', 'is_view')) { ?>
                                     <li class="nav-parent <?php if ($main_menu == 'live_exam')
                                         echo 'nav-expanded nav-active'; ?>">
                                         <a><i class="fas fa-bolt"></i><span><?= translate('live_exam') ?></span></a>
@@ -1870,7 +1870,7 @@
                                             </li>
                                         </ul>
                                     </li>
-                                <?php } ?>
+                                <?php } ?> -->
 
                             </ul>
                         </li>
