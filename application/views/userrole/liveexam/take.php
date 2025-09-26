@@ -123,7 +123,12 @@
                         //         window.location.href = base_url + "liveexam_student";
                         //     }, 10000);
                         // });
-                         window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
+                        window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
+
+                        setTimeout(() => {
+                            window.location.href = base_url + "liveexam_student";
+                        }, 10000);
+
                     } else {
                         swal({
                             title: "Thank You!",
