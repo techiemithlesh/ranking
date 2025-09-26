@@ -615,7 +615,7 @@ class Liveexam_student extends Public_Controller
 
         // Stream  (0 preview 1 download)
         // $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
-        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 0]);
+        $this->pdf->stream("Live_exam_report.pdf", array("Attachment" => 0));
 
     }
 
