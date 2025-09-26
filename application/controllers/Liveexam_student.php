@@ -613,8 +613,8 @@ class Liveexam_student extends Public_Controller
 
         $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
 
-        // Stream 
-        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+        // Stream  (0 preview 1 download)
+        $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 1 : 1]);
 
     }
 

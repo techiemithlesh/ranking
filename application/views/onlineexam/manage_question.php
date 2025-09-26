@@ -8,6 +8,9 @@
 					<a href="<?=base_url('onlineexam')?>" class="btn btn-default btn-circle">
 						<i class="fas fa-list"></i> <?=translate('online_exam') . " " . translate('list')?>
 					</a>
+					<a href="<?=base_url('LiveExam')?>" class="btn btn-default btn-circle">
+						<i class="fas fa-list"></i> <?=translate('Live_exam') . " " . translate('list')?>
+					</a>
 				</div>
 			</header>
 			<div class="panel-body">

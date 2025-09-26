@@ -109,20 +109,21 @@
                     clearInterval(heartbeatTimer);
 
                     if (resp.is_published == 1) {
-                        swal({
-                            title: "Exam Completed!",
-                            text: "Congratulations! Your result is ready.",
-                            type: "success",
-                            confirmButtonText: "Download Report",
-                            allowOutsideClick: false
-                        }).then(() => {
-                            window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
+                        // swal({
+                        //     title: "Exam Completed!",
+                        //     text: "Congratulations! Your result is ready.",
+                        //     type: "success",
+                        //     confirmButtonText: "Download Report",
+                        //     allowOutsideClick: false
+                        // }).then(() => {
+                        //     window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
 
-                            // Redirect to dashboard after short delay
-                            setTimeout(() => {
-                                window.location.href = base_url + "liveexam_student";
-                            }, 10000);
-                        });
+                        //     // Redirect to dashboard after short delay
+                        //     setTimeout(() => {
+                        //         window.location.href = base_url + "liveexam_student";
+                        //     }, 10000);
+                        // });
+                         window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
                     } else {
                         swal({
                             title: "Thank You!",
