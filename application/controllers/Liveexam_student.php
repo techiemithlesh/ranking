@@ -89,7 +89,7 @@ class Liveexam_student extends Public_Controller
                 'status_reason' => 'never_started',
                 'ended_at' => date('Y-m-d H:i:s')
             ]);
-     }
+    }
 
     public function join($session_code)
     {
@@ -567,7 +567,7 @@ class Liveexam_student extends Public_Controller
         // Get data
         $data['student'] = $this->application_model->getStudentDetails($studentId);
         $branch_id = $data['student']['branch_id'];
-        
+
         $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
         $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
 
@@ -630,6 +630,20 @@ class Liveexam_student extends Public_Controller
         $studentId = get_loggedin_user_id();
         // $this->generateReportPdf($sessionCode, $studentId, false); // force download
         $this->generateReportPdf($sessionCode, $studentId, true); // preview
+    }
+
+    public function preview()
+    {
+        $sessionCode = $this->input->get('session');
+        $studentId = $this->input->get('student');
+
+        if (empty($sessionCode) || empty($studentId)) {
+            set_alert('info', 'Invalid verification link.');
+            return redirect(base_url('student/dashboard'));
+        }
+
+
+        $this->generateReportPdf($sessionCode, $studentId, true);
     }
 
     /**

@@ -298,7 +298,7 @@ class LiveExam extends Admin_Controller
                 $classID = $this->input->post('class_id');
                 $sectionId = $this->input->post('section_id');
                 $sessionCode = $this->input->post('session_code');
-                $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode,$branchID, $classID, $sectionId);
+                $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode, $branchID, $classID, $sectionId);
             }
         }
 
@@ -313,22 +313,36 @@ class LiveExam extends Admin_Controller
     {
         $html = '';
         $classID = $this->input->post('class_id');
+        $branchID = get_loggedin_branch_id();
+        $sessionID = get_session_id();
+
         if (!empty($classID)) {
-            $this->db->where('class_id', $classID);
-            $this->db->where('session_id', get_session_id());
+            $this->db->select('oe.id, oe.title');
+            $this->db->from('online_exam oe');
+            $this->db->join('exam_assignment ea', 'ea.exam_id = oe.id', 'left');
+
+            $this->db->where('oe.publish_status', 1);
+            $this->db->where('oe.is_live', 1);
+            $this->db->where('oe.session_id', $sessionID);
+            $this->db->where('oe.class_id', $classID);
+
+            // 🔑 Restrict only if NOT superadmin
             if (!is_superadmin_loggedin()) {
-                $this->db->where('branch_id', get_loggedin_branch_id());
+                $this->db->group_start();
+                // Exam created by the same branch
+                $this->db->where('oe.created_by_branch', $branchID);
+                // OR exam assigned to this branch
+                $this->db->or_where('ea.branch_id', $branchID);
+                $this->db->group_end();
             }
-            if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
-                $this->db->where('created_by', get_loggedin_user_id());
-            }
-            $this->db->where('publish_status', 1);
-            $this->db->where('is_live', 1);
-            $query = $this->db->get('online_exam');
+
+            $this->db->group_by('oe.id');
+            $query = $this->db->get();
+
             if ($query->num_rows() > 0) {
-                $subjects = $query->result();
+                $exams = $query->result();
                 $html .= '<option value="">' . translate('select') . '</option>';
-                foreach ($subjects as $row) {
+                foreach ($exams as $row) {
                     $html .= '<option value="' . $row->id . '">' . $row->title . '</option>';
                 }
             } else {
@@ -337,8 +351,10 @@ class LiveExam extends Admin_Controller
         } else {
             $html .= '<option value="">' . translate('select') . '</option>';
         }
+
         echo $html;
     }
+
 
     public function getSessionsByExam()
     {
