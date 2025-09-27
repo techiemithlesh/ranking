@@ -281,6 +281,10 @@ class LiveExam extends Admin_Controller
 
     public function getSessionReport()
     {
+        if (!get_permission('live_exam', 'is_view')) {
+            access_denied();
+        }
+
         if (isset($_POST['search'])) {
             $branchID = $this->application_model->get_branch_id();
             if (is_superadmin_loggedin() == true) {
@@ -295,7 +299,6 @@ class LiveExam extends Admin_Controller
                 $sectionId = $this->input->post('section_id');
                 $sessionCode = $this->input->post('session_code');
                 $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode,$branchID, $classID, $sectionId);
-
             }
         }
 
