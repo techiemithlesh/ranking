@@ -66,6 +66,13 @@ $config['menus'] = [
                         ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
                         ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
                     ]
+                    ],
+                [
+                    'label' => 'Live Exam',
+                    'icon' => 'fas fa-laptop-code',
+                    'children' => [
+                        ['label' => 'Session Report', 'icon' => 'fas fa-globe', 'url' => 'Liveexam_student/myReports'],
+                    ]
                 ]
             ]
         ],
