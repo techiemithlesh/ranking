@@ -20,7 +20,6 @@
     </div>
 <?php else: ?>
     <?php
-    // fetch student info
     $this->db->select('s.id,s.first_name,s.last_name,s.photo,e.class_id,c.name as class_name');
     $this->db->from('student as s');
     $this->db->join('enroll as e', 'e.student_id = s.id', 'left');
@@ -47,5 +46,4 @@
 
         <div class="dashboard-grid" id="menuGrid"></div>
     </div>
-
 <?php endif; ?>

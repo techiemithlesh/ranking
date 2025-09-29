@@ -1086,12 +1086,12 @@ class Live_exam_model extends MY_Model
 
         $students = $this->db->query($sql)->result_array();
 
-        log_message('debug', 'The Total Students Query'.$this->db->last_query());
+        // log_message('debug', 'The Total Students Query'.$this->db->last_query());
 
         $rank = null;
         $total_students = count($students);
 
-        log_message('debug', 'The Total Student'. $total_students);
+        log_message('debug', 'The Total Student' . $total_students);
 
         foreach ($students as $i => $s) {
             if ((int) $s['student_id'] === (int) $studentID) {
@@ -1152,6 +1152,40 @@ class Live_exam_model extends MY_Model
             ]);
         }
 
+        return $report;
+    }
+
+    public function getSessionReportForStudent($student_id, $session_code)
+    {
+        // Get exam performance (marks, correct, wrong, etc.)
+        $studentReport = $this->getLiveExamSessionReport($session_code, $student_id);
+
+        // Get student/session details
+        $studentData = $this->db
+            ->select('es.session_code, s.id as student_id, s.first_name, s.last_name, e.roll, 
+                  c.name as class_name, sec.name as section_name')
+            ->from('exam_session_students ess')
+            ->join('enroll e', 'e.student_id = ess.student_id')
+            ->join('student s', 's.id = ess.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->join('exam_sessions es', 'es.id = ess.session_id')
+            ->where('es.session_code', $session_code)
+            ->where('e.student_id', $student_id)
+            ->get()
+            ->row_array();
+
+        if (empty($studentData) || empty($studentReport)) {
+            return [];
+        }
+
+        // Merge report + student info
+        $report = array_merge($studentData, $studentReport, [
+            'student_name' => $studentData['first_name'] . ' ' . $studentData['last_name'],
+            'session_code' => $studentData['session_code'],
+        ]);
+
+        // Return as single array OR wrapped in array for view looping
         return $report;
     }
 

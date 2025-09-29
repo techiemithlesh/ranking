@@ -105,7 +105,7 @@ class Report_model extends CI_Model
         $this->db->where('online_exam_submitted.online_exam_id', $exam_id);
         $this->db->where('online_exam.session_id', get_session_id());
         $this->db->where('online_exam.class_id', $class_id);
-        $this->db->where('online_exam.branch_id', $branch_id);
+        $this->db->where('online_exam.created_by_branch', $branch_id);
         $this->db->where('online_exam_submitted.student_id', $student_id);
 
         $results = $this->db->get()->result_array();

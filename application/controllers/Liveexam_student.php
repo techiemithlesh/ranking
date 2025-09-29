@@ -647,6 +647,17 @@ class Liveexam_student extends Public_Controller
     }
 
     /**
+     * ✅ FOR DOWNLOAD REPORT CARD
+     */
+
+    public function download()
+    {
+        $sessionCode = $this->input->get('session');
+        $studentId = $this->input->get('student');
+        $this->generateReportPdf($sessionCode, $studentId, false);
+    }
+
+    /**
      * ✅ For QR verification (preview mode, no login required)
      */
     public function verify()
@@ -659,5 +670,54 @@ class Liveexam_student extends Public_Controller
         }
         $this->generateReportPdf($sessionCode, $studentId, true); // always preview
     }
+
+    /**
+     * Live exam session report card (Per Session)
+     */
+    public function myReports()
+    {
+        if (!is_student_loggedin() && !is_parent_loggedin()) {
+            set_alert('error', 'You are not authorised to access this report');
+            return redirect(base_url('dashboard'));
+        }
+
+        if (is_student_loggedin()) {
+            $studentID = get_loggedin_user_id();
+        } elseif (is_parent_loggedin()) {
+            $studentID = get_activeChildren_id();
+        }
+
+        $examID = null;
+        $sessionCode = null;
+        $reports = [];
+
+        if ($this->input->post('search')) {
+            $this->form_validation->set_rules('exam_id', translate('Exam'), 'trim|required');
+            $this->form_validation->set_rules('session_code', translate('Session'), 'trim|required');
+
+            if ($this->form_validation->run() == true) {
+                $examID = $this->input->post('exam_id');
+                $sessionCode = $this->input->post('session_code');
+
+                // get report
+                $report = $this->live_exam_model->getSessionReportForStudent($studentID, $sessionCode);
+
+                // make it iterable for view
+                if (!empty($report)) {
+                    $reports[] = $report;
+                }
+            }
+        }
+
+        $this->data['studentDetails'] = $this->application_model->getStudentDetails($studentID);
+        $this->data['examID'] = $examID;
+        $this->data['sessionCode'] = $sessionCode;
+        $this->data['reports'] = $reports;
+        $this->data['title'] = translate('live_exam');
+        $this->data['main_menu'] = 'Live_exam';
+        $this->data['sub_page'] = 'userrole/liveexam/reports/index';
+        $this->load->view('layout/index', $this->data);
+    }
+
 
 }

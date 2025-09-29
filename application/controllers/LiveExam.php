@@ -377,8 +377,6 @@ class LiveExam extends Admin_Controller
             } else {
                 $slot = "(Evening)";
             }
-
-            // Append session option
             $options .= "<option value='{$s['session_code']}'>{$label} {$slot}</option>";
         }
 

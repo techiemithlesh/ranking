@@ -315,7 +315,11 @@
   }
 
   .dashboard-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .common-card {
+    max-width: 350px;
   }
 
   .student-avatar img {
