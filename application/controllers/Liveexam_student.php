@@ -620,6 +620,18 @@ class Liveexam_student extends Public_Controller
     /**
      * ✅ For logged-in students (download mode)
      */
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+
+    //     $this->generateReportPdf($sessionCode, $studentId, true); // preview
+    // }
+
     public function studentReport($sessionCode = null)
     {
         if (!is_student_loggedin()) {
@@ -628,9 +640,28 @@ class Liveexam_student extends Public_Controller
         }
 
         $studentId = get_loggedin_user_id();
-        // $this->generateReportPdf($sessionCode, $studentId, false); // force download
-        $this->generateReportPdf($sessionCode, $studentId, true); // preview
+
+        // Generate a URL that streams the PDF (Attachment = 0 always for preview)
+        $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+
+        $data['pdfUrl'] = $pdfUrl;
+        $data['title'] = translate('exam_report_preview');
+
+        // Load a simple viewer page
+        $this->load->view('userrole/student/pdf_viewer', $data);
     }
+
+    public function pdfFile($sessionCode = null, $studentId = null)
+    {
+        if (empty($sessionCode) || empty($studentId)) {
+            set_alert('error', 'Invalid report request');
+            return redirect(base_url('liveexam_student/myReports'));
+        }
+
+        // Always stream inline
+        $this->generateReportPdf($sessionCode, $studentId, true);
+    }
+
 
     public function preview()
     {
@@ -641,7 +672,6 @@ class Liveexam_student extends Public_Controller
             set_alert('info', 'Invalid verification link.');
             return redirect(base_url('student/dashboard'));
         }
-
 
         $this->generateReportPdf($sessionCode, $studentId, true);
     }
