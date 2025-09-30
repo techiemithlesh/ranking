@@ -640,16 +640,23 @@ class Liveexam_student extends Public_Controller
         }
 
         $studentId = get_loggedin_user_id();
-
-        // Generate a URL that streams the PDF (Attachment = 0 always for preview)
         $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
 
-        $data['pdfUrl'] = $pdfUrl;
-        $data['title'] = translate('exam_report_preview');
+        // Detect mobile from User-Agent
+        $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
 
-        // Load a simple viewer page
-        $this->load->view('userrole/student/pdf_viewer', $data);
+        if ($isMobile) {
+            // Google Docs Viewer for mobile
+            $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
+            $data['viewerUrl'] = $viewerUrl;
+            $data['title'] = translate('exam_report_preview');
+            $this->load->view('student/pdf_viewer_google', $data);
+        } else {
+            // Normal inline PDF preview
+            $this->generateReportPdf($sessionCode, $studentId, true);
+        }
     }
+
 
     public function pdfFile($sessionCode = null, $studentId = null)
     {

@@ -18,6 +18,6 @@
     </style>
 </head>
 <body>
-    <iframe src="<?= $pdfUrl ?>" allow="fullscreen"></iframe>
+    <iframe src="<?= $viewerUrl ?>" allow="fullscreen"></iframe>
 </body>
 </html>
