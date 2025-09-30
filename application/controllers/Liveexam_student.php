@@ -620,18 +620,6 @@ class Liveexam_student extends Public_Controller
     /**
      * ✅ For logged-in students (download mode)
      */
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-
-    //     $this->generateReportPdf($sessionCode, $studentId, true); // preview
-    // }
-
     public function studentReport($sessionCode = null)
     {
         if (!is_student_loggedin()) {
@@ -640,24 +628,36 @@ class Liveexam_student extends Public_Controller
         }
 
         $studentId = get_loggedin_user_id();
-        $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
 
-        // Detect mobile from User-Agent
-        $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
-
-        log_message('debug', 'The Device detected is: '. $isMobile);
-
-        if ($isMobile) {
-            // Google Docs Viewer for mobile
-            $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
-            $data['viewerUrl'] = $viewerUrl;
-            $data['title'] = translate('exam_report_preview');
-            $this->load->view('userrole/student/pdf_viewer', $data);
-        } else {
-            // Normal inline PDF preview
-            $this->generateReportPdf($sessionCode, $studentId, true);
-        }
+        $this->generateReportPdf($sessionCode, $studentId, true); // preview
     }
+
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+
+    //     // Detect mobile from User-Agent
+    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
+
+    //     log_message('debug', 'The Device detected is: '. $isMobile);
+
+    //     if ($isMobile) {
+    //         // Google Docs Viewer for mobile
+    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
+    //         $data['viewerUrl'] = $viewerUrl;
+    //         $data['title'] = translate('exam_report_preview');
+    //         $this->load->view('userrole/student/pdf_viewer', $data);
+    //     } else {
+    //         // Normal inline PDF preview
+    //         $this->generateReportPdf($sessionCode, $studentId, true);
+    //     }
+    // }
 
 
     public function pdfFile($sessionCode = null, $studentId = null)
