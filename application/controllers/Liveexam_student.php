@@ -650,7 +650,7 @@ class Liveexam_student extends Public_Controller
             $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
             $data['viewerUrl'] = $viewerUrl;
             $data['title'] = translate('exam_report_preview');
-            $this->load->view('student/pdf_viewer_google', $data);
+            $this->load->view('userrole/student/pdf_viewer', $data);
         } else {
             // Normal inline PDF preview
             $this->generateReportPdf($sessionCode, $studentId, true);
