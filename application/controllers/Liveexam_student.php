@@ -645,6 +645,8 @@ class Liveexam_student extends Public_Controller
         // Detect mobile from User-Agent
         $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
 
+        log_message('debug', 'The Device detected is: '. $isMobile);
+
         if ($isMobile) {
             // Google Docs Viewer for mobile
             $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
