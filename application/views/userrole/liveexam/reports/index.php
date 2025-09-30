@@ -87,7 +87,7 @@
                             <td><?= $row['result_status'] ?></td>
                             <td><?= $row['rank'] ?>/<?= $row['total_students'] ?></td>
                             <td>
-                                <a href="<?= base_url('Liveexam_student/preview?session=' . $row['session_code'] . '&student=' . $row['student_id']) ?>"
+                                <a href="<?= base_url('Liveexam_student/studentReport/' . $row['session_code']) ?>"
                                     class="btn btn-default btn-xs" target="_blank">
                                     <i class="fas fa-file-pdf"></i> <?= translate('view') ?>
                                 </a>
