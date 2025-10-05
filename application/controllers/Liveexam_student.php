@@ -713,13 +713,16 @@ class Liveexam_student extends Public_Controller
         }
 
         $studentId = get_loggedin_user_id();
-        $pdfUrl = base_url("Liveexam_student/pdfFile/$sessionCode/$studentId");
 
-        // Use PDF.js for all devices (desktop & mobile)
+        // Generate secure token
+        $token = hash_hmac('sha256', $sessionCode . $studentId, $this->config->item('encryption_key'));
+
+        $pdfUrl = base_url("Liveexam_student/pdfFile/$sessionCode/$studentId?token=$token");
+
         $viewerUrl = base_url("assets/pdfjs/web/viewer.html?file=" . urlencode($pdfUrl));
-
         $data['viewerUrl'] = $viewerUrl;
         $data['title'] = translate('exam_report_preview');
+
         $this->load->view('userrole/student/pdf_viewer', $data);
     }
 
@@ -729,17 +732,19 @@ class Liveexam_student extends Public_Controller
      */
     public function pdfFile($sessionCode = null, $studentId = null)
     {
-        if (empty($sessionCode) || empty($studentId)) {
-            set_alert('error', 'Invalid report request');
-            return redirect(base_url('liveexam_student/myReports'));
+        $token = $this->input->get('token');
+        $expected = hash_hmac('sha256', $sessionCode . $studentId, $this->config->item('encryption_key'));
+
+        if ($token !== $expected) {
+            show_error("Unauthorized access", 403);
         }
 
-        // Always clean output buffer before streaming
-        if (ob_get_length()) {
+        // Clear output
+        while (ob_get_level() > 0)
             ob_end_clean();
-        }
 
         $this->generateReportPdf($sessionCode, $studentId, true);
+        exit;
     }
 
     /**
