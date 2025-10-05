@@ -123,7 +123,7 @@
                         //         window.location.href = base_url + "liveexam_student";
                         //     }, 10000);
                         // });
-                        window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
+                        window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code);
 
                         setTimeout(() => {
                             window.location.href = base_url + "liveexam_student";
@@ -145,7 +145,6 @@
                     clearInterval(heartbeatTimer);
 
                     swal({
-                        title: "Exam Aborted",
                         text: "The exam was aborted by the host.",
                         type: "warning",
                         confirmButtonText: "OK",
