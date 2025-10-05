@@ -560,6 +560,171 @@ class Liveexam_student extends Public_Controller
     /**
      * ✅ Private helper to generate report PDF
      */
+    // private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
+    // {
+    //     $this->db->reset_query();
+
+    //     // Get data
+    //     $data['student'] = $this->application_model->getStudentDetails($studentId);
+    //     $branch_id = $data['student']['branch_id'];
+
+    //     $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
+    //     $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
+
+    //     // ✅ QR Code
+    //     $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
+    //     $params['data'] = $qrText;
+    //     $params['level'] = 'H';
+    //     $params['size'] = 5;
+    //     $params['savename'] = FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png";
+    //     $this->ciqrcode->generate($params);
+    //     $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
+
+    //     // ✅ Chart
+    //     $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
+    //         'type' => 'pie',
+    //         'data' => [
+    //             'labels' => ['Correct', 'Wrong', 'Unanswered'],
+    //             'datasets' => [
+    //                 [
+    //                     'data' => [
+    //                         $data['report']['correct_ans'],
+    //                         $data['report']['wrong_ans'],
+    //                         $data['report']['total_question'] - $data['report']['total_answered']
+    //                     ]
+    //                 ]
+    //             ]
+    //         ]
+    //     ]));
+    //     $data['chart_url'] = $chartUrl;
+
+    //     $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
+
+    //     // PDF
+    //     $this->pdf->loadHtml($html);
+    //     $this->pdf->setPaper('A4', 'portrait');
+    //     $this->pdf->render();
+
+    //     // File name
+    //     $studentName = $data['student']['first_name'] . ' ' . $data['student']['last_name'];
+    //     $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
+    //     $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
+    //     $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
+
+    //     $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
+
+    //     // Stream  (0 preview 1 download)
+    //     $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+    // }
+
+
+
+    /**
+     * ✅ For logged-in students (download mode)
+     */
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('Liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+
+    //     $this->generateReportPdf($sessionCode, $studentId, true); // preview
+    // }
+
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+
+    //     // Detect mobile from User-Agent
+    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
+
+    //     log_message('debug', 'The Device detected is: '. $isMobile);
+
+    //     if ($isMobile) {
+    //         // Google Docs Viewer for mobile
+    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
+    //         $data['viewerUrl'] = $viewerUrl;
+    //         $data['title'] = translate('exam_report_preview');
+    //         $this->load->view('userrole/student/pdf_viewer', $data);
+    //     } else {
+    //         // Normal inline PDF preview
+    //         $this->generateReportPdf($sessionCode, $studentId, true);
+    //     }
+    // }
+
+    // public function pdfFile($sessionCode = null, $studentId = null)
+    // {
+    //     if (empty($sessionCode) || empty($studentId)) {
+    //         set_alert('error', 'Invalid report request');
+    //         return redirect(base_url('liveexam_student/myReports'));
+    //     }
+
+    //     // Always stream inline
+    //     $this->generateReportPdf($sessionCode, $studentId, true);
+    // }
+
+
+    /** MOBILE PREVIEW FIX */
+
+    /**
+     * Student Report (Preview in browser or Google Docs if mobile)
+     */
+    public function studentReport($sessionCode = null)
+    {
+        if (!is_student_loggedin()) {
+            set_alert('info', 'You are not authorised to check this report !');
+            return redirect(base_url('liveexam_student'));
+        }
+
+        $studentId = get_loggedin_user_id();
+        $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+
+        // Detect mobile from User-Agent
+        $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
+        log_message('debug', 'Device detected: ' . ($isMobile ? 'Mobile' : 'Desktop'));
+
+        if ($isMobile) {
+            // Google Docs Viewer for mobile
+            $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
+            $data['viewerUrl'] = $viewerUrl;
+            $data['title'] = translate('exam_report_preview');
+            $this->load->view('userrole/student/pdf_viewer', $data);
+        } else {
+            // Normal inline PDF preview
+            $this->generateReportPdf($sessionCode, $studentId, true);
+        }
+    }
+
+    /**
+     * Direct PDF Stream (used by iframe / Google Docs Viewer)
+     */
+    public function pdfFile($sessionCode = null, $studentId = null)
+    {
+        if (empty($sessionCode) || empty($studentId)) {
+            set_alert('error', 'Invalid report request');
+            return redirect(base_url('liveexam_student/myReports'));
+        }
+
+        // Always clean output buffer before streaming
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $this->generateReportPdf($sessionCode, $studentId, true);
+    }
+
+    /**
+     * Generate & Stream PDF
+     */
     private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
     {
         $this->db->reset_query();
@@ -568,7 +733,10 @@ class Liveexam_student extends Public_Controller
         $data['student'] = $this->application_model->getStudentDetails($studentId);
         $branch_id = $data['student']['branch_id'];
 
-        $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
+        $data['branchData'] = $this->db
+            ->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")
+            ->row_array() ?? [];
+
         $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
 
         // ✅ QR Code
@@ -598,9 +766,10 @@ class Liveexam_student extends Public_Controller
         ]));
         $data['chart_url'] = $chartUrl;
 
+        // Render PDF HTML
         $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
 
-        // PDF
+        // PDF Setup
         $this->pdf->loadHtml($html);
         $this->pdf->setPaper('A4', 'portrait');
         $this->pdf->render();
@@ -610,67 +779,26 @@ class Liveexam_student extends Public_Controller
         $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
         $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
         $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
-
         $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
 
-        // Stream  (0 preview 1 download)
+        // ✅ Clear buffers
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        // ✅ Force headers
+        header("Content-Type: application/pdf");
+        header("Cache-Control: public, must-revalidate, max-age=0");
+        header("Pragma: public");
+        header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+        header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+
+        // ✅ Stream PDF
         $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
+
+        // ✅ Stop execution
+        exit;
     }
-
-    /**
-     * ✅ For logged-in students (download mode)
-     */
-    public function studentReport($sessionCode = null)
-    {
-        if (!is_student_loggedin()) {
-            set_alert('info', 'You are not authorised to check this report !');
-            return redirect(base_url('liveexam_student'));
-        }
-
-        $studentId = get_loggedin_user_id();
-
-        $this->generateReportPdf($sessionCode, $studentId, true); // preview
-    }
-
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
-
-    //     // Detect mobile from User-Agent
-    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
-
-    //     log_message('debug', 'The Device detected is: '. $isMobile);
-
-    //     if ($isMobile) {
-    //         // Google Docs Viewer for mobile
-    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
-    //         $data['viewerUrl'] = $viewerUrl;
-    //         $data['title'] = translate('exam_report_preview');
-    //         $this->load->view('userrole/student/pdf_viewer', $data);
-    //     } else {
-    //         // Normal inline PDF preview
-    //         $this->generateReportPdf($sessionCode, $studentId, true);
-    //     }
-    // }
-
-
-    public function pdfFile($sessionCode = null, $studentId = null)
-    {
-        if (empty($sessionCode) || empty($studentId)) {
-            set_alert('error', 'Invalid report request');
-            return redirect(base_url('liveexam_student/myReports'));
-        }
-
-        // Always stream inline
-        $this->generateReportPdf($sessionCode, $studentId, true);
-    }
-
 
     public function preview()
     {
