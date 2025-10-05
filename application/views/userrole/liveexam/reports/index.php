@@ -92,10 +92,16 @@
                                     <i class="fas fa-file-pdf"></i> <?= translate('view') ?>
                                 </a>
 
-                                <a href="<?= base_url('Liveexam_student/download?session=' . $row['session_code'] . '&student=' . $row['student_id']) ?>"
+                                <!-- <a href="<?= base_url('Liveexam_student/download?session=' . $row['session_code'] . '&student=' . $row['student_id']) ?>"
                                     class="btn btn-default btn-xs">
                                     <i class="fas fa-file-pdf"></i> <?= translate('download') ?>
-                                </a>
+                                </a> -->
+
+                                <button type="button" class="btn btn-default btn-xs"
+                                    onclick="downloadReport('<?= $row['session_code'] ?>', '<?= $row['student_id'] ?>')">
+                                    <i class="fas fa-file-pdf"></i> <?= translate('download') ?>
+                                </button>
+
 
                             </td>
                         </tr>
@@ -153,4 +159,34 @@
             });
         });
     });
+
+
+    function downloadReport(sessionCode, studentId) {
+        let url = base_url + "Liveexam_student/download?session=" + sessionCode + "&student=" + studentId;
+
+        fetch(url, { credentials: 'include' }) // include session cookies
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = "exam_report_" + sessionCode + ".pdf"; // custom file name
+                document.body.appendChild(a);
+                a.click();
+
+                // cleanup
+                a.remove();
+                window.URL.revokeObjectURL(blobUrl);
+            })
+            .catch(error => {
+                console.error("Download failed:", error);
+                alert("Download failed. Please try again.");
+            });
+    }
 </script>
