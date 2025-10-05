@@ -678,6 +678,33 @@ class Liveexam_student extends Public_Controller
     /**
      * Student Report (Preview in browser or Google Docs if mobile)
      */
+    // public function studentReport($sessionCode = null)
+    // {
+    //     if (!is_student_loggedin()) {
+    //         set_alert('info', 'You are not authorised to check this report !');
+    //         return redirect(base_url('liveexam_student'));
+    //     }
+
+    //     $studentId = get_loggedin_user_id();
+    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+
+    //     // Detect mobile from User-Agent
+    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
+    //     log_message('debug', 'Device detected: ' . ($isMobile ? 'Mobile' : 'Desktop'));
+
+    //     if ($isMobile) {
+    //         // Google Docs Viewer for mobile
+    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
+    //         $data['viewerUrl'] = $viewerUrl;
+    //         $data['title'] = translate('exam_report_preview');
+    //         $this->load->view('userrole/student/pdf_viewer', $data);
+    //     } else {
+    //         // Normal inline PDF preview
+    //         $this->generateReportPdf($sessionCode, $studentId, true);
+    //     }
+    // }
+
+
     public function studentReport($sessionCode = null)
     {
         if (!is_student_loggedin()) {
@@ -686,23 +713,16 @@ class Liveexam_student extends Public_Controller
         }
 
         $studentId = get_loggedin_user_id();
-        $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
+        $pdfUrl = base_url("Liveexam_student/pdfFile/$sessionCode/$studentId");
 
-        // Detect mobile from User-Agent
-        $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
-        log_message('debug', 'Device detected: ' . ($isMobile ? 'Mobile' : 'Desktop'));
+        // Use PDF.js for all devices (desktop & mobile)
+        $viewerUrl = base_url("assets/pdfjs/web/viewer.html?file=" . urlencode($pdfUrl));
 
-        if ($isMobile) {
-            // Google Docs Viewer for mobile
-            $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
-            $data['viewerUrl'] = $viewerUrl;
-            $data['title'] = translate('exam_report_preview');
-            $this->load->view('userrole/student/pdf_viewer', $data);
-        } else {
-            // Normal inline PDF preview
-            $this->generateReportPdf($sessionCode, $studentId, true);
-        }
+        $data['viewerUrl'] = $viewerUrl;
+        $data['title'] = translate('exam_report_preview');
+        $this->load->view('userrole/student/pdf_viewer', $data);
     }
+
 
     /**
      * Direct PDF Stream (used by iframe / Google Docs Viewer)
