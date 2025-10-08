@@ -414,6 +414,13 @@
 						alertMsg("Session ended successfully!", "success", "Done", "");
 						$("#examModal").modal("hide");
 						clearInterval(heartbeatTimer);
+
+						if(data.redirect_url){
+							setTimeout(() => {
+								window.location.href = data.redirect_url;
+							}, 5000);
+						}
+
 					} else {
 						alertMsg(data.message || "Unable to end session", "error", "Error", "");
 					}

@@ -143,7 +143,6 @@ class Live_exam_model extends MY_Model
         ));
     }
 
-
     // Model Method to check if branch has exam assigned
     public function isBranchExamAssigned($examID)
     {
@@ -240,25 +239,6 @@ class Live_exam_model extends MY_Model
             ->get()->row();
     }
 
-    // public function getParticipantsBySession($session_id)
-    // {
-    //     $threshold = date('Y-m-d H:i:s', strtotime('-15 seconds'));
-
-    //     return $this->db->select('
-    //         s.id as student_id,
-    //         CONCAT(s.first_name, " ", s.last_name) as student_name,
-    //         s.register_no,
-    //         ess.status as live_status,
-    //         ess.joined_at')
-    //         ->from('exam_session_students ess')
-    //         ->join('student s', 's.id = ess.student_id')
-    //         ->where('ess.session_id', $session_id)
-    //         ->where('ess.last_ping_at >=', $threshold)
-    //         ->order_by('ess.joined_at', 'ASC')
-    //         ->get()
-    //         ->result();
-    // }
-
     public function getParticipantsBySession($session_id)
     {
         return $this->db->select('
@@ -313,12 +293,15 @@ class Live_exam_model extends MY_Model
         return $this->db->affected_rows() > 0;
     }
 
-
     public function getSession($session_id)
     {
         return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
     }
 
+    /**
+     * Summary of getSessionWithStatus
+     * @param mixed $session_id
+     */
     public function getSessionWithStatus($session_id)
     {
         return $this->db
@@ -329,6 +312,19 @@ class Live_exam_model extends MY_Model
             ->row();
     }
 
+    public function getSessionByCodeAnyStatus($session_code)
+    {
+        return $this->db->select('*')
+            ->from('exam_sessions')
+            ->where('session_code', $session_code)
+            ->get()
+            ->row_array();
+    }
+
+    /**
+     * Summary of getSessionByCode
+     * @param mixed $session_code
+     */
     public function getSessionByCode($session_code)
     {
         return $this->db->where('session_code', $session_code)
@@ -337,7 +333,11 @@ class Live_exam_model extends MY_Model
             ->row();
     }
 
-
+    /**
+     * addStudentToSession
+     * @param mixed $session_id
+     * @param mixed $student_id
+     */
     public function addStudentToSession($session_id, $student_id)
     {
         $existing = $this->db
@@ -366,25 +366,14 @@ class Live_exam_model extends MY_Model
             return $this->db->insert_id();
         }
     }
-    // public function endSession($session_id, $host_id)
-    // {
-    //     // Verify ownership
-    //     $this->db->where('id', $session_id);
-    //     $this->db->where('host_id', $host_id);
-    //     $session = $this->db->get('exam_sessions')->row();
 
-    //     if (!$session) {
-    //         return false; // not found or not owned by this host
-    //     }
-
-    //     $this->db->where('id', $session_id);
-    //     return $this->db->update('exam_sessions', [
-    //         'status' => 'completed',
-    //         'status_reason' => 'normal_end',
-    //         'ended_at' => date('Y-m-d H:i:s')
-    //     ]);
-    // }
-
+    /**
+     * Summary of endSession
+     * @param mixed $session_id
+     * @param mixed $host_id
+     * @param mixed $aborted
+     * @param mixed $publish
+     */
     public function endSession($session_id, $host_id, $aborted = 0, $publish = 0)
     {
         // Verify ownership
@@ -407,9 +396,11 @@ class Live_exam_model extends MY_Model
         return $this->db->update('exam_sessions', $update);
     }
 
-
-
-    // STUDENT
+    /**
+     * Summary of liveExamListForStudentDT
+     * @param mixed $postData
+     * @param mixed $currency_symbol
+     */
     public function liveExamListForStudentDT($postData, $currency_symbol = '')
     {
         $response = array();
@@ -612,308 +603,6 @@ class Live_exam_model extends MY_Model
             ->update('exam_session_students', ['status' => 'offline']);
     }
 
-    /**
-     * Helper to compare arrays for multiple-choice answers
-     */
-    private function array_equal($a, $b)
-    {
-        if (is_array($a) && is_array($b)) {
-            sort($a);
-            sort($b);
-            return $a == $b;
-        }
-        return false;
-    }
-
-
-    public function getLiveExamSessionReport_F($session_code, $studentID)
-    {
-        // 1. Get exam + session + student info
-        $exam = $this->db->select('
-            oe.id as exam_id, 
-            oe.title as exam_name, 
-            oe.neg_mark, 
-            oe.passing_mark, 
-            es.started_at, 
-            es.ended_at, 
-            ess.joined_at, 
-            ess.last_ping_at
-        ')
-            ->from('exam_sessions es')
-            ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
-            ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
-            ->where('es.session_code', $session_code)
-            ->get()
-            ->row_array();
-
-        if (empty($exam)) {
-            return [];
-        }
-
-        $examID = $exam['exam_id'];
-        $examTitle = $exam['exam_name'];
-        $neg_mark_enabled = (int) $exam['neg_mark'] === 1;
-        $passing_mark = (float) $exam['passing_mark'];
-
-        // 2. Fetch all questions & answers
-        $sql = "
-        SELECT 
-            qm.*, 
-            q.id as qus_id, 
-            q.question, 
-            q.type, 
-            q.mark as marks,
-            q.answer,
-            esa.answer as sb_ans, 
-            esa.id as ans_id
-        FROM exam_sessions es
-        INNER JOIN questions_manage qm 
-            ON qm.onlineexam_id = es.exam_id
-        INNER JOIN questions q 
-            ON q.id = qm.question_id
-        LEFT JOIN exam_session_answers esa 
-            ON esa.session_id = es.id 
-           AND esa.question_id = q.id 
-           AND esa.student_id = " . $this->db->escape($studentID) . "
-        WHERE es.session_code = " . $this->db->escape($session_code) . "
-        ORDER BY qm.id ASC
-    ";
-
-        $result = $this->db->query($sql)->result();
-
-        // log_message('debug', 'The Query is: ' . $this->db->last_query());
-
-        // 3. Initialize counters
-        $total_marks = 0;
-        $total_obtain_marks = 0;
-        $total_neg_marks = 0;
-        $correct_ans = 0;
-        $wrong_ans = 0;
-        $total_answered = 0;
-        $total_question = 0;
-
-        // 4. Process results
-        if (!empty($result)) {
-            $total_question = count($result);
-
-            foreach ($result as $value) {
-                $marks = (float) $value->marks;
-                $total_marks += $marks;
-
-                if (!empty($value->ans_id)) {
-                    $total_answered++;
-
-                    $isCorrect = false;
-
-                    if ($value->type == 1 || $value->type == 3) {
-                        // Single choice / True-False
-                        $isCorrect = ($value->sb_ans == $value->answer);
-                    } elseif ($value->type == 2) {
-                        // Multiple choice
-                        $isCorrect = $this->array_equal(json_decode($value->answer), json_decode($value->sb_ans));
-                    } elseif ($value->type == 4) {
-                        // Fill in the blank
-                        $correctAns = strtolower(trim(str_replace(" ", "_", $value->answer)));
-                        $studentAns = strtolower(trim(str_replace(" ", "_", $value->sb_ans)));
-                        $isCorrect = ($correctAns == $studentAns);
-                    }
-
-                    if ($isCorrect) {
-                        $correct_ans++;
-                        $total_obtain_marks += $marks;
-                    } else {
-                        $wrong_ans++;
-                        if ($neg_mark_enabled) {
-                            $total_neg_marks += 1;   // ❗ adjust if penalty is % of marks
-                            $total_obtain_marks -= 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Prevent negative marks
-        if ($total_obtain_marks < 0) {
-            $total_obtain_marks = 0;
-        }
-
-        // 5. Time taken (student-specific)
-        $time_taken = "N/A";
-        if (!empty($exam['joined_at']) && !empty($exam['last_ping_at'])) {
-            $start = strtotime($exam['joined_at']);
-            $end = strtotime($exam['last_ping_at']);
-            if ($end > $start) {
-                $diff = $end - $start;
-                $minutes = floor($diff / 60);
-                $seconds = $diff % 60;
-                $time_taken = $minutes . " min " . $seconds . " sec";
-            }
-        }
-
-        // 6. Percentage & result
-        $percentage = $total_marks > 0 ? round(($total_obtain_marks / $total_marks) * 100, 2) : 0;
-        $result_status = ($total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
-
-        // 7. Return report
-        return [
-            'exam_name' => $examTitle,
-            'exam_date' => !empty($exam['started_at']) ? date("d M Y", strtotime($exam['started_at'])) : "N/A",
-            'time_taken' => $time_taken,
-            'total_marks' => $total_marks,
-            'total_obtain_marks' => $total_obtain_marks,
-            'total_neg_marks' => $total_neg_marks,
-            'correct_ans' => $correct_ans,
-            'wrong_ans' => $wrong_ans,
-            'total_answered' => $total_answered,
-            'total_question' => $total_question,
-            'percentage' => $percentage,
-            'result_status' => $result_status
-        ];
-    }
-
-    // public function getLiveExamSessionReport($session_code, $studentID)
-    // {
-    //     // 1. Get exam + session + student info
-    //     $exam = $this->db->select('
-    //             oe.id as exam_id, 
-    //             oe.title as exam_name, 
-    //             oe.neg_mark, 
-    //             oe.passing_mark, 
-    //             es.started_at, 
-    //             es.ended_at, 
-    //             ess.joined_at, 
-    //             ess.last_ping_at')
-    //         ->from('exam_sessions es')
-    //         ->join('online_exam oe', 'oe.id = es.exam_id', 'inner')
-    //         ->join('exam_session_students ess', 'ess.session_id = es.id AND ess.student_id = ' . $this->db->escape($studentID), 'inner')
-    //         ->where('es.session_code', $session_code)
-    //         ->get()
-    //         ->row_array();
-
-    //     if (empty($exam)) {
-    //         return [];
-    //     }
-
-    //     $examID = $exam['exam_id'];
-    //     $examTitle = $exam['exam_name'];
-    //     $neg_mark_enabled = (int) $exam['neg_mark'] === 1;
-    //     $passing_mark = (float) $exam['passing_mark'];
-
-    //     // 2. Fetch all questions & answers
-    //     $sql = "
-    //     SELECT 
-    //         qm.*, 
-    //         q.id as qus_id, 
-    //         q.question, 
-    //         q.type, 
-    //         q.mark as marks, 
-    //         q.answer, 
-    //         esa.answer as sb_ans, 
-    //         esa.id as ans_id
-    //     FROM exam_sessions es
-    //     INNER JOIN questions_manage qm 
-    //         ON qm.onlineexam_id = es.exam_id
-    //     INNER JOIN questions q 
-    //         ON q.id = qm.question_id
-    //     LEFT JOIN exam_session_answers esa 
-    //         ON esa.session_id = es.id 
-    //        AND esa.question_id = q.id 
-    //        AND esa.student_id = " . $this->db->escape($studentID) . "
-    //     WHERE es.session_code = " . $this->db->escape($session_code) . "
-    //     ORDER BY qm.id ASC
-    // ";
-
-    //     $result = $this->db->query($sql)->result();
-
-    //     // 3. Initialize counters
-    //     $total_marks = 0;
-    //     $total_obtain_marks = 0;
-    //     $total_neg_marks = 0;
-    //     $correct_ans = 0;
-    //     $wrong_ans = 0;
-    //     $total_answered = 0;
-    //     $total_question = 0;
-
-    //     // 4. Process results
-    //     if (!empty($result)) {
-    //         $total_question = count($result);
-
-    //         foreach ($result as $value) {
-    //             $marks = (float) $value->marks;
-    //             $total_marks += $marks;
-
-    //             if (!empty($value->ans_id)) {
-    //                 $total_answered++;
-
-    //                 $isCorrect = false;
-
-    //                 if ($value->type == 1 || $value->type == 3) {
-    //                     $isCorrect = ($value->sb_ans == $value->answer);
-    //                 } elseif ($value->type == 2) {
-    //                     $isCorrect = $this->array_equal(json_decode($value->answer), json_decode($value->sb_ans));
-    //                 } elseif ($value->type == 4) {
-    //                     $correctAns = strtolower(trim(str_replace(" ", "_", $value->answer)));
-    //                     $studentAns = strtolower(trim(str_replace(" ", "_", $value->sb_ans)));
-    //                     $isCorrect = ($correctAns == $studentAns);
-    //                 }
-
-    //                 if ($isCorrect) {
-    //                     $correct_ans++;
-    //                     $total_obtain_marks += $marks;
-    //                 } else {
-    //                     $wrong_ans++;
-    //                     if ($neg_mark_enabled) {
-    //                         $total_neg_marks += 1;
-    //                         $total_obtain_marks -= 1;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     if ($total_obtain_marks < 0) {
-    //         $total_obtain_marks = 0;
-    //     }
-
-    //     // 5. Time taken
-    //     $time_taken = "N/A";
-    //     if (!empty($exam['joined_at']) && !empty($exam['last_ping_at'])) {
-    //         $start = strtotime($exam['joined_at']);
-    //         $end = strtotime($exam['last_ping_at']);
-    //         if ($end > $start) {
-    //             $diff = $end - $start;
-    //             $minutes = floor($diff / 60);
-    //             $seconds = $diff % 60;
-    //             $time_taken = $minutes . " min " . $seconds . " sec";
-    //         }
-    //     }
-
-    //     // 6. Percentage & result
-    //     $percentage = $total_marks > 0 ? round(($total_obtain_marks / $total_marks) * 100, 2) : 0;
-    //     $result_status = ($total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
-
-    //     // 7. Rank calculation
-    //     $rankData = $this->getStudentRank($session_code, $studentID);
-
-    //     // 8. Return
-    //     return [
-    //         'exam_name' => $examTitle,
-    //         'exam_date' => !empty($exam['started_at']) ? date("d M Y", strtotime($exam['started_at'])) : "N/A",
-    //         'time_taken' => $time_taken,
-    //         'total_marks' => $total_marks,
-    //         'total_obtain_marks' => $total_obtain_marks,
-    //         'total_neg_marks' => $total_neg_marks,
-    //         'correct_ans' => $correct_ans,
-    //         'wrong_ans' => $wrong_ans,
-    //         'total_answered' => $total_answered,
-    //         'total_question' => $total_question,
-    //         'percentage' => $percentage,
-    //         'result_status' => $result_status,
-    //         'rank' => $rankData['rank'],
-    //         'total_students' => $rankData['total_students']
-    //     ];
-    // }
-
     public function getLiveExamSessionReport($session_code, $studentID)
     {
         // 1. Get exam + session + student info
@@ -937,7 +626,6 @@ class Live_exam_model extends MY_Model
             return [];
         }
 
-        $examID = $exam['exam_id'];
         $examTitle = $exam['exam_name'];
         $neg_mark_enabled = (int) $exam['neg_mark'] === 1;
         $passing_mark = (float) $exam['passing_mark'];
@@ -1036,7 +724,7 @@ class Live_exam_model extends MY_Model
         $result_status = ((float) $total_obtain_marks >= $passing_mark) ? 'Pass' : 'Fail';
 
         // 7. Rank calculation
-        $rankData = $this->getStudentRank($session_code, $studentID);
+        $rankData = $this->getStudentRank2($session_code, $studentID);
 
         // 8. Return (all casted safely)
         return [
@@ -1059,17 +747,6 @@ class Live_exam_model extends MY_Model
 
     public function getStudentRank($session_code, $studentID)
     {
-        // $sql = "
-        // SELECT esa.student_id, 
-        // CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
-        // FROM exam_sessions es
-        // INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
-        // INNER JOIN questions q ON q.id = qm.question_id
-        // LEFT JOIN exam_session_answers esa ON esa.session_id = es.id AND esa.question_id = q.id
-        // WHERE es.session_code = " . $this->db->escape($session_code) . "
-        // GROUP BY esa.student_id
-        // ORDER BY obtain_marks DESC";
-
         $sql = "SELECT ess.student_id,
                 CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
                 FROM exam_sessions es
@@ -1091,7 +768,7 @@ class Live_exam_model extends MY_Model
         $rank = null;
         $total_students = count($students);
 
-        log_message('debug', 'The Total Student' . $total_students);
+        // log_message('debug', 'The Total Student' . $total_students);
 
         foreach ($students as $i => $s) {
             if ((int) $s['student_id'] === (int) $studentID) {
@@ -1106,6 +783,46 @@ class Live_exam_model extends MY_Model
         ];
     }
 
+    public function getStudentRank2($session_code, $studentID)
+    {
+        $sql = "
+        SELECT 
+            ess.student_id,
+            CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks,
+            SUM(CASE WHEN esa.answer IS NOT NULL THEN 1 ELSE 0 END) as total_answered,
+            SUM(CASE WHEN esa.answer IS NULL THEN 1 ELSE 0 END) as total_skipped,
+            SUM(CASE WHEN esa.answer IS NOT NULL AND esa.answer != q.answer THEN 1 ELSE 0 END) as wrong_ans,
+            TIMESTAMPDIFF(SECOND, ess.joined_at, ess.last_ping_at) as time_taken
+        FROM exam_sessions es
+        INNER JOIN exam_session_students ess ON ess.session_id = es.id
+        INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
+        INNER JOIN questions q ON q.id = qm.question_id
+        LEFT JOIN exam_session_answers esa 
+            ON esa.session_id = es.id 
+           AND esa.student_id = ess.student_id 
+           AND esa.question_id = q.id
+        WHERE es.session_code = " . $this->db->escape($session_code) . "
+        GROUP BY ess.student_id
+        ORDER BY obtain_marks DESC, wrong_ans ASC, total_skipped ASC, time_taken ASC
+        ";
+
+        $students = $this->db->query($sql)->result_array();
+
+        $rank = null;
+        $total_students = count($students);
+
+        foreach ($students as $i => $s) {
+            if ((int) $s['student_id'] === (int) $studentID) {
+                $rank = $i + 1;
+                break;
+            }
+        }
+
+        return [
+            'rank' => (int) $rank,
+            'total_students' => (int) $total_students
+        ];
+    }
 
     public function getSessionsByExam($exam_id)
     {
@@ -1116,7 +833,6 @@ class Live_exam_model extends MY_Model
             ->get()
             ->result_array();
     }
-
 
     public function getSessionReportForAdmin($session_code, $branch_id = null, $class_id = null, $section_id = null)
     {
@@ -1189,5 +905,41 @@ class Live_exam_model extends MY_Model
         return $report;
     }
 
+    /**
+     * GET STUDENT BY EXAM SESSION CODE
+     */
+    public function getStudentByExamSession($session_id = null, $session_code = null)
+    {
+        $this->db->select('
+        ess.student_id,s.first_name,s.last_name,e.roll,e.branch_id,e.class_id,e.section_id,c.name as class_name,sec.name as section_name')
+            ->from('exam_session_students ess')
+            ->join('student s', 's.id = ess.student_id')
+            ->join('enroll e', 'e.student_id = ess.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id');
 
+        if (!empty($session_id)) {
+            $this->db->where('ess.session_id', $session_id);
+        }
+
+        if (!empty($session_code)) {
+            $this->db->join('exam_sessions es', 'es.id = ess.session_id');
+            $this->db->where('es.session_code', $session_code);
+        }
+
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Helper to compare arrays for multiple-choice answers
+     */
+    private function array_equal($a, $b)
+    {
+        if (is_array($a) && is_array($b)) {
+            sort($a);
+            sort($b);
+            return $a == $b;
+        }
+        return false;
+    }
 }

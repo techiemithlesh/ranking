@@ -22,6 +22,7 @@ class LiveExam extends Admin_Controller
         $this->load->model('sms_model');
         $this->load->model('subject_model');
         $this->load->model('email_model');
+        $this->load->model('leaderboard_model');
         $this->data['headerelements'] = array(
             'css' => array(
                 'vendor/summernote/summernote.css',
@@ -211,12 +212,33 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Missing session id']);
             exit;
         }
+
         $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
 
-        if ($ok)
-            echo json_encode(['status' => 1, 'message' => 'Session ended']);
-        else
+        if ($ok) {
+
+            $session = $this->live_exam_model->getSession($session_id);
+
+            $session_code = !empty($session) ? $session->session_code : null;
+
+            // log_message('debug', 'The Session Code' .$session_code);
+
+            /** 
+             * Only compute leaderboard if published and not aborted
+             * */
+
+            if ($publish && !$aborted && !empty($session_code)) {
+                log_message('debug', 'The Code Comes in ' . $publish);
+                $this->leaderboard_model->computeLeaderboard($session_code);
+
+                // log_message('debug', 'Leaderboard call');
+
+            }
+
+            echo json_encode(['status' => 1, 'message' => 'Session ended', 'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)]);
+        } else {
             echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
+        }
     }
     public function getParticipants()
     {
@@ -308,7 +330,6 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-
     public function getLiveExamByClass()
     {
         $html = '';
@@ -355,7 +376,6 @@ class LiveExam extends Admin_Controller
         echo $html;
     }
 
-
     public function getSessionsByExam()
     {
         $exam_id = $this->input->post('exam_id');
@@ -381,6 +401,47 @@ class LiveExam extends Admin_Controller
         }
 
         echo $options;
+    }
+
+    public function leaderboard($sessionCode)
+    {
+        if (empty($sessionCode)) {
+            set_alert('error', 'Invalid session code');
+            return redirect(base_url('liveexam'));
+        }
+
+        $limitTopN = 3; 
+       
+
+        $this->data['topStudents'] = $this->leaderboard_model->getTopN($sessionCode, $limitTopN);
+
+        // printVar($this->data['topStudents']);
+        // die;
+
+        // Paginated ranks (excluding top N)
+        $pageLimit = 50;
+        $page = (int) $this->input->get('page') ?? 1;
+        $offset = ($page - 1) * $pageLimit;
+
+        $this->data['otherStudents'] = $this->leaderboard_model->getRankPage($sessionCode, $offset, $pageLimit, $limitTopN);
+
+        // printVar($this->data['otherStudents']);
+        // printVar($this->db->last_query());
+        // die;
+
+        // Total students count for pagination
+        $this->data['totalStudents'] = $this->leaderboard_model->countLeaderboard($sessionCode);
+
+
+
+        $this->data['pageLimit'] = $pageLimit;
+        $this->data['currentPage'] = $page;
+        $this->data['session_code'] = $sessionCode;
+
+        $this->data['title'] = translate('leaderboard');
+        $this->data['sub_page'] = 'onlineexam/live_exam/admin/leaderboard';
+        $this->data['main_menu'] = 'onlineexam';
+        $this->load->view('layout/index', $this->data);
     }
 
 }

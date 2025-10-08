@@ -143,7 +143,6 @@
                 } else if (resp.code === "aborted") {
                     clearInterval(pollInterval);
                     clearInterval(heartbeatTimer);
-
                     swal({
                         text: "The exam was aborted by the host.",
                         type: "warning",

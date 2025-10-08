@@ -9,6 +9,7 @@ class Leaderboard_model extends MY_Model
     public function __construct()
     {
         parent::__construct();
+        $this->load->model('live_exam_model');
     }
 
     public function getOfflineExamLeaderboard($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
@@ -193,9 +194,6 @@ class Leaderboard_model extends MY_Model
         usort($leaderboard, fn($a, $b) => $b['percentage'] <=> $a['percentage']);
         return $leaderboard;
     }
-
-
-
     public function getOnlineExamLeaderboard($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
     {
         $this->db->select('online_exam_submitted.student_id, student.register_no, student.photo, CONCAT(student.first_name, " ", student.last_name) as full_name, online_exam.*');
@@ -253,8 +251,6 @@ class Leaderboard_model extends MY_Model
 
         return $leaderboard;
     }
-
-
     public function getOnlineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
     {
         $this->db->select('online_exam_submitted.student_id, student.register_no, student.photo, CONCAT(student.first_name, " ", student.last_name) as full_name, online_exam.*');
@@ -349,8 +345,6 @@ class Leaderboard_model extends MY_Model
 
         return $leaderboard;
     }
-
-
     public function examResult($examID, $studentID)
     {
         $result = $this->getExamResults($examID, $studentID);
@@ -399,13 +393,201 @@ class Leaderboard_model extends MY_Model
         }
         return ['total_marks' => $total_marks, 'total_obtain_marks' => $total_obtain_marks, 'correct_ans' => $correct_ans, 'total_question' => $total_question, 'total_neg_marks' => $total_neg_marks, 'wrong_ans' => $wrong_ans, 'total_answered' => $total_answered];
     }
-
     public function getExamResults($onlineexamID = null, $studentID = 0)
     {
         $sql = "SELECT `questions_manage`.*, `questions`.`id` as `qus_id`, `questions`.*, `online_exam_answer`.`answer` as `sb_ans`, `online_exam_answer`.`id` as `ans_id` FROM `questions_manage` INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` LEFT JOIN `online_exam_answer` ON `online_exam_answer`.`online_exam_id` = `questions_manage`.`onlineexam_id` and `online_exam_answer`.`question_id` = `questions`.`id` and `online_exam_answer`.`student_id` = " . $this->db->escape($studentID) . " WHERE `questions_manage`.`onlineexam_id` = " . $this->db->escape($onlineexamID) . " ORDER BY `questions_manage`.`id` ASC";
         $query = $this->db->query($sql);
 
         return $query->result();
+    }
+
+    /**
+     * Compute leaderboard for given session
+     * @param mixed $session_code
+     * @return bool
+     */
+    public function computeLeaderboard($session_code)
+    {
+        $session = $this->live_exam_model->getSessionByCodeAnyStatus($session_code);
+
+        log_message('info', 'The session from model method is: ' . json_encode($session));
+
+        if (!$session)
+            return false;
+
+        $session_id = $session['id'];
+        $exam_id = $session['exam_id'];
+
+        $students = $this->live_exam_model->getStudentByExamSession($session_id);
+
+        $leaderboard = [];
+
+        foreach ($students as $student) {
+            $student_id = $student['student_id'];
+            $report = $this->live_exam_model->getLiveExamSessionReport($session_code, $student_id);
+
+            // estimate finish_time (joined_at → last_ping_at)
+            $joinData = $this->db->select('joined_at,last_ping_at')
+                ->get_where('exam_session_students', [
+                    'session_id' => $session_id,
+                    'student_id' => $student_id
+                ])->row_array();
+            $finish_time = !empty($joinData['last_ping_at']) ? $joinData['last_ping_at'] : null;
+
+            $leaderboard[] = [
+                'session_id' => $session_id,
+                'session_code' => $session_code,
+                'exam_id' => $exam_id,
+                'student_id' => $student_id,
+                'branch_id' => $student['branch_id'],
+                'class_id' => $student['class_id'],
+                'section_id' => $student['section_id'],
+
+                'total_marks' => $report['total_marks'],
+                'obtain_marks' => $report['total_obtain_marks'],
+                'percentage' => $report['percentage'],
+                'correct_ans' => $report['correct_ans'],
+                'wrong_ans' => $report['wrong_ans'],
+                'total_answered' => $report['total_answered'],
+                'total_skipped' => $report['total_question'] - $report['total_answered'],
+                'total_question' => $report['total_question'],
+                'negative_marks' => $report['total_neg_marks'],
+                'accuracy' => $report['total_answered'] > 0
+                    ? round(($report['correct_ans'] / $report['total_answered']) * 100, 2)
+                    : 0.00,
+                'percentile' => 0.00, // will compute after ranks
+
+                'rank_position' => 0, // temporary
+                'rank_method' => 'competition',
+                'tiebreaker' => 'finish_time',
+                'finish_time' => $finish_time,
+                'rank_band' => null,
+
+                'computed_at' => date('Y-m-d H:i:s'),
+                'is_published' => 1,
+            ];
+        }
+
+        // 3. Clear old leaderboard for session
+        $this->db->where('session_id', $session_id)->delete('exam_session_leaderboard');
+
+        // 4. Insert fresh records
+        if (!empty($leaderboard)) {
+            $this->db->insert_batch('exam_session_leaderboard', $leaderboard);
+        }
+
+        // 5. Apply ranks & percentiles
+        $this->applyRanks($session_id);
+
+        return count($leaderboard);
+
+    }
+
+    /**
+     * Assign ranks and percentiles
+     */
+    private function applyRanks($session_id)
+    {
+        $students = $this->db->order_by('obtain_marks', 'DESC')
+            ->order_by('wrong_ans', 'ASC')
+            ->order_by('total_skipped', 'ASC')
+            ->order_by('finish_time', 'ASC')
+            ->get_where('exam_session_leaderboard', ['session_id' => $session_id])
+            ->result_array();
+
+        if (empty($students))
+            return;
+
+        $rank = 1;
+        $lastScore = null;
+        $lastRank = 1;
+        $total = count($students);
+
+        foreach ($students as $i => $stu) {
+            // Tie-break handling (competition rank style)
+            if ($lastScore !== null && $stu['obtain_marks'] < $lastScore) {
+                $rank = $i + 1;
+            }
+
+            $percentile = round((($total - $rank) / $total) * 100, 2);
+
+            $this->db->where('id', $stu['id'])->update('exam_session_leaderboard', [
+                'rank_position' => $rank,
+                'percentile' => $percentile,
+                'rank_band' => $this->getRankBand($percentile)
+            ]);
+
+            $lastScore = $stu['obtain_marks'];
+            $lastRank = $rank;
+        }
+    }
+
+    private function getRankBand($percentile)
+    {
+        if ($percentile >= 95)
+            return 'Top 5%';
+        if ($percentile >= 90)
+            return 'Top 10%';
+        if ($percentile >= 75)
+            return 'Top 25%';
+        if ($percentile >= 50)
+            return 'Top 50%';
+        if ($percentile >= 25)
+            return 'Bottom 50%';
+        return 'Bottom 25%';
+    }
+
+    public function getTopN($session_code, $limit = 3)
+    {
+        if (empty($session_code)) {
+            return [];
+        }
+
+        return $this->db
+            ->select('l.*, s.first_name, s.last_name, e.roll, c.name as class_name, sec.name as section_name, s.photo')
+            ->from('exam_session_leaderboard l')
+            ->join('student s', 's.id = l.student_id')
+            ->join('enroll e', 'e.student_id = l.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->where('l.session_code', $session_code)
+            ->order_by('l.rank_position', 'ASC')
+            ->limit((int) $limit)
+            ->get()
+            ->result_array();
+    }
+
+    public function getRankPage($session_code, $offset = 0, $limit = 20, $excludeTopN = 3)
+    {
+        if (empty($session_code)) {
+            return [];
+        }
+
+        // ✅ enforce safe pagination
+        $offset = max(0, (int) $offset);
+        $limit = max(1, (int) $limit);
+
+        return $this->db
+            ->select('l.*, s.first_name, s.last_name, e.roll, c.name as class_name, sec.name as section_name')
+            ->from('exam_session_leaderboard l')
+            ->join('student s', 's.id = l.student_id')
+            ->join('enroll e', 'e.student_id = l.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->where('l.session_code', $session_code)
+            ->where('l.rank_position >', (int) $excludeTopN)
+            ->order_by('l.rank_position', 'ASC')
+            ->limit($limit, $offset)
+            ->get()
+            ->result_array();
+    }
+
+
+    public function countLeaderboard($session_code)
+    {
+        return $this->db
+            ->where('session_code', $session_code)
+            ->count_all_results('exam_session_leaderboard');
     }
 
 
