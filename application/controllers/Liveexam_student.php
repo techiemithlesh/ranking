@@ -32,6 +32,7 @@ class Liveexam_student extends Public_Controller
 
         $this->load->model('live_exam_model');
         $this->load->model('onlineexam_model');
+        $this->load->model('leaderboard_model');
         $this->load->library('pdf');
         $this->load->library('ciqrcode');
 
@@ -125,123 +126,6 @@ class Liveexam_student extends Public_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-    // public function getCurrentQuestion()
-    // {
-    //     $session_id = $this->input->get('session_id');
-    //     $session = $this->live_exam_model->getSessionWithStatus($session_id);
-
-    //     if (!$session) {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'invalid',
-    //             'message' => 'Invalid session',
-    //             'is_published' => 0,
-    //             'session_code' => null
-    //         ]);
-    //         return;
-    //     }
-
-    //     // 🔹 Handle session end states first
-    //     if ($session->status === 'completed') {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'completed',
-    //             'message' => 'Thank you for attending the exam. Your result will be processed soon.',
-    //             'is_published' => (int) $session->is_published,
-    //             'session_code' => $session->session_code
-    //         ]);
-    //         return;
-    //     }
-
-    //     if ($session->status === 'aborted') {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'aborted',
-    //             'message' => 'The exam was aborted by the host.',
-    //             'is_published' => (int) $session->is_published,
-    //             'session_code' => (int) $session->session_code
-    //         ]);
-    //         return;
-    //     }
-
-    //     if ($session->status !== 'active') {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'inactive',
-    //             'message' => 'Session ended or inactive',
-    //             'is_published' => (int) $session->is_published,
-    //             'session_code' => (int) $session->session_code
-    //         ]);
-    //         return;
-    //     }
-
-    //     // 🔹 Waiting for host to start
-    //     if (empty($session->current_question_id)) {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'waiting',
-    //             'message' => 'Waiting for host to start...',
-    //             'is_published' => (int) $session->is_published,
-    //             'session_code' => (int) $session->session_code
-    //         ]);
-    //         return;
-    //     }
-
-    //     // 🔹 Fetch current question
-    //     $question = $this->live_exam_model->getQuestionById(
-    //         $session->current_question_id,
-    //         $session->exam_id
-    //     );
-
-    //     if (!$question) {
-    //         echo json_encode([
-    //             'status' => 0,
-    //             'code' => 'no_question',
-    //             'message' => 'No question available',
-    //             'is_published' => (int) $session->is_published,
-    //             'session_code' => (int) $session->session_code
-    //         ]);
-    //         return;
-    //     }
-
-
-    //     /** 
-    //      * STUDENT ANSWER
-    //      */
-
-    //     $student_id = get_loggedin_user_id();
-
-    //     $answer = $this->db
-    //         ->where([
-    //             'session_id' => $session->id,
-    //             'question_id' => $question->id,
-    //             'student_id' => $student_id
-    //         ])
-    //         ->get('exam_session_answers')
-    //         ->row_array();
-
-    //     log_message('debug', 'The Student Answer'. $answer);
-
-    //     $data = [
-    //         'question' => $question,
-    //         'exam_id' => $session->exam_id,
-    //         'session_id' => $session->id,
-    //         'exam' => $this->live_exam_model->getExamDetailsForLive($session->exam_id),
-    //         'student_answer' => $answer ? $answer['answer'] : null
-    //     ];
-
-    //     $html = $this->load->view('userrole/liveexam/_question', $data, true);
-
-    //     echo json_encode([
-    //         'status' => 1,
-    //         'code' => 'active',
-    //         'current_step' => $session->current_question_id,
-    //         'current_index' => $question->question_index,
-    //         'is_published' => (int) $session->is_published,
-    //         'session_code' => (int) $session->session_code,
-    //         'html' => $html
-    //     ]);
-    // }
 
     public function getCurrentQuestion()
     {
@@ -363,92 +247,9 @@ class Liveexam_student extends Public_Controller
         ]);
     }
 
-    // public function submitAnswer()
-    // {
-    //     if (!is_student_loggedin()) {
-    //         echo json_encode(['status' => 0, 'message' => 'Not authorized']);
-    //         return;
-    //     }
-
-    //     $studentID = get_loggedin_user_id();
-    //     $online_examID = $this->input->post('online_exam_id');
-    //     $sessionID = $this->input->post('session_id');
-    //     $questionID = $this->input->post('question_id');
-    //     $answers = $this->input->post('answer');
-
-    //     if (empty($online_examID) || empty($sessionID) || empty($questionID) || empty($answers)) {
-    //         echo json_encode(['status' => 0, 'message' => 'Missing parameters']);
-    //         return;
-    //     }
-
-    //     $session = $this->live_exam_model->getSession($sessionID);
-
-    //     if (!$session || $session->status !== 'active') {
-    //         echo json_encode(['status' => 0, 'message' => 'Exam ended or inactive']);
-    //         return;
-    //     }
-
-    //     $answerValue = null;
-
-
-    //     if (!empty($answers[$questionID])) {
-    //         $qData = $answers[$questionID]; // e.g. [1] => "2" for MCQ
-    //         if (isset($qData[1])) {
-    //             $answerValue = $qData[1]; // MCQ
-    //         } elseif (isset($qData[2])) {
-    //             $answerValue = json_encode($qData[2]); // Multi-select
-    //         } elseif (isset($qData[3])) {
-    //             $answerValue = $qData[3]; // True/False
-    //         } elseif (isset($qData[4])) {
-    //             $answerValue = $qData[4]; // Text
-    //         }
-    //     }
-
-    //     if ($answerValue !== null) {
-    //         $data = [
-    //             'student_id' => $studentID,
-    //             'online_exam_id' => $online_examID,
-    //             'question_id' => $questionID,
-    //             'answer' => $answerValue,
-    //             'created_at' => date('Y-m-d H:i:s'),
-    //         ];
-    //     }
-
-    //     $exists = $this->db->where([
-    //         'student_id' => $studentID,
-    //         'online_exam_id' => $online_examID,
-    //         'question_id' => $questionID,
-    //     ])->get('online_exam_answer')->row();
-
-    //     if ($exists) {
-    //         $this->db->where('id', $exists->id)->update('online_exam_answer', $data);
-    //     } else {
-    //         $this->db->insert('online_exam_answer', $data);
-    //     }
-
-    //     $liveData = [
-    //         'session_id' => $sessionID,
-    //         'student_id' => $studentID,
-    //         'question_id' => $questionID,
-    //         'answer' => $answerValue,
-    //         'submitted_at' => date('Y-m-d H:i:s'),
-    //     ];
-
-    //     $existsLive = $this->db->where([
-    //         'session_id' => $sessionID,
-    //         'student_id' => $studentID,
-    //         'question_id' => $questionID,
-    //     ])->get('exam_session_answers')->row();
-
-    //     if ($existsLive) {
-    //         $this->db->where('id', $existsLive->id)->update('exam_session_answers', $liveData);
-    //     } else {
-    //         $this->db->insert('exam_session_answers', $liveData);
-    //     }
-
-    //     echo json_encode(['status' => 1, 'message' => 'Answer submitted successfully']);
-    // }
-
+    /**
+     * LIVE EXAM QUESTION ANSER SUBMIT
+     */
 
     public function submitAnswer()
     {
@@ -516,6 +317,11 @@ class Liveexam_student extends Public_Controller
 
         echo json_encode(['status' => 1, 'message' => 'Answer submitted successfully']);
     }
+
+    /**
+     * Heartbeat api for checking whether student is in exam or have left
+     * @return void
+     */
     public function studentHeartbeat()
     {
         $session_id = $this->input->post('session_id');
@@ -536,6 +342,11 @@ class Liveexam_student extends Public_Controller
 
         echo json_encode(['status' => 1]);
     }
+
+    /**
+     * Exam Leave API
+     * @return void
+     */
     public function leaveSession()
     {
         $session_id = $this->input->post('session_id');
@@ -556,154 +367,6 @@ class Liveexam_student extends Public_Controller
 
         echo json_encode(['status' => 1]);
     }
-
-    /**
-     * ✅ Private helper to generate report PDF
-     */
-    // private function generateReportPdf($sessionCode, $studentId, $isPreview = true)
-    // {
-    //     $this->db->reset_query();
-
-    //     // Get data
-    //     $data['student'] = $this->application_model->getStudentDetails($studentId);
-    //     $branch_id = $data['student']['branch_id'];
-
-    //     $data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branch_id . "'")->row_array() ?? [];
-    //     $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
-
-    //     // ✅ QR Code
-    //     $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
-    //     $params['data'] = $qrText;
-    //     $params['level'] = 'H';
-    //     $params['size'] = 5;
-    //     $params['savename'] = FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png";
-    //     $this->ciqrcode->generate($params);
-    //     $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
-
-    //     // ✅ Chart
-    //     $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
-    //         'type' => 'pie',
-    //         'data' => [
-    //             'labels' => ['Correct', 'Wrong', 'Unanswered'],
-    //             'datasets' => [
-    //                 [
-    //                     'data' => [
-    //                         $data['report']['correct_ans'],
-    //                         $data['report']['wrong_ans'],
-    //                         $data['report']['total_question'] - $data['report']['total_answered']
-    //                     ]
-    //                 ]
-    //             ]
-    //         ]
-    //     ]));
-    //     $data['chart_url'] = $chartUrl;
-
-    //     $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
-
-    //     // PDF
-    //     $this->pdf->loadHtml($html);
-    //     $this->pdf->setPaper('A4', 'portrait');
-    //     $this->pdf->render();
-
-    //     // File name
-    //     $studentName = $data['student']['first_name'] . ' ' . $data['student']['last_name'];
-    //     $safeStudentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $studentName));
-    //     $safeExamName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
-    //     $safeSessionCode = preg_replace('/[^A-Za-z0-9_-]/', '', $sessionCode);
-
-    //     $fileName = $safeStudentName . '_' . $safeExamName . '_' . $safeSessionCode . '.pdf';
-
-    //     // Stream  (0 preview 1 download)
-    //     $this->pdf->stream($fileName, ["Attachment" => $isPreview ? 0 : 1]);
-    // }
-
-
-
-    /**
-     * ✅ For logged-in students (download mode)
-     */
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('Liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-
-    //     $this->generateReportPdf($sessionCode, $studentId, true); // preview
-    // }
-
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
-
-    //     // Detect mobile from User-Agent
-    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
-
-    //     log_message('debug', 'The Device detected is: '. $isMobile);
-
-    //     if ($isMobile) {
-    //         // Google Docs Viewer for mobile
-    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
-    //         $data['viewerUrl'] = $viewerUrl;
-    //         $data['title'] = translate('exam_report_preview');
-    //         $this->load->view('userrole/student/pdf_viewer', $data);
-    //     } else {
-    //         // Normal inline PDF preview
-    //         $this->generateReportPdf($sessionCode, $studentId, true);
-    //     }
-    // }
-
-    // public function pdfFile($sessionCode = null, $studentId = null)
-    // {
-    //     if (empty($sessionCode) || empty($studentId)) {
-    //         set_alert('error', 'Invalid report request');
-    //         return redirect(base_url('liveexam_student/myReports'));
-    //     }
-
-    //     // Always stream inline
-    //     $this->generateReportPdf($sessionCode, $studentId, true);
-    // }
-
-
-    /** MOBILE PREVIEW FIX */
-
-    /**
-     * Student Report (Preview in browser or Google Docs if mobile)
-     */
-    // public function studentReport($sessionCode = null)
-    // {
-    //     if (!is_student_loggedin()) {
-    //         set_alert('info', 'You are not authorised to check this report !');
-    //         return redirect(base_url('liveexam_student'));
-    //     }
-
-    //     $studentId = get_loggedin_user_id();
-    //     $pdfUrl = base_url('Liveexam_student/pdfFile/' . $sessionCode . '/' . $studentId);
-
-    //     // Detect mobile from User-Agent
-    //     $isMobile = preg_match('/Mobile|Android|iP(hone|od|ad)/i', $_SERVER['HTTP_USER_AGENT']);
-    //     log_message('debug', 'Device detected: ' . ($isMobile ? 'Mobile' : 'Desktop'));
-
-    //     if ($isMobile) {
-    //         // Google Docs Viewer for mobile
-    //         $viewerUrl = "https://docs.google.com/gview?embedded=true&url=" . urlencode($pdfUrl);
-    //         $data['viewerUrl'] = $viewerUrl;
-    //         $data['title'] = translate('exam_report_preview');
-    //         $this->load->view('userrole/student/pdf_viewer', $data);
-    //     } else {
-    //         // Normal inline PDF preview
-    //         $this->generateReportPdf($sessionCode, $studentId, true);
-    //     }
-    // }
-
 
     public function studentReport($sessionCode = null)
     {
@@ -728,7 +391,7 @@ class Liveexam_student extends Public_Controller
 
 
     /**
-     * Direct PDF Stream (used by iframe / Google Docs Viewer)
+     * Direct PDF Stream (used by pdfjs(mozilla))
      */
     public function pdfFile($sessionCode = null, $studentId = null)
     {
@@ -908,6 +571,43 @@ class Liveexam_student extends Public_Controller
         $this->data['title'] = translate('live_exam');
         $this->data['main_menu'] = 'Live_exam';
         $this->data['sub_page'] = 'userrole/liveexam/reports/index';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function leaderboard($sessionCode)
+    {
+        if (empty($sessionCode)) {
+            set_alert('error', 'Invalid session code');
+            return redirect(base_url('dashboard'));
+        }
+
+        $studentId = get_loggedin_user_id();
+
+        // Top N (3 by default)
+        $limitTopN = 3;
+        $this->data['topStudents'] = $this->leaderboard_model->getTopN($sessionCode, $limitTopN);
+
+        // Current student’s rank
+        $studentRank = $this->leaderboard_model->getStudentRank($sessionCode, $studentId);
+
+        // Nearby students (+/- 5 positions around me)
+        $nearbyStudents = [];
+        if (!empty($studentRank)) {
+            $nearbyStudents = $this->leaderboard_model->getNearbyStudents(
+                $sessionCode,
+                $studentRank['rank_position'],
+                5
+            );
+        }
+
+        $this->data['studentRank'] = $studentRank;
+        $this->data['nearbyStudents'] = $nearbyStudents;
+        $this->data['totalStudents'] = $this->leaderboard_model->countLeaderboard($sessionCode);
+
+        $this->data['title'] = translate('leaderboard');
+        $this->data['sub_page'] = 'userrole/liveexam/leaderboard';
+        $this->data['main_menu'] = 'onlineexam';
+
         $this->load->view('layout/index', $this->data);
     }
 

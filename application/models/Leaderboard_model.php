@@ -612,7 +612,50 @@ class Leaderboard_model extends MY_Model
             ->result_array();
     }
 
+    /**
+     * STUDENT SIDE LEADERBOARD
+     */
 
+    /**
+     * Get student’s own rank details
+     */
+    public function getStudentRank($session_code, $student_id)
+    {
+        return $this->db
+            ->select('l.*, s.first_name, s.last_name, s.photo, e.roll, c.name as class_name, sec.name as section_name')
+            ->from('exam_session_leaderboard l')
+            ->join('student s', 's.id = l.student_id')
+            ->join('enroll e', 'e.student_id = l.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->where('l.session_code', $session_code)
+            ->where('l.student_id', $student_id)
+            ->get()
+            ->row_array();
+    }
+
+    /**
+     * Get nearby students (±5 ranks around logged-in student)
+     */
+    public function getNearbyStudents($session_code, $rank_position, $range = 5)
+    {
+        $min = max(1, $rank_position - $range);
+        $max = $rank_position + $range;
+
+        return $this->db
+            ->select('l.*, s.first_name, s.last_name, s.photo, e.roll, c.name as class_name, sec.name as section_name')
+            ->from('exam_session_leaderboard l')
+            ->join('student s', 's.id = l.student_id')
+            ->join('enroll e', 'e.student_id = l.student_id')
+            ->join('class c', 'c.id = e.class_id')
+            ->join('section sec', 'sec.id = e.section_id')
+            ->where('l.session_code', $session_code)
+            ->where('l.rank_position >=', $min)
+            ->where('l.rank_position <=', $max)
+            ->order_by('l.rank_position', 'ASC')
+            ->get()
+            ->result_array();
+    }
 
     public function countLeaderboard($session_code)
     {
