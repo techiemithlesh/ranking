@@ -488,39 +488,53 @@ class Leaderboard_model extends MY_Model
      */
     private function applyRanks($session_id)
     {
-        $students = $this->db->order_by('obtain_marks', 'DESC')
-            ->order_by('wrong_ans', 'ASC')
-            ->order_by('total_skipped', 'ASC')
-            ->order_by('finish_time', 'ASC')
+        // Get all students for this session, sorted by tie-break rules
+        $students = $this->db
+            ->order_by('obtain_marks', 'DESC')     // Highest marks first
+            ->order_by('wrong_ans', 'ASC')         // Then fewer wrong answers
+            ->order_by('total_skipped', 'ASC')     // Then fewer skips
+            ->order_by('finish_time', 'ASC')       // Then fastest finish
             ->get_where('exam_session_leaderboard', ['session_id' => $session_id])
             ->result_array();
 
         if (empty($students))
             return;
 
-        $rank = 1;
-        $lastScore = null;
-        $lastRank = 1;
+        $rank = 1;             // Current rank to assign
+        $lastRank = 1;         // Last assigned rank
+        $lastScore = null;     // Track score + tiebreak attributes
         $total = count($students);
 
         foreach ($students as $i => $stu) {
-            // Tie-break handling (competition rank style)
-            if ($lastScore !== null && $stu['obtain_marks'] < $lastScore) {
-                $rank = $i + 1;
+            // Build a composite score for tie detection
+            $currentScore = [
+                $stu['obtain_marks'],
+                $stu['wrong_ans'],
+                $stu['total_skipped'],
+                $stu['finish_time'],
+            ];
+
+            // Compare with last student: if different, update rank
+            if ($lastScore !== null && $currentScore !== $lastScore) {
+                $rank = $i + 1;   // competition ranking → next index + 1
             }
 
+            // Compute percentile
             $percentile = round((($total - $rank) / $total) * 100, 2);
 
+            // Update row
             $this->db->where('id', $stu['id'])->update('exam_session_leaderboard', [
                 'rank_position' => $rank,
                 'percentile' => $percentile,
                 'rank_band' => $this->getRankBand($percentile)
             ]);
 
-            $lastScore = $stu['obtain_marks'];
+            // Save last state
+            $lastScore = $currentScore;
             $lastRank = $rank;
         }
     }
+
 
     private function getRankBand($percentile)
     {
@@ -563,24 +577,41 @@ class Leaderboard_model extends MY_Model
             return [];
         }
 
-        // ✅ enforce safe pagination
         $offset = max(0, (int) $offset);
         $limit = max(1, (int) $limit);
 
-        return $this->db
-            ->select('l.*, s.first_name, s.last_name, e.roll, c.name as class_name, sec.name as section_name')
+        // get top N student_ids first
+        $topStudentIds = $this->db
+            ->select('student_id')
+            ->from('exam_session_leaderboard')
+            ->where('session_code', $session_code)
+            ->order_by('rank_position', 'ASC')
+            ->limit($excludeTopN)
+            ->get()
+            ->result_array();
+
+        $excludeIds = array_column($topStudentIds, 'student_id');
+
+        $this->db
+            ->select('l.*, s.first_name, s.last_name, e.roll, c.name as class_name, sec.name as section_name, s.photo')
             ->from('exam_session_leaderboard l')
             ->join('student s', 's.id = l.student_id')
             ->join('enroll e', 'e.student_id = l.student_id')
             ->join('class c', 'c.id = e.class_id')
             ->join('section sec', 'sec.id = e.section_id')
-            ->where('l.session_code', $session_code)
-            ->where('l.rank_position >', (int) $excludeTopN)
+            ->where('l.session_code', $session_code);
+
+        if (!empty($excludeIds)) {
+            $this->db->where_not_in('l.student_id', $excludeIds);
+        }
+
+        return $this->db
             ->order_by('l.rank_position', 'ASC')
             ->limit($limit, $offset)
             ->get()
             ->result_array();
     }
+
 
 
     public function countLeaderboard($session_code)
