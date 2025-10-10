@@ -251,6 +251,13 @@ function get_type_name_by_id($table, $type_id = '', $field = 'name')
     return $get[$field];
 }
 
+function get_type_tittle_by_id($table, $type_id = '', $field = 'title')
+{
+    $CI = &get_instance();
+    $get = $CI->db->select($field)->from($table)->where('id', $type_id)->limit(1)->get()->row_array();
+    return $get[$field];
+}
+
 // set session alert / flashdata
 // function set_alert($type, $message)
 // {

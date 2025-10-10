@@ -664,6 +664,27 @@ class Leaderboard_model extends MY_Model
             ->count_all_results('exam_session_leaderboard');
     }
 
+    public function getAllRank($branchID, $classID, $sectionId, $examID, $sessionCode = null)
+    {
+        $this->db->select('l.*, s.first_name, s.last_name, s.photo, c.name as class_name, sec.name as section_name');
+        $this->db->from('exam_session_leaderboard l');
+        $this->db->join('student s', 's.id = l.student_id');
+        $this->db->join('enroll e', 'e.student_id = s.id');
+        $this->db->join('class c', 'c.id = e.class_id');
+        $this->db->join('section sec', 'sec.id = e.section_id');
+        $this->db->where('l.exam_id', $examID);
+        $this->db->where('l.class_id', $classID);
+        $this->db->where('l.section_id', $sectionId);
+        $this->db->where('l.branch_id', $branchID);
+
+        if (!empty($sessionCode)) {
+            $this->db->where('l.session_code', $sessionCode);
+        }
+
+        $this->db->order_by('l.rank_position', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
 
     public function array_equal($a, $b)
     {

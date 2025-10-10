@@ -83,7 +83,7 @@ class LiveExam extends Admin_Controller
 
         if (empty($data['exam'])) {
             set_alert('error', translate('exam_not_found_or_not_allowed'));
-            redirect(base_url('liveexam'));
+            redirect(base_url('liveExam'));
         }
 
         $data['sub_page'] = 'onlineexam/live_exam/host';
@@ -379,7 +379,6 @@ class LiveExam extends Admin_Controller
     public function getSessionsByExam()
     {
         $exam_id = $this->input->post('exam_id');
-
         $sessions = $this->live_exam_model->getSessionsByExam($exam_id);
 
         $options = "<option value=''>" . translate('select') . "</option>";
@@ -403,6 +402,36 @@ class LiveExam extends Admin_Controller
         echo $options;
     }
 
+    public function getSessionsByExamWithAll()
+    {
+        $exam_id = $this->input->post('exam_id');
+        $sessions = $this->live_exam_model->getSessionsByExam($exam_id);
+
+        // Add "All Sessions" as the first option
+        $options = "<option value=''>" . translate('all_sessions') . "</option>";
+
+        foreach ($sessions as $s) {
+            $start = date('d M Y - h:i A', strtotime($s['started_at']));
+            $end = !empty($s['ended_at']) ? date('h:i A', strtotime($s['ended_at'])) : 'Ongoing';
+            $label = $start . " to " . $end;
+
+            // Time slot label
+            $hour = date('H', strtotime($s['started_at']));
+            if ($hour < 12) {
+                $slot = "(" . translate('morning') . ")";
+            } elseif ($hour < 17) {
+                $slot = "(" . translate('afternoon') . ")";
+            } else {
+                $slot = "(" . translate('evening') . ")";
+            }
+
+            $options .= "<option value='{$s['session_code']}'>{$label} {$slot}</option>";
+        }
+
+        echo $options;
+    }
+
+
     public function leaderboard($sessionCode)
     {
         if (empty($sessionCode)) {
@@ -410,38 +439,72 @@ class LiveExam extends Admin_Controller
             return redirect(base_url('liveexam'));
         }
 
-        $limitTopN = 3; 
-       
-
+        $limitTopN = 3;
         $this->data['topStudents'] = $this->leaderboard_model->getTopN($sessionCode, $limitTopN);
 
-        // printVar($this->data['topStudents']);
-        // die;
-
-        // Paginated ranks (excluding top N)
         $pageLimit = 50;
         $page = (int) $this->input->get('page') ?? 1;
         $offset = ($page - 1) * $pageLimit;
 
         $this->data['otherStudents'] = $this->leaderboard_model->getRankPage($sessionCode, $offset, $pageLimit, $limitTopN);
 
-        // printVar($this->data['otherStudents']);
-        // printVar($this->db->last_query());
-        // die;
-
         // Total students count for pagination
         $this->data['totalStudents'] = $this->leaderboard_model->countLeaderboard($sessionCode);
-
-
 
         $this->data['pageLimit'] = $pageLimit;
         $this->data['currentPage'] = $page;
         $this->data['session_code'] = $sessionCode;
 
         $this->data['title'] = translate('leaderboard');
-        $this->data['sub_page'] = 'onlineexam/live_exam/admin/leaderboard';
+        $this->data['sub_page'] = 'onlineexam/live_exam/leaderboard';
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
+
+    public function leaderboardReport()
+    {
+        $branchID = $this->application_model->get_branch_id();
+        $classID = null;
+        $sectionId = null;
+        $examId = null;
+        $sessionCode = null;
+
+        if (isset($_POST['search'])) {
+            if (is_superadmin_loggedin() == true) {
+                $this->form_validation->set_rules('branch_id', 'Branch', 'trim|required');
+            }
+            $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
+            $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
+            $this->form_validation->set_rules('exam_id', 'Exam', 'trim|required');
+            $this->form_validation->set_rules('session_code', 'Session', 'trim');
+
+            if ($this->form_validation->run() == true) {
+                $classID = $this->input->post('class_id');
+                $sectionId = $this->input->post('section_id');
+                $examId = $this->input->post('exam_id');
+                $sessionCode = $this->input->post('session_code');
+                $sessionCode = !empty($sessionCode) ? $sessionCode : null;
+
+                $this->data['reports'] = $this->leaderboard_model->getAllRank(
+                    $branchID,
+                    $classID,
+                    $sectionId,
+                    $examId,
+                    $sessionCode
+                );
+            }
+        }
+
+        $this->data['classId'] = $classID;
+        $this->data['sectionId'] = $sectionId;
+        $this->data['examID'] = $examId;
+        $this->data['sessionCode'] = $sessionCode;
+
+        $this->data['title'] = translate('leaderboard_report');
+        $this->data['sub_page'] = 'onlineexam/live_exam/leaderboard_report';
+        $this->data['main_menu'] = 'onlineexam';
+        $this->load->view('layout/index', $this->data);
+    }
+
 
 }
