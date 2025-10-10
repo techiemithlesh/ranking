@@ -54,7 +54,6 @@ class Translations extends Admin_Controller
             redirect(base_url(), 'refresh');
         }
     }
-
     public function update()
     {
         if (!get_permission('translations', 'is_edit')) {

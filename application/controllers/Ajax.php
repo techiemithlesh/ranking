@@ -571,10 +571,10 @@ class Ajax extends MY_Controller
                     $html = "<option value=''>" . translate("no_information_available") . "</option>";
                 }
             } elseif ($exam_type == 'online') {
-                // For online exams, get from online_exam table
                 $this->db->where('class_id', $class_id);
                 $this->db->where('session_id', get_session_id());
                 $this->db->where('publish_status', 1);
+                $this->db->where('is_live', 0);
                 $this->db->where('publish_result', 1);
                 $result = $this->db->get('online_exam')->result();
 

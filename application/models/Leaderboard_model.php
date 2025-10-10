@@ -83,6 +83,7 @@ class Leaderboard_model extends MY_Model
     public function getOfflineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
     {
         $subjectWhere = $subject_id ? "AND mark.subject_id = {$subject_id}" : "";
+
         $sql = "SELECT 
                 mark.*,
                 subject.subject_id AS exam_subject_id,
@@ -203,7 +204,7 @@ class Leaderboard_model extends MY_Model
         $this->db->where('online_exam_submitted.online_exam_id', $exam_id);
         $this->db->where('online_exam.session_id', get_session_id());
         $this->db->where('online_exam.class_id', $class_id);
-        $this->db->where('online_exam.branch_id', $branch_id);
+        $this->db->where('online_exam.created_by_branch', $branch_id);
 
         $results = $this->db->get()->result_array();
         $leaderboard = [];
@@ -229,19 +230,20 @@ class Leaderboard_model extends MY_Model
             foreach ($examSubjects as $subId) {
                 if ($subject_id && $subId != $subject_id)
                     continue;
-                $leaderboard[] = [
-                    'student_id' => $row['student_id'],
-                    'register_no' => $row['register_no'],
-                    'photo' => $row['photo'],
-                    'full_name' => $row['full_name'],
-                    'subject_id' => $subId,
-                    'subject_name' => get_type_name_by_id('subject', $subId),
-                    'obtain_mark' => $mark,
-                    'full_mark' => $examResult['total_marks'],
-                    'pass_mark' => $row['passing_mark'],
-                    'percentage' => $percentage,
-                    'remarks' => $row['remark']
-                ];
+
+                    $leaderboard[] = [
+                        'student_id' => $row['student_id'],
+                        'register_no' => $row['register_no'],
+                        'photo' => $row['photo'],
+                        'full_name' => $row['full_name'],
+                        'subject_id' => $subId,
+                        'subject_name' => get_type_name_by_id('subject', $subId),
+                        'obtain_mark' => $mark,
+                        'full_mark' => $examResult['total_marks'],
+                        'pass_mark' => $row['passing_mark'],
+                        'percentage' => $percentage,
+                        'remarks' => $row['remark']
+                    ];
             }
         }
 
@@ -260,7 +262,7 @@ class Leaderboard_model extends MY_Model
         $this->db->where('online_exam_submitted.online_exam_id', $exam_id);
         $this->db->where('online_exam.session_id', get_session_id());
         $this->db->where('online_exam.class_id', $class_id);
-        $this->db->where('online_exam.branch_id', $branch_id);
+        $this->db->where('online_exam.created_by_branch', $branch_id);
 
         $results = $this->db->get()->result_array();
         $leaderboard = [];
@@ -535,7 +537,6 @@ class Leaderboard_model extends MY_Model
         }
     }
 
-
     private function getRankBand($percentile)
     {
         if ($percentile >= 95)
@@ -684,7 +685,6 @@ class Leaderboard_model extends MY_Model
         $this->db->order_by('l.rank_position', 'ASC');
         return $this->db->get()->result_array();
     }
-
 
     public function array_equal($a, $b)
     {

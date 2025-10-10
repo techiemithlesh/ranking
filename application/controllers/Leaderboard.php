@@ -46,8 +46,6 @@ class Leaderboard extends Admin_Controller
                     $this->data['leaderboard'] = $this->leaderboard_model->getOfflineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id);
                 } elseif ($exam_type == 'online') {
                     $this->data['leaderboard'] = $this->leaderboard_model->getOnlineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id);
-                    // printVar($this->db->last_query());
-                    // die;
                 }
 
             } else {

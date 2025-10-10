@@ -42,7 +42,7 @@
                     <div class="col-md-3 mb-sm">
                         <label class="control-label"><?= translate('class') ?> <span class="required">*</span></label>
                         <?php
-                       $arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
+                        $arrayClass = $this->app_lib->getSelectClassByBranch($branch_id);
                         echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 												required data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
                         ?>
@@ -115,7 +115,7 @@
                 <div class="panel-body">
                     <div class="row">
                         <?php
-                        $rankIcons = ['🥇', '🥈', '🥉']; // Top 3 emoji icons
+                        $rankIcons = ['🥇', '🥈', '🥉'];
                         $count = 1;
                         foreach ($leaderboard as $row):
                             $rank = $count;
@@ -132,7 +132,7 @@
                             if ($percentage >= 90) {
                                 $barColor = '#28a745';
                             } elseif ($percentage >= 70) {
-                                 $barColor = '#17a2b8';
+                                $barColor = '#17a2b8';
                             } elseif ($percentage >= 50) {
                                 $barColor = '#ffc107';
                             } else {
@@ -151,11 +151,11 @@
                                         <p class="text-uppercase small text-secondary"> <?= $subject ?></p>
 
                                         <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar"  role="progressbar"
-                                                style="width: <?= $percentage ?>%; padding: 0 5px; background-color: <?=$barColor; ?>"
+                                            <div class="progress-bar" role="progressbar"
+                                                style="width: <?= $percentage ?>%; padding: 0 5px; background-color: <?= $barColor; ?>"
                                                 aria-valuenow="<?= $percentage ?>" aria-valuemin="0" aria-valuemax="100">
                                                 <span style="font-weight: bold;"><?= $percentage ?>%</span>
-                                                
+
                                             </div>
                                         </div>
                                         <span class="badge bg-dark mt-3">Rank #<?= $rank ?></span>
@@ -176,7 +176,6 @@
 
 <script type="text/javascript">
     $(document).ready(function () {
-
         $('#branch_id').on('change', function () {
             var branchID = $(this).val();
             getClassByBranch(branchID);
