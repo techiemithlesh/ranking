@@ -135,10 +135,6 @@
                                        target="_blank" class="btn btn-sm btn-info">
                                        <i class="fas fa-eye"></i> <?= translate('view') ?>
                                     </a>
-                                    <a href="<?= base_url('Liveexam_student/download?session=' . $row['session_code'] . '&student=' . $row['student_id']) ?>" 
-                                       class="btn btn-sm btn-success">
-                                       <i class="fas fa-download"></i> <?= translate('download') ?>
-                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
