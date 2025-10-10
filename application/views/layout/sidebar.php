@@ -1868,6 +1868,12 @@
                                                     <?= translate('session_report') ?>
                                                 </a>
                                             </li>
+                                            <li class="<?php if ($sub_page == 'onlineexam/live_exam/leaderboard_report')
+                                                echo 'nav-active'; ?>">
+                                                <a href="<?= base_url('LiveExam/leaderboardReport') ?>">
+                                                    <?= translate('Leaderboard_report') ?>
+                                                </a>
+                                            </li>
                                         </ul>
                                     </li>
                                 <?php } ?>
