@@ -110,7 +110,7 @@
                                             <?php endif; ?>
                                         </td>
                                         <td><?= $stu['class_name']." - ".$stu['section_name']; ?></td>
-                                        <td class="text-success"><?= $stu['correct_ans']; ?></td>
+                                        <td class=""><?= $stu['correct_ans']; ?></td>
                                         <td class="text-danger"><?= $stu['wrong_ans']; ?></td>
                                         <td><?= $stu['total_skipped']; ?></td>
                                         <td><strong><?= $stu['obtain_marks']; ?> / <?= $stu['total_marks']; ?></strong></td>
