@@ -1223,8 +1223,4 @@ class Onlineexam extends Admin_Controller
     }
 
 
-   
-
-    
-
 }

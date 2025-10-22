@@ -185,7 +185,7 @@ class Ajax extends MY_Controller
 
     public function getClassByBranch()
     {
-        
+
         $branch_id = $this->input->post('branch_id', true);
 
         $html = "";
@@ -331,7 +331,7 @@ class Ajax extends MY_Controller
     {
         $html = "";
         $classID = $this->input->post("class_id");
-        $branchID = is_superadmin_loggedin() ? $this->input->post("branch_id") : get_loggedin_branch_id(); 
+        $branchID = is_superadmin_loggedin() ? $this->input->post("branch_id") : get_loggedin_branch_id();
         $mode = $this->input->post("all");
         $multi = $this->input->post("multi");
 
@@ -575,6 +575,21 @@ class Ajax extends MY_Controller
                 $this->db->where('session_id', get_session_id());
                 $this->db->where('publish_status', 1);
                 $this->db->where('is_live', 0);
+                $this->db->where('publish_result', 1);
+                $result = $this->db->get('online_exam')->result();
+
+                if (count($result) > 0) {
+                    foreach ($result as $row) {
+                        $html .= '<option value="' . $row->id . '">' . $row->title . '</option>';
+                    }
+                } else {
+                    $html = "<option value=''>" . translate("no_information_available") . "</option>";
+                }
+            } elseif ($exam_type == 'live_exam') {
+                $this->db->where('class_id', $class_id);
+                $this->db->where('session_id', get_session_id());
+                $this->db->where('publish_status', 1);
+                $this->db->where('is_live', 1);
                 $this->db->where('publish_result', 1);
                 $result = $this->db->get('online_exam')->result();
 

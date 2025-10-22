@@ -126,9 +126,9 @@
                         // window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code);
                         window.open(base_url + "Liveexam_student/leaderboard/" + resp.session_code);
 
-                        // setTimeout(() => {
-                        //     window.location.href = base_url + "liveexam_student";
-                        // }, 10000);
+                        setTimeout(() => {
+                            window.location.href = base_url + "liveexam_student";
+                        }, 10000);
 
                     } else {
                         swal({
@@ -207,7 +207,6 @@
     // -----------------------------
     $(document).on('submit', '#answerForm', function (e) {
         e.preventDefault();
-
         var form = $(this);
 
         // ✅ Prevent poll overwrite during submission

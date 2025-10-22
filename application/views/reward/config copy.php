@@ -55,15 +55,10 @@
                         <select class='form-control' name="exam_type" data-plugin-selectTwo data-width="100%"
                             id="exam_type">
                             <option value="">Select Exam Type</option>
-                            <option value="offline" <?= ($selectedExamType == 'offline' ? 'selected' : '') ?>>
-                                <?= translate('offline') ?>
+                            <option value="offline" <?= ($selectedExamType == 'offline' ? 'selected' : '') ?>><?= translate('offline') ?>
                             </option>
-                            <option value="online" <?= ($selectedExamType == 'online' ? 'selected' : '') ?>>
-                                <?= translate('ONLINE') ?>
-                            </option>
-                            <option value="live_exam" <?= ($selectedExamType == 'live_exam' ? 'selected' : '') ?>>
-                                <?= translate('live_exam') ?>
-                            </option>
+                            <option value="online" <?= ($selectedExamType == 'online' ? 'selected' : '') ?>><?= translate('ONLINE') ?></option>
+                            <option value="live_exam" <?= ($selectedExamType == 'live_exam' ? 'selected' : '') ?>><?= translate('live_exam') ?></option>
                         </select>
                     </div>
 
@@ -169,8 +164,6 @@
         <?php endif; ?>
         <?php echo form_open('Rewards/configSave', array('class' => 'form-horizontal frm-submit-data')); ?>
         <div class="panel-body">
-
-
             <?php if (is_superadmin_loggedin()): ?>
                 <div class="form-group mt-md">
                     <label class="col-md-3 control-label"><?= translate('branch') ?> <span class="required">*</span></label>
@@ -183,10 +176,6 @@
                     </div>
                 </div>
             <?php endif; ?>
-
-            <h5 class="text-primary mt-md mb-sm"><i class="fas fa-university"></i> <?= translate('basic_details') ?>
-            </h5>
-            <hr class="mt-xs mb-md" />
 
             <div class="form-group">
                 <label class="col-md-3 control-label"><?= translate('class') ?> <span class="required">*</span></label>
@@ -233,10 +222,6 @@
                 </div>
             </div>
 
-            <!-- Dynamic Reward Basis & Scope -->
-            <h5 class="text-primary mt-md mb-sm"><i class="fas fa-gift"></i> <?= translate('reward_settings') ?></h5>
-            <hr class="mt-xs mb-md" />
-
             <div class="form-group" style="display: none;">
                 <label class="col-md-3 control-label"><?= translate('reward_basis') ?> <span
                         class="required">*</span></label>
@@ -271,17 +256,13 @@
 
 
             <div class="form-group">
-                <label class="col-md-3 control-label" for="qualifying_value"><?= translate('qualifying_value') ?> <span
+                <label class="col-md-3 control-label"><?= translate('min_percentage') ?> <span
                         class="required">*</span></label>
                 <div class="col-md-9">
-                    <input type="number" class="form-control" name="qualifying_value" id="qualifying_value" min="0"
-                        required placeholder="e.g. 80">
-                    <small class="text-muted">
-                        * <?= translate('value_represents_percentage_rank_or_percentile_based_on_selected_basis') ?>
-                    </small>
+                    <input type="number" class="form-control" name="min_percentage" min="0" max="100" required
+                        placeholder="e.g. 60">
                 </div>
             </div>
-
 
             <div class="form-group">
                 <label class="col-md-3 control-label"><?= translate('coin_reward') ?> <span
@@ -491,16 +472,6 @@
         });
 
     });
-
-
-    $('#reward_basis').on('change', function () {
-        let val = $(this).val();
-        let label = '<?= translate('minimum_percentage') ?>';
-        if (val === 'rank') label = '<?= translate('top_rank_upto') ?>';
-        else if (val === 'percentile') label = '<?= translate('minimum_percentile') ?>';
-        $('label[for="qualifying_value"]').text(label);
-    });
-
 
     // Function to reset modal form
     function resetModalForm() {

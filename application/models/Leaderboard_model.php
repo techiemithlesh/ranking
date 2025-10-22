@@ -231,19 +231,19 @@ class Leaderboard_model extends MY_Model
                 if ($subject_id && $subId != $subject_id)
                     continue;
 
-                    $leaderboard[] = [
-                        'student_id' => $row['student_id'],
-                        'register_no' => $row['register_no'],
-                        'photo' => $row['photo'],
-                        'full_name' => $row['full_name'],
-                        'subject_id' => $subId,
-                        'subject_name' => get_type_name_by_id('subject', $subId),
-                        'obtain_mark' => $mark,
-                        'full_mark' => $examResult['total_marks'],
-                        'pass_mark' => $row['passing_mark'],
-                        'percentage' => $percentage,
-                        'remarks' => $row['remark']
-                    ];
+                $leaderboard[] = [
+                    'student_id' => $row['student_id'],
+                    'register_no' => $row['register_no'],
+                    'photo' => $row['photo'],
+                    'full_name' => $row['full_name'],
+                    'subject_id' => $subId,
+                    'subject_name' => get_type_name_by_id('subject', $subId),
+                    'obtain_mark' => $mark,
+                    'full_mark' => $examResult['total_marks'],
+                    'pass_mark' => $row['passing_mark'],
+                    'percentage' => $percentage,
+                    'remarks' => $row['remark']
+                ];
             }
         }
 
@@ -685,6 +685,78 @@ class Leaderboard_model extends MY_Model
         $this->db->order_by('l.rank_position', 'ASC');
         return $this->db->get()->result_array();
     }
+
+    /**
+     * LIVE EXAM REWARD SYSTEM INTEGRATION
+     * 
+     */
+
+    public function getAllRankBySession($session_code)
+    {
+        if (empty($session_code)) {
+            log_message('error', '[Leaderboard] Missing session_code in getAllRankBySession');
+            return [];
+        }
+
+        // ✅ Fetch leaderboard records from unified table
+        $query = $this->db->select("
+            el.id AS leaderboard_id,
+            el.session_id,
+            el.session_code,
+            el.exam_id,
+            el.student_id,
+            el.branch_id,
+            el.class_id,
+            el.section_id,
+            st.first_name,
+            st.last_name,
+            cl.name AS class_name,
+            se.name AS section_name,
+            el.total_marks,
+            el.obtain_marks,
+            el.percentage,
+            el.correct_ans,
+            el.wrong_ans,
+            el.total_answered,
+            el.total_skipped,
+            el.total_question,
+            el.percentile,
+            el.rank_position
+        ")
+            ->from('exam_session_leaderboard AS el')
+            ->join('student AS st', 'st.id = el.student_id', 'inner')
+            ->join('class AS cl', 'cl.id = el.class_id', 'left')
+            ->join('section AS se', 'se.id = el.section_id', 'left')
+            ->where('el.session_code', $session_code)
+            ->order_by('el.rank_position', 'ASC')
+            ->get();
+
+        $results = $query->result_array();
+
+        if (empty($results)) {
+            log_message('debug', "[Leaderboard] No records found in leaderboard for session {$session_code}");
+            return [];
+        }
+
+        // ✅ Ensure percentile is filled (in case older data lacks it)
+        $total_students = count($results);
+        foreach ($results as &$row) {
+            if (empty($row['percentile']) && is_numeric($row['rank_position'])) {
+                $row['percentile'] = $total_students > 1
+                    ? round((($total_students - $row['rank_position']) / ($total_students - 1)) * 100, 2)
+                    : 100;
+            }
+
+            // Normalize numeric fields
+            $row['percentage'] = (float) $row['percentage'];
+            $row['percentile'] = (float) $row['percentile'];
+        }
+
+        log_message('debug', "[Leaderboard] Prepared leaderboard for reward processing: " . json_encode($results));
+
+        return $results;
+    }
+
 
     public function array_equal($a, $b)
     {

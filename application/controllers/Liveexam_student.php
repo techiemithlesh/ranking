@@ -13,10 +13,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Liveexam_student extends Public_Controller
 {
-
     public function __construct()
     {
-
         parent::__construct();
 
         // figure out which method is being called

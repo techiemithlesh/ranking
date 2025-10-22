@@ -1304,6 +1304,8 @@ class Userrole extends User_Controller
         $this->data['wallet'] = $this->reward_model->getWallet($student_id);
         $this->data['rewards'] = $this->reward_model->getAvailableRewards($studentDetails);
         $this->data['history'] = $this->reward_model->getStudentRewards($student_id);
+        // printVar($this->data['rewards']);
+        // die;
         $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['title'] = translate('my_rewards');
         $this->data['sub_page'] = 'userrole/reward';

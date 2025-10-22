@@ -22,19 +22,70 @@ class Rewards extends Admin_Controller
         }
     }
 
+    // protected function config_validation()
+    // {
+    //     if (is_superadmin_loggedin()) {
+    //         $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
+    //     }
+    //     $this->form_validation->set_rules('class_id', translate('class'), 'trim|required|numeric');
+    //     $this->form_validation->set_rules('section_id', translate('section'), 'trim|required|numeric');
+    //     $this->form_validation->set_rules('exam_type', translate('exam_type'), 'trim|required|in_list[online,offline]');
+    //     $this->form_validation->set_rules('exam_id', translate('exam'), 'required');
+    //     $this->form_validation->set_rules('qualifying_value', translate('qualifying_value'), 'required|greater_than[0]|less_than_equal_to[100]');
+    //     $this->form_validation->set_rules('coin_reward', translate('coin_reward'), 'required|numeric|greater_than[0]');
+    //     $this->form_validation->set_rules('is_active', translate('status'), 'in_list[0,1]');
+    // }
+
     protected function config_validation()
     {
         if (is_superadmin_loggedin()) {
             $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
         }
+
         $this->form_validation->set_rules('class_id', translate('class'), 'trim|required|numeric');
         $this->form_validation->set_rules('section_id', translate('section'), 'trim|required|numeric');
-        $this->form_validation->set_rules('exam_type', translate('exam_type'), 'trim|required|in_list[online,offline]');
+        $this->form_validation->set_rules('exam_type', translate('exam_type'), 'trim|required|in_list[online,offline,live_exam]');
         $this->form_validation->set_rules('exam_id', translate('exam'), 'required');
-        $this->form_validation->set_rules('min_percentage', translate('min_percentage'), 'required|greater_than[0]|less_than_equal_to[100]');
         $this->form_validation->set_rules('coin_reward', translate('coin_reward'), 'required|numeric|greater_than[0]');
         $this->form_validation->set_rules('is_active', translate('status'), 'in_list[0,1]');
+
+        // ✅ Default validation for all exam types
+        $this->form_validation->set_rules('qualifying_value', translate('qualifying_value'), 'required|numeric|greater_than[0]');
+
+        // ✅ Additional validations for live_exam
+        if ($this->input->post('exam_type') === 'live_exam') {
+            $this->form_validation->set_rules(
+                'reward_basis',
+                translate('reward_basis'),
+                'trim|required|in_list[percentage,rank,percentile]'
+            );
+
+            $this->form_validation->set_rules(
+                'reward_scope',
+                translate('reward_scope'),
+                'trim|required|in_list[exam,session]'
+            );
+
+            // ✅ Adjust qualifying_value rule based on reward_basis
+            $basis = $this->input->post('reward_basis');
+            if ($basis === 'percentage' || $basis === 'percentile') {
+                // These are always in range 0–100
+                $this->form_validation->set_rules(
+                    'qualifying_value',
+                    translate('qualifying_value'),
+                    'required|numeric|greater_than[0]|less_than_equal_to[100]'
+                );
+            } elseif ($basis === 'rank') {
+                // Rank must be an integer >= 1
+                $this->form_validation->set_rules(
+                    'qualifying_value',
+                    translate('qualifying_value'),
+                    'required|integer|greater_than_equal_to[1]'
+                );
+            }
+        }
     }
+
 
     public function index()
     {
