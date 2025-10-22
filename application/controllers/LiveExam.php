@@ -351,7 +351,7 @@ class LiveExam extends Admin_Controller
                     // ✅ Step 7: Prevent duplicate reward if scope = per exam
                     if (
                         $scope === 'exam' &&
-                        $this->reward_model->isAlreadyRewarded($student_id, $exam_id, $exam_type)
+                        $this->reward_model->isAlreadyRewarded($student_id, $exam_id, $exam_type, $session_code)
                     ) {
                         continue;
                     }

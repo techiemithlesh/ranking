@@ -300,14 +300,22 @@ class Reward_model extends MY_Model
         }
     }
 
-    public function isAlreadyRewarded($student_id, $exam_id, $exam_type)
+    public function isAlreadyRewarded($student_id, $exam_id, $exam_type, $session_code = null)
     {
-        return $this->db->where([
+        $this->db->where([
             'student_id' => $student_id,
             'exam_id' => $exam_id,
-            'exam_type' => $exam_type
-        ])->count_all_results('student_rewards') > 0;
+            'exam_type' => $exam_type,
+        ]);
+
+        // If reward is session-based, check session_code too
+        if (!empty($session_code)) {
+            $this->db->where('session_code', $session_code);
+        }
+
+        return $this->db->count_all_results('student_rewards') > 0;
     }
+
 
 
 

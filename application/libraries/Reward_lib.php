@@ -80,5 +80,11 @@ class Reward_lib
         );
     }
 
+    public function shouldReward($student_id, $exam_id, $exam_type, $session_code = null)
+    {
+        return !$this->CI->reward_model->isAlreadyRewarded($student_id, $exam_id, $exam_type, $session_code);
+    }
+
+
 
 }
