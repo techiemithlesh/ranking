@@ -15,40 +15,45 @@ class Reward_model extends MY_Model
     public function getRewardConfigs($filters = [])
     {
         $this->db->select("
-        reward_config.*,
-        branch.name as branch_name,
-        class.name as class_name,
-        section.name as section_name,
+        rc.*,
+        b.name AS branch_name,
+        c.name AS class_name,
+        s.name AS section_name,
         CASE 
-            WHEN reward_config.exam_type = 'online' THEN online_exam.title 
-            ELSE exam.name 
-        END as exam_name");
+            WHEN rc.exam_type = 'online' THEN oe.title
+            WHEN rc.exam_type = 'live_exam' THEN le.title
+            ELSE e.name
+        END AS exam_name
+        ");
 
-        $this->db->from('reward_config');
-        $this->db->join('branch', 'branch.id = reward_config.branch_id', 'left');
-        $this->db->join('class', 'class.id = reward_config.class_id', 'left');
-        $this->db->join('section', 'section.id = reward_config.section_id', 'left');
-        $this->db->join('exam', 'exam.id = reward_config.exam_id AND reward_config.exam_type = "offline"', 'left');
-        $this->db->join('online_exam', 'online_exam.id = reward_config.exam_id AND reward_config.exam_type = "online"', 'left');
+        $this->db->from('reward_config AS rc');
+        $this->db->join('branch AS b', 'b.id = rc.branch_id', 'left');
+        $this->db->join('class AS c', 'c.id = rc.class_id', 'left');
+        $this->db->join('section AS s', 's.id = rc.section_id', 'left');
+        $this->db->join('exam AS e', 'e.id = rc.exam_id AND rc.exam_type = "offline"', 'left');
+        $this->db->join('online_exam AS oe', 'oe.id = rc.exam_id AND rc.exam_type = "online"', 'left');
+        $this->db->join('online_exam AS le', 'le.id = rc.exam_id AND rc.exam_type = "live_exam"', 'left');
 
         if (!empty($filters['branch_id'])) {
-            $this->db->where('reward_config.branch_id', $filters['branch_id']);
+            $this->db->where('rc.branch_id', $filters['branch_id']);
         }
         if (!empty($filters['class_id'])) {
-            $this->db->where('reward_config.class_id', $filters['class_id']);
+            $this->db->where('rc.class_id', $filters['class_id']);
         }
         if (!empty($filters['section_id'])) {
-            $this->db->where('reward_config.section_id', $filters['section_id']);
+            $this->db->where('rc.section_id', $filters['section_id']);
         }
         if (!empty($filters['exam_type'])) {
-            $this->db->where('reward_config.exam_type', $filters['exam_type']);
+            $this->db->where('rc.exam_type', $filters['exam_type']);
         }
         if (!empty($filters['exam_id'])) {
-            $this->db->where('reward_config.exam_id', $filters['exam_id']);
+            $this->db->where('rc.exam_id', $filters['exam_id']);
         }
 
+        $this->db->order_by('rc.created_at', 'DESC');
         return $this->db->get()->result_array() ?? [];
     }
+
 
     public function save($data)
     {
@@ -377,7 +382,7 @@ class Reward_model extends MY_Model
             ->from('student_rewards sr')
             ->join('online_exam oe', 'oe.id = sr.exam_id AND sr.exam_type = "online"', 'left')
             ->join('exam e', 'e.id = sr.exam_id AND sr.exam_type = "offline"', 'left')
-            ->join('online_exam le', 'le.id = sr.exam_id AND sr.exam_type = "live_exam"', 'left') // live exams share same table
+            ->join('online_exam le', 'le.id = sr.exam_id AND sr.exam_type = "live_exam"', 'left')
             ->where('sr.student_id', $student_id)
             ->order_by('sr.rewarded_at', 'desc')
             ->get()

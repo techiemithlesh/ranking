@@ -102,47 +102,79 @@
                                 <tr>
                                     <th><?= translate('sl') ?></th>
                                     <th><?= translate('branch') ?></th>
-                                    <th><?php echo translate('class'); ?></th>
-                                    <th><?php echo translate('exam_type'); ?></th>
-                                    <th><?php echo translate('exam'); ?></th>
-                                    <th><?php echo translate('Min %'); ?></th>
-                                    <th><?php echo translate('Coin_Reward'); ?></th>
-                                    <th><?php echo translate('Status'); ?></th>
-                                    <th><?php echo translate('action'); ?></th>
+                                    <th><?= translate('class') ?></th>
+                                    <th><?= translate('section') ?></th>
+                                    <th><?= translate('exam_type') ?></th>
+                                    <th><?= translate('exam_name') ?></th>
+                                    <th><?= translate('reward_basis') ?></th>
+                                    <th><?= translate('qualifying_value') ?></th>
+                                    <th><?= translate('reward_scope') ?></th>
+                                    <th><?= translate('coin_reward') ?></th>
+                                    <th><?= translate('status') ?></th>
+                                    <th><?= translate('action') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php
-
-                                if (!empty($reward_configs)) {
-                                    foreach ($reward_configs as $index => $config):
-                                        ?>
+                                <?php if (!empty($reward_configs)): ?>
+                                    <?php foreach ($reward_configs as $i => $config): ?>
                                         <tr>
-                                            <td><?= $index + 1 ?></td>
-                                            <td><?= $config['branch_name'] ?? 'NA' ?></td>
-                                            <td><?= $config['class_name'] ?? 'NA' ?></td>
-                                            <td><?= $config['exam_type'] ?? 'NA' ?></td>
-                                            <td><?= $config['exam_name'] ?? 'NA' ?></td>
-                                            <td><?= $config['qualifying_value'] ?? 'NA' ?>%</td>
-                                            <td><?= $config['coin_reward'] ?? 'NA' ?></td>
+                                            <td><?= $i + 1 ?></td>
+                                            <td><?= $config['branch_name'] ?? 'N/A' ?></td>
+                                            <td><?= $config['class_name'] ?? 'N/A' ?></td>
+                                            <td><?= $config['section_name'] ?? 'N/A' ?></td>
+                                            <td><span class="label label-default"><?= ucfirst($config['exam_type']) ?></span></td>
+                                            <td><?= $config['exam_name'] ?? 'N/A' ?></td>
                                             <td>
-                                                <?php if (!empty($config['is_active']) && $config['is_active'] != '0'): ?>
+                                                <?php
+                                                switch ($config['reward_basis']) {
+                                                    case 'rank':
+                                                        echo '<span class="label label-primary">Rank Based</span>';
+                                                        break;
+                                                    case 'percentile':
+                                                        echo '<span class="label label-info">Percentile Based</span>';
+                                                        break;
+                                                    default:
+                                                        echo '<span class="label label-success">Percentage Based</span>';
+                                                        break;
+                                                }
+                                                ?>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                if ($config['reward_basis'] == 'rank')
+                                                    echo 'Top ≤ ' . $config['qualifying_value'];
+                                                elseif ($config['reward_basis'] == 'percentile')
+                                                    echo $config['qualifying_value'] . '%+';
+                                                else
+                                                    echo $config['qualifying_value'] . '%+';
+                                                ?>
+                                            </td>
+                                            <td><span class="label label-warning"><?= ucfirst($config['reward_scope']) ?></span>
+                                            </td>
+                                            <td><strong class="text-success">+<?= $config['coin_reward'] ?></strong></td>
+                                            <td>
+                                                <?php if ($config['is_active']): ?>
                                                     <span style="color: green;">Active</span>
                                                 <?php else: ?>
                                                     <span style="color: red;">Inactive</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <a href="<?= base_url('/rewards/configEdit/' . $config['id']) ?>">✏️ Edit</a>
+                                                <a href="<?= base_url('rewards/configEdit/' . $config['id']) ?>"
+                                                    class="btn btn-xs btn-default">
+                                                    <i class="fa fa-pencil"></i> <?= translate('edit') ?>
+                                                </a>
                                                 <?= btn_delete_ajax('rewards/delete/' . $config['id']); ?>
                                             </td>
                                         </tr>
-                                        <?php
-                                    endforeach;
-                                } else {
-                                    echo '<tr><td colspan="8"><h5 class="text-danger text-center">' . translate('no_information_available') . '</td></tr>';
-                                }
-                                ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="12" class="text-center text-danger">
+                                            <?= translate('no_reward_configuration_found') ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
