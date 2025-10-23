@@ -338,9 +338,13 @@ class Reward_model extends MY_Model
             $this->db->where('class_id', $data['class_id']);
         }
 
-        if (isset($data['section_id']) && $data['section_id'] !== 'all' && $data['section_id'] !== '') {
-            $this->db->where('section_id', $data['section_id']);
+        $section_id = strtolower(trim($data['section_id'] ?? ''));
+        if (!empty($section_id) && $section_id != 'all') {
+            $this->db->where('section_id', $section_id);
         }
+
+        // log_message('debug', 'Section filter applied: ' . $section_id);
+
 
         $this->db->order_by('total_coins', 'DESC');
         return $this->db->get()->result_array();

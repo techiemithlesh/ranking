@@ -95,14 +95,13 @@ class Rewards extends Admin_Controller
                 $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
             }
             $this->form_validation->set_rules('class_id', translate('class'), 'trim|required|numeric');
-            $this->form_validation->set_rules('section_id', translate('section'), 'trim|required|numeric');
+            $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
                 // log_message('debug', 'Section ID from POST: ' . $this->input->post('section_id'));
                 $this->data['rewards'] = $this->reward_model->rewardList($post);
-                // printVar($this->data['rewards']);
-                // die;
             } else {
+                // log_message('debug', 'ELSE PART: ');
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
             }
