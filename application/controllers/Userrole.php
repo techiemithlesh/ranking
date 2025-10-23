@@ -1235,9 +1235,6 @@ class Userrole extends User_Controller
                                 ? (($total_obtain - $total_neg) * 100) / $total_marks
                                 : 0;
 
-                            // ✅ Load Reward Library
-                            $this->load->library('Reward_lib');
-
                             // ✅ Online exams always have reward_scope = 'exam' (one-time)
                             $exam_type = 'online';
                             $session_code = null;
@@ -1271,6 +1268,7 @@ class Userrole extends User_Controller
             redirect(base_url('userrole/online_exam'));
         }
     }
+    
 
 
 

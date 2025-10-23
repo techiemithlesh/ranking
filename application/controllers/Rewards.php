@@ -152,6 +152,8 @@ class Rewards extends Admin_Controller
                 );
 
                 $this->data['reward_configs'] = $this->reward_model->getRewardConfigs($filters);
+                // printVar($this->data['reward_configs']);
+                // die;
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);

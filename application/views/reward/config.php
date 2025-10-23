@@ -103,6 +103,7 @@
                                     <th><?= translate('sl') ?></th>
                                     <th><?= translate('branch') ?></th>
                                     <th><?php echo translate('class'); ?></th>
+                                    <th><?php echo translate('exam_type'); ?></th>
                                     <th><?php echo translate('exam'); ?></th>
                                     <th><?php echo translate('Min %'); ?></th>
                                     <th><?php echo translate('Coin_Reward'); ?></th>
@@ -120,8 +121,9 @@
                                             <td><?= $index + 1 ?></td>
                                             <td><?= $config['branch_name'] ?? 'NA' ?></td>
                                             <td><?= $config['class_name'] ?? 'NA' ?></td>
+                                            <td><?= $config['exam_type'] ?? 'NA' ?></td>
                                             <td><?= $config['exam_name'] ?? 'NA' ?></td>
-                                            <td><?= $config['min_percentage'] ?? 'NA' ?>%</td>
+                                            <td><?= $config['qualifying_value'] ?? 'NA' ?>%</td>
                                             <td><?= $config['coin_reward'] ?? 'NA' ?></td>
                                             <td>
                                                 <?php if (!empty($config['is_active']) && $config['is_active'] != '0'): ?>
