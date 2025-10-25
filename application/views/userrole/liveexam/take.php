@@ -1,3 +1,17 @@
+<style>
+    #question_area iframe {
+        width: 100%;
+        /* Force it to fill the container's width */
+        max-width: 100%;
+        /* Ensure it doesn't overflow */
+        aspect-ratio: 16 / 9;
+        /* Maintain 16:9 video shape */
+        height: auto;
+        /* Let height be set automatically by aspect-ratio */
+        border: 0;
+    }
+</style>
+
 <section class="panel">
     <header class="panel-heading d-flex justify-content-between align-items-center">
         <h4 class="panel-title">
