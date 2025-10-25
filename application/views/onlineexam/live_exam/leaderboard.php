@@ -86,6 +86,7 @@
                                 <th><?= translate('wrong') ?></th>
                                 <th><?= translate('skipped') ?></th>
                                 <th><?= translate('marks') ?></th>
+                                <th><?= translate('Percentage') ?></th>
                                 <th><?= translate('percentile') ?></th>
                             </tr>
                         </thead>
@@ -102,6 +103,7 @@
                                     <td class="text-danger fw-bold"><?= $stu['wrong_ans']; ?></td>
                                     <td><?= $stu['total_skipped']; ?></td>
                                     <td><strong><?= $stu['obtain_marks']; ?> / <?= $stu['total_marks']; ?></strong></td>
+                                    <td><span class="badge bg-info"><?= $stu['percentage']; ?>%</span></td>
                                     <td><span class="badge bg-info"><?= $stu['percentile']; ?>%</span></td>
                                 </tr>
                             <?php endforeach; ?>

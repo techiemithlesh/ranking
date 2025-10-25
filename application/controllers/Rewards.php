@@ -22,20 +22,6 @@ class Rewards extends Admin_Controller
         }
     }
 
-    // protected function config_validation()
-    // {
-    //     if (is_superadmin_loggedin()) {
-    //         $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
-    //     }
-    //     $this->form_validation->set_rules('class_id', translate('class'), 'trim|required|numeric');
-    //     $this->form_validation->set_rules('section_id', translate('section'), 'trim|required|numeric');
-    //     $this->form_validation->set_rules('exam_type', translate('exam_type'), 'trim|required|in_list[online,offline]');
-    //     $this->form_validation->set_rules('exam_id', translate('exam'), 'required');
-    //     $this->form_validation->set_rules('qualifying_value', translate('qualifying_value'), 'required|greater_than[0]|less_than_equal_to[100]');
-    //     $this->form_validation->set_rules('coin_reward', translate('coin_reward'), 'required|numeric|greater_than[0]');
-    //     $this->form_validation->set_rules('is_active', translate('status'), 'in_list[0,1]');
-    // }
-
     protected function config_validation()
     {
         if (is_superadmin_loggedin()) {
@@ -49,47 +35,53 @@ class Rewards extends Admin_Controller
         $this->form_validation->set_rules('coin_reward', translate('coin_reward'), 'required|numeric|greater_than[0]');
         $this->form_validation->set_rules('is_active', translate('status'), 'in_list[0,1]');
 
-        // ✅ Default validation for all exam types
-        $this->form_validation->set_rules('qualifying_value', translate('qualifying_value'), 'required|numeric|greater_than[0]');
-
-        // ✅ Additional validations for live_exam
-        if ($this->input->post('exam_type') === 'live_exam') {
+        // 🟢 Non-live exams (default % rule)
+        if ($this->input->post('exam_type') !== 'live_exam') {
             $this->form_validation->set_rules(
-                'reward_basis',
-                translate('reward_basis'),
-                'trim|required|in_list[percentage,rank,percentile]'
+                'qualifying_value',
+                translate('qualifying_value'),
+                'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]'
             );
+            return;
+        }
 
+        // 🟢 Live exam specific
+        $this->form_validation->set_rules(
+            'reward_basis',
+            translate('reward_basis'),
+            'trim|required|in_list[percentage,rank,percentile]'
+        );
+
+        $this->form_validation->set_rules(
+            'reward_scope',
+            translate('reward_scope'),
+            'trim|required|in_list[exam,session]'
+        );
+
+        $basis = $this->input->post('reward_basis');
+
+        if ($basis === 'rank') {
+            // 🟠 Allow numeric (so 1.0 or 1 is valid), but still >0
             $this->form_validation->set_rules(
-                'reward_scope',
-                translate('reward_scope'),
-                'trim|required|in_list[exam,session]'
+                'qualifying_value',
+                translate('qualifying_value'),
+                'required|numeric|greater_than_equal_to[1]'
             );
-
-            // ✅ Adjust qualifying_value rule based on reward_basis
-            $basis = $this->input->post('reward_basis');
-            if ($basis === 'percentage' || $basis === 'percentile') {
-                // These are always in range 0–100
-                $this->form_validation->set_rules(
-                    'qualifying_value',
-                    translate('qualifying_value'),
-                    'required|numeric|greater_than[0]|less_than_equal_to[100]'
-                );
-            } elseif ($basis === 'rank') {
-                // Rank must be an integer >= 1
-                $this->form_validation->set_rules(
-                    'qualifying_value',
-                    translate('qualifying_value'),
-                    'required|integer|greater_than_equal_to[1]'
-                );
-            }
+        } else {
+            // ✅ Percentage or percentile (0–100)
+            $this->form_validation->set_rules(
+                'qualifying_value',
+                translate('qualifying_value'),
+                'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]'
+            );
         }
     }
 
 
+
+
     public function index()
     {
-
         if (isset($_POST['search'])) {
             if (is_superadmin_loggedin()) {
                 $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
@@ -98,10 +90,8 @@ class Rewards extends Admin_Controller
             $this->form_validation->set_rules('section_id', translate('section'), 'trim|required');
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
-                // log_message('debug', 'Section ID from POST: ' . $this->input->post('section_id'));
                 $this->data['rewards'] = $this->reward_model->rewardList($post);
             } else {
-                // log_message('debug', 'ELSE PART: ');
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);
             }
@@ -151,8 +141,6 @@ class Rewards extends Admin_Controller
                 );
 
                 $this->data['reward_configs'] = $this->reward_model->getRewardConfigs($filters);
-                // printVar($this->data['reward_configs']);
-                // die;
             } else {
                 $error = $this->form_validation->error_array();
                 $array = array('status' => 'fail', 'error' => $error);

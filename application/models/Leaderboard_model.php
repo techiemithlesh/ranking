@@ -412,7 +412,7 @@ class Leaderboard_model extends MY_Model
     {
         $session = $this->live_exam_model->getSessionByCodeAnyStatus($session_code);
 
-        log_message('info', 'The session from model method is: ' . json_encode($session));
+        // log_message('info', 'The session from model method is: ' . json_encode($session));
 
         if (!$session)
             return false;
