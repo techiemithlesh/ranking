@@ -29,7 +29,7 @@
 					if (!is_superadmin_loggedin()) {
 						$branch_id = get_loggedin_branch_id();
 					}
-					$arrayClass = $this->app_lib->getClass($branch_id);
+					$arrayClass = $this->app_lib->getSelectClassList($branch_id);
 					echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 					 	data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 					?>

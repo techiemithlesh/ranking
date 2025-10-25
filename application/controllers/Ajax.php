@@ -212,7 +212,6 @@ class Ajax extends MY_Controller
         echo $html;
     }
 
-
     public function getStudentByClass()
     {
         $html = "";

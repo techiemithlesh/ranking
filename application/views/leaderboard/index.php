@@ -33,7 +33,7 @@
                                 <?php
                                 $arrayBranch = $this->app_lib->getSelectList('branch');
                                 echo form_dropdown("branch_id", $arrayBranch, set_value('branch_id'), "class='form-control' id='branch_id'
-													data-plugin-selectTwo data-width='100%' data-placeholder='Search a brnach'");
+													data-plugin-selectTwo data-width='100%' data-placeholder='Search a branch'");
                                 ?>
                             </div>
                         </div>

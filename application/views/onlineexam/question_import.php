@@ -52,7 +52,7 @@
 					<label class="control-label col-md-3"><?=translate('class')?> <span class="required">*</span></label>
 					<div class="col-md-6">
 						<?php
-							$arrayClass = $this->app_lib->getClass($branch_id);
+							$arrayClass = $this->app_lib->getSelectClassList($branch_id);
 							echo form_dropdown("class_id", $arrayClass, set_value('class_id'), "class='form-control' id='class_id' onchange='getSectionByClass(this.value,0)'
 							data-plugin-selectTwo data-width='100%' data-minimum-results-for-search='Infinity' ");
 						?>
