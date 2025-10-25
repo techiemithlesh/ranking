@@ -59,7 +59,6 @@ class Rewards extends Admin_Controller
         );
 
         $basis = $this->input->post('reward_basis');
-
         if ($basis === 'rank') {
             // 🟠 Allow numeric (so 1.0 or 1 is valid), but still >0
             $this->form_validation->set_rules(
@@ -76,9 +75,6 @@ class Rewards extends Admin_Controller
             );
         }
     }
-
-
-
 
     public function index()
     {

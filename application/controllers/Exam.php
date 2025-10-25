@@ -717,44 +717,47 @@ class Exam extends Admin_Controller
 
                 // $this->db->trans_start();
 
-                // ==============================
-                // REWARD SYSTEM (OFFLINE EXAMS)
-                // ==============================
+                    // ==============================
+                    // REWARD SYSTEM (OFFLINE EXAMS)
+                    // ==============================
+                    $exam_type = 'offline';
+                    $session_code = null; // offline doesn't use session
 
-                $exam_type = 'offline';
-                $session_code = null;
+                    foreach ($processedStudents as $student_id) {
+                        $result = $this->exam_model->getStudentExamResult(
+                            $examID, 
+                            $classID, 
+                            $sectionID, 
+                            $branchID, 
+                            $student_id
+                        );
 
-                foreach ($processedStudents as $student_id) {
-                    $result = $this->exam_model->getStudentExamResult($examID, $classID, $sectionID, $branchID, $student_id);
-
-                    log_message('debug', 'Prepared Answers: ' . json_encode($result));
-
-                    if ($result) {
-                        $percentage = $result['percentage'];
-
-                        log_message('info', 'EXAM PERCENTAGE: ' . $percentage);
-
-                        if ($this->reward_lib->shouldReward($student_id, $examID, $exam_type, $session_code)) {
-                            $rewardSuccess = $this->reward_lib->processExamReward(
-                                $student_id,
-                                $examID,
-                                $exam_type,
-                                $percentage,
-                                $session_code
-                            );
-
-                            if ($rewardSuccess) {
-                                log_message('debug', "[Reward] Offline exam reward granted → Student={$student_id}, Exam={$examID}, Score={$percentage}%");
-                            } else {
-                                log_message('debug', "[Reward] No applicable reward found for Student={$student_id}, Exam={$examID}, Score={$percentage}%");
-                            }
-
+                        if (!$result) {
+                            log_message('debug', "[Reward][Offline] No result found for student {$student_id}");
+                            continue;
                         }
 
+                        $percentage = (float)$result['percentage'];
+                        $performance = ['percentage' => $percentage];
 
+                        log_message('debug', "[Reward][Offline] Student={$student_id} Performance=" . json_encode($performance));
+
+                       
+                        if (!$this->reward_lib->shouldReward($student_id, $examID, $exam_type, $session_code)) {
+                            log_message('debug', "[Reward][Offline] Skip - Already rewarded for scope | Student={$student_id}");
+                            continue;
+                        }
+
+                        $rewardSuccess = $this->reward_lib->processExamReward(
+                            $student_id,
+                            $examID,
+                            $exam_type,
+                            $performance,
+                            null,
+                            $session_code
+                        );
                     }
-                }
-
+                
                 $message = translate('information_has_been_saved_successfully');
                 $array = ['status' => 'success', 'message' => $message];
 
@@ -765,9 +768,6 @@ class Exam extends Admin_Controller
             echo json_encode($array);
         }
     }
-
-
-
 
     /* exam grade form validation rules */
     protected function grade_validation()

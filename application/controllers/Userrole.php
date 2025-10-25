@@ -1235,9 +1235,12 @@ class Userrole extends User_Controller
                                 ? (($total_obtain - $total_neg) * 100) / $total_marks
                                 : 0;
 
+                            $performance = ['percentage' => $percentage];
+
                             // ✅ Online exams always have reward_scope = 'exam' (one-time)
                             $exam_type = 'online';
                             $session_code = null;
+
 
                             // ✅ Check if eligible for reward
                             if ($this->reward_lib->shouldReward($studentID, $online_examID, $exam_type, $session_code)) {
@@ -1246,7 +1249,8 @@ class Userrole extends User_Controller
                                     $studentID,
                                     $online_examID,
                                     $exam_type,
-                                    $percentage,
+                                    $performance,
+                                    null,
                                     $session_code
                                 );
 
@@ -1268,7 +1272,7 @@ class Userrole extends User_Controller
             redirect(base_url('userrole/online_exam'));
         }
     }
-    
+
 
 
 
