@@ -10,6 +10,15 @@
         /* Let height be set automatically by aspect-ratio */
         border: 0;
     }
+
+    #question_area img {
+        max-width: 100%;
+        /* Image will never be wider than its container */
+        height: auto;
+        /* Height adjusts automatically to keep proportions */
+        display: block;
+        /* Optional: Helps prevent weird text-wrapping issues */
+    }
 </style>
 
 <section class="panel">
