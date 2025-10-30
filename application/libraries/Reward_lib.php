@@ -97,6 +97,8 @@ class Reward_lib
             $session_code
         );
 
+        log_message('debug', "APPLICABLE REWARD". json_encode($rewardRule));
+
         if (!$rewardRule) {
             log_message('debug', "[RewardLib] No applicable reward rule.");
             return false;

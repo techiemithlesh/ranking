@@ -401,7 +401,6 @@ function getStudentCategory(id) {
 
 // get patient category details
 function getClassAssignM(class_id, section_id) {
-  console.table(class_id, section_id);
   $.ajax({
     url: base_url + "ajax/getClassAssignM",
     type: "POST",
@@ -411,6 +410,7 @@ function getClassAssignM(class_id, section_id) {
     },
     dataType: "json",
     success: function (data) {
+      // console.log("AJAX response:", data);
       $("#ebranch_id").val(data.branch_id);
       $("#eclass_id").val(data.class_id);
       $("#esection_id").val(data.section_id);
@@ -441,7 +441,7 @@ function getSectionByClass(class_id, all = 0, multi = 0) {
   if (class_id !== "") {
     // var branch_id = $("#branch_id").length ? $("#branch_id").val() : "";
 
-    var branch_id = '';
+    var branch_id = "";
 
     if ($("#branch_id").length) {
       branch_id = $("#branch_id").val();

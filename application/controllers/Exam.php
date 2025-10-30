@@ -715,7 +715,9 @@ class Exam extends Admin_Controller
                     }
                 }
 
-                // $this->db->trans_start();
+                    // $this->db->trans_start();
+
+                    log_message('debug', "ALL STUDENT FOR THIS EXAM IS: ". json_encode($processedStudents));
 
                     // ==============================
                     // REWARD SYSTEM (OFFLINE EXAMS)

@@ -76,7 +76,7 @@ class Ajax extends MY_Controller
     // }
 
 
-    public function getClassAssignM()
+    public function getClassAssignM1()
     {
         $classID = $this->input->post('class_id');
         $sectionID = $this->input->post('section_id');
@@ -98,8 +98,6 @@ class Ajax extends MY_Controller
             ->get()
             ->result_array();
 
-
-
         if (count($subjects)) {
             foreach ($subjects as $row) {
                 $query_assign = $this->db->get_where("subject_assign", array(
@@ -120,6 +118,69 @@ class Ajax extends MY_Controller
 
         echo json_encode($data);
     }
+
+    public function getClassAssignM()
+    {
+        $classID = $this->input->post('class_id');
+        $sectionID = $this->input->post('section_id');
+
+        // Step 1: Get branch ID safely
+        $branchID = $this->db->select('branch_id')
+            ->where('class_id', $classID)
+            ->get('class_branch_map')
+            ->row('branch_id');
+
+        // If branch_id not found (superadmin/global class case)
+        if (empty($branchID)) {
+            // fallback: try getting from class table if it exists
+            $branchID = $this->db->select('branch_id')
+                ->where('id', $classID)
+                ->get('class')
+                ->row('branch_id');
+
+            // still empty? set to current logged in branch if not superadmin
+            if (empty($branchID) && !is_superadmin_loggedin()) {
+                $branchID = get_loggedin_branch_id();
+            }
+        }
+
+        $html = "";
+
+        // Step 2: Fetch subjects mapped with branch
+        $this->db->select('s.id, s.name');
+        $this->db->from('subject s');
+        $this->db->join('subject_branch_map sbm', 'sbm.subject_id = s.id', 'inner');
+        if (!empty($branchID)) {
+            $this->db->where('sbm.branch_id', $branchID);
+        }
+        $this->db->order_by('s.name', 'ASC');
+        $subjects = $this->db->get()->result_array();
+
+        // Step 3: Build HTML
+        if (count($subjects)) {
+            foreach ($subjects as $row) {
+                $assigned = $this->db->get_where('subject_assign', [
+                    'class_id' => $classID,
+                    'section_id' => $sectionID,
+                    'session_id' => get_session_id(),
+                    'subject_id' => $row['id'],
+                ])->num_rows() > 0;
+
+                $html .= '<option value="' . $row['id'] . '"' . ($assigned ? ' selected' : '') . '>' . $row['name'] . '</option>';
+            }
+        }
+
+        // Step 4: Response
+        $data = [
+            'branch_id' => $branchID ?: '',  // always return something
+            'class_id' => $classID,
+            'section_id' => $sectionID,
+            'subject' => $html,
+        ];
+
+        echo json_encode($data);
+    }
+
 
 
     public function getAdvanceSalaryDetails()
