@@ -283,7 +283,7 @@ class Report extends Admin_Controller
 
         $this->data['title'] = translate('Progress_Tracker');
         $this->data['sub_page'] = 'report/tracker/index';
-        $this->data['main_menu'] = 'reports';
+        $this->data['main_menu'] = 'progress_tracker';
 
         $this->data['headerelements'] = array(
             'css' => array(
@@ -725,6 +725,7 @@ class Report extends Admin_Controller
             if (is_superadmin_loggedin() == true) {
                 $this->form_validation->set_rules('branch_id', 'Branch', 'trim|required');
             }
+
             $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
             $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
             $this->form_validation->set_rules('exam_id', 'Exam', 'trim|required');
@@ -747,6 +748,11 @@ class Report extends Admin_Controller
                 $this->data['absentDays'] = 0;
 
                 $this->data['subjects'] = $this->report_model->getOnlineExamProgressReport($branchID, $classID, $sectionId, $examID, $studentId);
+
+                if (empty($this->data['subjects'])) {
+                    set_alert('error', translate('Smart Progress not found.'));
+                    redirect(base_url('Report/online_exam_progress'));
+                }
                
                 $this->data['class_average'] = $this->report_model->getClassAverageByOnlineExam($branchID, $classID, $sectionId, $examID);
 

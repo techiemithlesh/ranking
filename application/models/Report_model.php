@@ -98,15 +98,23 @@ class Report_model extends CI_Model
 
     public function getOnlineExamProgressReport($branch_id, $class_id, $section_id, $exam_id, $student_id)
     {
-        $this->db->select('online_exam_submitted.student_id, student.register_no, student.photo, CONCAT(student.first_name, " ", student.last_name) as full_name, online_exam.*');
-        $this->db->from('online_exam_submitted');
-        $this->db->join('online_exam', 'online_exam.id = online_exam_submitted.online_exam_id', 'inner');
-        $this->db->join('student', 'student.id = online_exam_submitted.student_id', 'left');
-        $this->db->where('online_exam_submitted.online_exam_id', $exam_id);
-        $this->db->where('online_exam.session_id', get_session_id());
-        $this->db->where('online_exam.class_id', $class_id);
-        $this->db->where('online_exam.created_by_branch', $branch_id);
-        $this->db->where('online_exam_submitted.student_id', $student_id);
+        $this->db->select('
+        oes.student_id, 
+        s.register_no, 
+        s.photo, 
+        CONCAT(s.first_name, " ", s.last_name) AS full_name, 
+        oe.*
+        ');
+        $this->db->from('online_exam_submitted AS oes');
+        $this->db->join('online_exam AS oe', 'oe.id = oes.online_exam_id', 'inner');
+        $this->db->join('exam_assignment AS ea', 'ea.exam_id = oe.id', 'inner'); // ✅ ensures branch has access
+        $this->db->join('student AS s', 's.id = oes.student_id', 'left');
+
+        $this->db->where('oes.online_exam_id', $exam_id);
+        $this->db->where('oe.session_id', get_session_id());
+        $this->db->where('oe.class_id', $class_id);
+        $this->db->where('ea.branch_id', $branch_id); // ✅ use exam_assignment instead of created_by_branch
+        $this->db->where('oes.student_id', $student_id);
 
         $results = $this->db->get()->result_array();
         $subjectDetails = [];
@@ -115,7 +123,8 @@ class Report_model extends CI_Model
             $examSections = json_decode($row['section_id'], true);
             $examSubjects = json_decode($row['subject_id'], true);
 
-            if (!in_array($section_id, $examSections)) {
+            // ✅ only include if section is assigned
+            if (!in_array($section_id, $examSections ?? [])) {
                 continue;
             }
 
@@ -131,13 +140,13 @@ class Report_model extends CI_Model
                     'subject_name' => get_type_name_by_id('subject', $subId),
                     'obtainMark' => $examResult['per_subject'][$subId]['obtain'] ?? 0,
                     'full_mark' => $examResult['per_subject'][$subId]['full'] ?? 0,
-                    // 'remarks'     => optional later
                 ];
             }
         }
 
         return $subjectDetails;
     }
+
 
     public function examProgressReport($examID, $studentID)
     {
@@ -272,20 +281,19 @@ class Report_model extends CI_Model
         return $class_average;
     }
 
-
-
     public function getSubjectWiseOnlineExamProgress($branch_id, $class_id, $section_id, $subject_id, $student_id)
     {
         $this->db->select('oe.id as exam_id, oe.title, oes.student_id');
         $this->db->from('online_exam_submitted as oes');
         $this->db->join('online_exam as oe', 'oe.id = oes.online_exam_id', 'inner');
+        $this->db->join('exam_assignment as ea', 'ea.exam_id = oe.id', 'inner');
         $this->db->where('oe.class_id', $class_id);
-        $this->db->where('oe.branch_id', $branch_id);
-        // $this->db->where('FIND_IN_SET(' . $section_id . ', oe.section_id) !=', 0);
+        $this->db->where('oe.created_by_branch', $branch_id);
         $this->db->where('oes.student_id', $student_id);
         $exams = $this->db->get()->result_array();
 
         $subjectWise = [];
+
         foreach ($exams as $exam) {
             $result = $this->examProgressReportSubjectwise($exam['exam_id'], $student_id, $subject_id);
             if ($result) {
@@ -364,25 +372,19 @@ class Report_model extends CI_Model
         ];
     }
 
-
-
     public function getSubjectWiseClassAverage($branch_id, $class_id, $subject_id)
     {
-        // log_message('debug', "Getting subject-wise class average. Params => Branch ID: $branch_id, Class ID: $class_id, Subject ID: $subject_id");
-
         $query = "
-        SELECT id, title FROM online_exam
-        WHERE branch_id = ? 
-          AND class_id = ? 
-          AND JSON_CONTAINS(subject_id, '[\"$subject_id\"]')
-    ";
-        // log_message('debug', "Exam Fetch Query: " . $query);
+        SELECT oe.id, oe.title 
+        FROM online_exam AS oe
+        INNER JOIN exam_assignment AS ea ON ea.exam_id = oe.id
+        WHERE ea.branch_id = ?
+          AND oe.class_id = ?
+          AND JSON_CONTAINS(oe.subject_id, '[\"$subject_id\"]')";
 
         $exams = $this->db->query($query, [$branch_id, $class_id])->result_array();
-        // log_message('debug', "Exams Found: " . json_encode($exams));
 
         if (empty($exams)) {
-            // log_message('debug', "No exams found for given params.");
             return [];
         }
 
@@ -396,7 +398,6 @@ class Report_model extends CI_Model
                 ->from('online_exam_submitted')
                 ->where('online_exam_id', $examID)
                 ->get()->result_array();
-            // log_message('debug', "Students Found: " . json_encode($students));
 
             $totalMarks = 0;
             $totalFullMarks = 0;
@@ -405,9 +406,6 @@ class Report_model extends CI_Model
             foreach ($students as $s) {
                 $studentID = $s['student_id'];
                 $result = $this->examProgressReportSubjectwise($examID, $studentID, $subject_id);
-
-                // log_message('debug', "Student ID: $studentID | Result: " . json_encode($result));
-
                 $totalMarks += $result['total_obtain_marks'];
                 $totalFullMarks += $result['total_marks'];
                 $count++;

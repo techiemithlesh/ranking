@@ -1620,7 +1620,8 @@
                             $main_menu == 'exam_reports' ||
                             $main_menu == 'skill_report' ||
                             $main_menu == 'online_exam_smart_progress' ||
-                            $main_menu == 'live_exam'
+                            $main_menu == 'live_exam' ||
+                            $main_menu = 'progress_tracker'
                         )
                             echo 'nav-expanded nav-active'; ?>">
                             <a>
@@ -1780,7 +1781,6 @@
                                     </li>
                                 <?php } ?>
 
-
                                 <li class="nav-parent <?php if ($main_menu == 'skill_report')
                                     echo 'nav-expanded nav-active'; ?>">
                                     <a>
@@ -1848,11 +1848,12 @@
                                     </li>
                                 <?php } ?>
                                 <!-- PROGRESS TRACKER -->
-                                <li class="nav-parent <?php if ($main_menu == 'reports')
-                                    echo 'nav-expanded nav-active'; ?>">
+                                <li class="<?php if ($sub_page == 'report/tracker/index')
+                                                echo 'nav-active'; ?>">
                                     <a href="<?= base_url('report/progressTracker') ?>">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span><?= translate('progress_tracker') ?></span>
+                                        <i class="fas fa-clipboard-list"></i><span>
+                                            <?=translate('progress_tracker') ?>
+                                        </span>
                                     </a>
                                 </li>
 

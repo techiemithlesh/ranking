@@ -1314,6 +1314,10 @@ class Userrole extends User_Controller
 
                 $this->data['subjects'] = $this->report_model->getOnlineExamProgressReport($branchId, $classId, $sectionId, $examID, $studentID);
 
+                printVar($this->data['subjects']);
+                printVar($this->db->last_query());
+                die;
+
                 if (empty($this->data['subjects'])) {
                     set_alert('error', translate('Smart Progress not found.'));
                     redirect(base_url('userrole/online_exam_progress'));
