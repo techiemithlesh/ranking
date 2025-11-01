@@ -295,9 +295,12 @@ class Report_model extends CI_Model
         $this->db->select('oe.id as exam_id, oe.title, oes.student_id');
         $this->db->from('online_exam_submitted as oes');
         $this->db->join('online_exam as oe', 'oe.id = oes.online_exam_id', 'inner');
-        $this->db->join('exam_assignment as ea', 'ea.exam_id = oe.id', 'inner');
+        $this->db->join('exam_assignment as ea', 'ea.exam_id = oe.id', 'left');
         $this->db->where('oe.class_id', $class_id);
-        $this->db->where('oe.created_by_branch', $branch_id);
+        $this->db->where('(
+        oe.created_by_branch = ' . $this->db->escape($branch_id) . ' 
+        OR ea.branch_id = ' . $this->db->escape($branch_id) . '
+        )');
         $this->db->where('oes.student_id', $student_id);
         $exams = $this->db->get()->result_array();
 

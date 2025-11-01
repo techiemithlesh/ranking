@@ -803,15 +803,13 @@ class Report extends Admin_Controller
                 $this->data['studentID'] = $studentId;
                 $this->data['subjectID'] = $subjectId;
                 $this->data['studentMpped'] = json_decode(json_encode($this->report_model->getStudentDetails($studentId)), true);
-                $branchId = $this->data['studentMpped']['branch_id'];
-                $classId = $this->data['studentMpped']['class_id'];
-                $sectionId = $this->data['studentMpped']['section_id'];
+               
+                $this->data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branchID . "'")->row_array();
 
-                $this->data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branchId . "'")->row_array();
-
-                $progress = $this->report_model->getSubjectWiseOnlineExamProgress($branchId, $classId, $sectionId, $subjectId, $studentId);
+                $progress = $this->report_model->getSubjectWiseOnlineExamProgress($branchID, $classID, $sectionId, $subjectId, $studentId);
 
                 $subjectName = $this->db->get_where('subject', ['id' => $subjectId])->row('name');
+
                 foreach ($progress as $key => $exam) {
                     $progress[$key]['subject_name'] = $subjectName;
                     $progress[$key]['marks_obtained'] = $exam['total_obtain_marks'];
@@ -821,13 +819,14 @@ class Report extends Admin_Controller
                 }
 
                 $this->data['progress'] = $progress;
-                $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchId, $classId, $subjectId);
+                $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId);
                
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;
             }
         }
 
+        $this->data['branch_id'] = $branchID;
         $this->data['title'] = translate('subject_wise_exam_progress');
         $this->data['sub_page'] = 'report/online_exam_progress/subjectwise_filter';
         $this->data['main_menu'] = 'online_exam_progress';
