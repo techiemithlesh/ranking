@@ -1619,7 +1619,7 @@
                             $main_menu == 'leave_reports' ||
                             $main_menu == 'exam_reports' ||
                             $main_menu == 'skill_report' ||
-                            $main_menu == 'online_exam_smart_progress' ||
+                            $main_menu == 'online_exam_progress' ||
                             $main_menu == 'live_exam' ||
                             $main_menu = 'progress_tracker'
                         )
@@ -1828,10 +1828,10 @@
 
                                 <?php if (get_permission('online_exam_progress', 'is_view')) { ?>
 
-                                    <li class="nav-parent <?php if ($main_menu == 'fees_repots')
+                                    <li class="nav-parent <?php if ($main_menu == 'online_exam_progress')
                                         echo 'nav-expanded nav-active'; ?>">
-                                        <a><i
-                                                class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
+                                        <a>
+                                            <i class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
                                         <ul class="nav nav-children">
                                             <li class="<?php if ($sub_page == 'report/online_exam_progress/index')
                                                 echo 'nav-active'; ?>">
@@ -1849,10 +1849,10 @@
                                 <?php } ?>
                                 <!-- PROGRESS TRACKER -->
                                 <li class="<?php if ($sub_page == 'report/tracker/index')
-                                                echo 'nav-active'; ?>">
+                                    echo 'nav-active'; ?>">
                                     <a href="<?= base_url('report/progressTracker') ?>">
                                         <i class="fas fa-clipboard-list"></i><span>
-                                            <?=translate('progress_tracker') ?>
+                                            <?= translate('progress_tracker') ?>
                                         </span>
                                     </a>
                                 </li>
