@@ -859,7 +859,7 @@ class Onlineexam extends Admin_Controller
             $this->db->where('class_id', $classID);
             $this->db->where('session_id', get_session_id());
             if (!is_superadmin_loggedin()) {
-                $this->db->where('branch_id', get_loggedin_branch_id());
+                $this->db->where('created_by_branch', get_loggedin_branch_id());
             }
             if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
                 $this->db->where('created_by', get_loggedin_user_id());

@@ -256,6 +256,7 @@ class Onlineexam_model extends MY_Model
         // Total records without filter
         $sql = "SELECT `id` FROM `online_exam` " . $countWhere;
         $records = $this->db->query($sql)->result();
+
         $totalRecords = count($records);
 
         // Total records with filtering
@@ -290,7 +291,8 @@ class Onlineexam_model extends MY_Model
                 }
             }
 
-            $action .= '<a href="' . base_url('onlineexam/question_list/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . " " . translate('question') . '"> <i class="fas fa-list-check"></i></a>';
+            $action .= '<a href="' . base_url('onlineexam/question_list/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . " " . translate('question') . '"> <i class="fas fa-clipboard-list"></i></a>';
+
 
             if ($record->publish_status == 0) {
                 $action .= '<a href="' . base_url('onlineexam/manage_question/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('add_questions') . '"> <i class="fas fa-question"></i></a>';
@@ -305,7 +307,7 @@ class Onlineexam_model extends MY_Model
             }
 
             // ASSIGN BRANCH
-            if (is_superadmin_loggedin()) {
+            if (is_superadmin_loggedin() && (empty($record->created_by_branch) || $record->created_by_branch == 0)) {
                 $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-building"></i></button>';
             }
 
@@ -330,6 +332,7 @@ class Onlineexam_model extends MY_Model
             $row[] = _d($record->exam_end) . "<p class='text-muted'>" . date("h:i A", strtotime($record->exam_end)) . "</p>";
             $row[] = $record->duration;
             $row[] = $record->exam_type == 0 ? translate('free') : $currency_symbol . $record->fee;
+
             $row[] = '<div class="material-switch ml-xs">
                 <input class="exam-status" id="examstatus_' . $record->id . '" data-id="' . $record->id . '" name="exam_status' . $record->id . '" type="checkbox" ' . $status . ' />
                 <label for="examstatus_' . $record->id . '" class="label-primary"></label>

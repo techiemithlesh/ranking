@@ -761,6 +761,7 @@ class Report extends Admin_Controller
             }
         }
 
+        $this->data['branch_id'] = $branchID;
         $this->data['title'] = translate('online_exam_progress');
         $this->data['sub_page'] = 'report/online_exam_progress/index';
         $this->data['main_menu'] = 'online_exam_progress';
@@ -776,9 +777,6 @@ class Report extends Admin_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
-
-
     public function online_exam_progress_subjectwise()
     {
         if (!get_permission('online_exam_progress', 'is_view')) {

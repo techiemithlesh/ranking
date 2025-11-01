@@ -98,25 +98,29 @@ class Report_model extends CI_Model
 
     public function getOnlineExamProgressReport($branch_id, $class_id, $section_id, $exam_id, $student_id)
     {
+
         $this->db->select('
         oes.student_id, 
         s.register_no, 
         s.photo, 
         CONCAT(s.first_name, " ", s.last_name) AS full_name, 
-        oe.*
-        ');
+        oe.*');
         $this->db->from('online_exam_submitted AS oes');
         $this->db->join('online_exam AS oe', 'oe.id = oes.online_exam_id', 'inner');
-        $this->db->join('exam_assignment AS ea', 'ea.exam_id = oe.id', 'inner'); // ✅ ensures branch has access
+        $this->db->join('exam_assignment AS ea', 'ea.exam_id = oe.id', 'left');
         $this->db->join('student AS s', 's.id = oes.student_id', 'left');
-
-        $this->db->where('oes.online_exam_id', $exam_id);
+        $this->db->where('(
+            oe.created_by_branch = ' . $this->db->escape($branch_id) . ' 
+            OR ea.branch_id = ' . $this->db->escape($branch_id) . ')');
         $this->db->where('oe.session_id', get_session_id());
+        $this->db->where('oe.id', $exam_id);
         $this->db->where('oe.class_id', $class_id);
-        $this->db->where('ea.branch_id', $branch_id); // ✅ use exam_assignment instead of created_by_branch
         $this->db->where('oes.student_id', $student_id);
 
         $results = $this->db->get()->result_array();
+
+        log_message("debug", "THE EXAM PROGRESS QUERY" . $this->db->last_query());
+
         $subjectDetails = [];
 
         foreach ($results as $row) {
@@ -150,6 +154,8 @@ class Report_model extends CI_Model
 
     public function examProgressReport($examID, $studentID)
     {
+        
+
         $sql = "SELECT `questions_manage`.*, `questions`.`subject_id`, `questions`.`id` as `qus_id`, `questions`.*, `online_exam_answer`.`answer` as `sb_ans`, `online_exam_answer`.`id` as `ans_id` 
                 FROM `questions_manage` 
                 INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` 
@@ -233,13 +239,16 @@ class Report_model extends CI_Model
 
     public function getClassAverageByOnlineExam($branchID, $classID, $sectionID, $examID)
     {
-        // Get students who submitted the exam
         $this->db->select('online_exam_submitted.student_id, online_exam.section_id');
         $this->db->from('online_exam_submitted');
         $this->db->join('online_exam', 'online_exam.id = online_exam_submitted.online_exam_id');
+        $this->db->join('exam_assignment', 'exam_assignment.exam_id = online_exam.id', 'left');
         $this->db->where('online_exam_submitted.online_exam_id', $examID);
         $this->db->where('online_exam.class_id', $classID);
-        $this->db->where('online_exam.branch_id', $branchID);
+        $this->db->where('(
+            online_exam.created_by_branch = ' . $this->db->escape($branchID) . ' 
+            OR exam_assignment.branch_id = ' . $this->db->escape($branchID) . '
+        )');
 
         $query = $this->db->get();
         if (!$query) {
