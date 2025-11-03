@@ -104,6 +104,7 @@ class Report_model extends CI_Model
         s.register_no, 
         s.photo, 
         CONCAT(s.first_name, " ", s.last_name) AS full_name, 
+        oes.remark AS teacher_remark,
         oe.*');
         $this->db->from('online_exam_submitted AS oes');
         $this->db->join('online_exam AS oe', 'oe.id = oes.online_exam_id', 'inner');
@@ -118,8 +119,6 @@ class Report_model extends CI_Model
         $this->db->where('oes.student_id', $student_id);
 
         $results = $this->db->get()->result_array();
-
-        log_message("debug", "THE EXAM PROGRESS QUERY" . $this->db->last_query());
 
         $subjectDetails = [];
 
@@ -144,6 +143,7 @@ class Report_model extends CI_Model
                     'subject_name' => get_type_name_by_id('subject', $subId),
                     'obtainMark' => $examResult['per_subject'][$subId]['obtain'] ?? 0,
                     'full_mark' => $examResult['per_subject'][$subId]['full'] ?? 0,
+                    'teacher_remark' => $row['teacher_remark'] ?? ''
                 ];
             }
         }
@@ -154,8 +154,6 @@ class Report_model extends CI_Model
 
     public function examProgressReport($examID, $studentID)
     {
-        
-
         $sql = "SELECT `questions_manage`.*, `questions`.`subject_id`, `questions`.`id` as `qus_id`, `questions`.*, `online_exam_answer`.`answer` as `sb_ans`, `online_exam_answer`.`id` as `ans_id` 
                 FROM `questions_manage` 
                 INNER JOIN `questions` ON `questions`.`id` = `questions_manage`.`question_id` 
@@ -384,12 +382,12 @@ class Report_model extends CI_Model
         ];
     }
 
-    public function getSubjectWiseClassAverage($branch_id, $class_id, $subject_id)
+    public function getSubjectWiseClassAverage_old($branch_id, $class_id, $subject_id)
     {
         $query = "
         SELECT oe.id, oe.title 
         FROM online_exam AS oe
-        INNER JOIN exam_assignment AS ea ON ea.exam_id = oe.id
+        LEFT JOIN exam_assignment AS ea ON ea.exam_id = oe.id
         WHERE ea.branch_id = ?
           AND oe.class_id = ?
           AND JSON_CONTAINS(oe.subject_id, '[\"$subject_id\"]')";
@@ -435,6 +433,63 @@ class Report_model extends CI_Model
         return $averages;
     }
 
+
+    public function getSubjectWiseClassAverage($branch_id, $class_id, $subject_id)
+    {
+        // 🧠 Step 1: Fetch all exams that include this subject
+        $this->db->select('oe.id, oe.title');
+        $this->db->from('online_exam AS oe');
+        $this->db->join('exam_assignment AS ea', 'ea.exam_id = oe.id', 'left');
+        $this->db->group_start();
+        $this->db->where('ea.branch_id', $branch_id);
+        $this->db->or_where('oe.created_by_branch', $branch_id);
+        $this->db->group_end();
+        $this->db->where('oe.class_id', $class_id);
+        $this->db->where("JSON_CONTAINS(oe.subject_id, " . $this->db->escape(json_encode([$subject_id])) . ")", null, false);
+
+        $exams = $this->db->get()->result_array();
+
+        if (empty($exams)) {
+            return [];
+        }
+
+        $averages = [];
+
+        // 🧠 Step 2: Loop through exams to calculate class average
+        foreach ($exams as $exam) {
+            $examID = $exam['id'];
+
+            // Get all unique students who submitted this exam
+            $students = $this->db->select('DISTINCT(student_id)', false)
+                ->from('online_exam_submitted')
+                ->where('online_exam_id', $examID)
+                ->get()
+                ->result_array();
+
+            $totalMarks = 0;
+            $totalFullMarks = 0;
+            $count = 0;
+
+            // 🧠 Step 3: Loop through students, get their subjectwise result
+            foreach ($students as $s) {
+                $studentID = $s['student_id'];
+                $result = $this->examProgressReportSubjectwise($examID, $studentID, $subject_id);
+
+                $totalMarks += $result['total_obtain_marks'];
+                $totalFullMarks += $result['total_marks'];
+                $count++;
+            }
+
+            // 🧠 Step 4: Compute class average percentage
+            $average = ($totalFullMarks > 0 && $count > 0)
+                ? round(($totalMarks / $totalFullMarks) * 100, 2)
+                : 0;
+
+            $averages[$exam['title']] = $average;
+        }
+
+        return $averages;
+    }
 
 
 

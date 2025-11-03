@@ -26,15 +26,12 @@
                 <div class="school-info">
                     <h1><?= $branchData["name"]; ?></h1>
                     <p><?php if (isset($branchData["address"]) && $branchData["address"] != '') { ?><?= $branchData["address"]; ?>,<?php } ?>
-                        <?php if (isset($branchData["city"]) && $branchData["city"] != '') { ?>
-                            <?= $branchData["city"]; ?>,<?php } ?>
-                        <?php if (isset($branchData["state"]) && $branchData["state"] != '') { ?>
-                            <?= $branchData["state"]; ?><?php } ?>
                     </p>
                 </div>
                 <div class="qr-code">
                     <?php if (!empty($studentPhoto)): ?>
-                        <img src="<?= $studentPhoto ?>" alt="<?= $studentMpped["first_name"] . ' ' . $studentMpped["last_name"] ?? 'Student Photo'; ?>"
+                        <img src="<?= $studentPhoto ?>"
+                            alt="<?= $studentMpped["first_name"] . ' ' . $studentMpped["last_name"] ?? 'Student Photo'; ?>"
                             style="width:120px">
                     <?php else: ?>
                         <p>No photo available</p>
@@ -54,7 +51,7 @@
                 <p><strong>Class:</strong> <?= $studentMpped["class_name"]; ?></p>
                 <p><strong>Section:</strong> <?= trim($studentMpped["section_name"], $studentMpped["class_name"]); ?>
                 </p>
-                <p><strong>Roll No:</strong> <?= $studentMpped["register_no"]; ?></p>
+                <p><strong>Reg No:</strong> <?= $studentMpped["register_no"]; ?></p>
                 <p><strong>Attendance:</strong> A: <?= $absentDays; ?> P: <?= $presentDays; ?></p>
             </section>
 
@@ -109,18 +106,44 @@
                 <canvas id="resultGraph"></canvas>
             </section>
 
-            <!-- Teacher's Comments Section -->
-            <section class="comments-section">
+            <!-- <section class="comments-section">
                 <h4>Class Teacher's Comments:</h4>
                 <?php
                 foreach ($subjects as $key => $mark) {
                     ?>
-                    <an><?= $mark['subject_name'] ?> - <span><?= $mark['remarks'] ?? 'NA' ?></span></p>
-                        <?php
+                    <an>
+                     <?= $mark['subject_name'] ?> - <span><?= $mark['teacher_remark'] ?? 'NA' ?></span>
+                    </p>
+                     <?php
                 }
+                ?>
+            </section> -->
 
+            <section class="comments-section">
+                <?php
+                if (!empty($subjects)) {
+                    // Extract all remarks
+                    $remarks = array_column($subjects, 'teacher_remark');
+                    $uniqueRemarks = array_unique(array_filter($remarks));
+
+                    if (count($uniqueRemarks) === 1) {
+                        // ✅ Only one unique remark — show it directly in heading
+                        $singleRemark = reset($uniqueRemarks);
+                        echo '<h4>Teacher\'s Comments: <span>' . htmlspecialchars($singleRemark) . '</span></h4>';
+                    } else {
+                        // ✅ Multiple different remarks — show subject-wise list
+                        echo '<h4>Teacher\'s Comments:</h4>';
+                        foreach ($subjects as $mark) {
+                            echo '<p>' . htmlspecialchars($mark['subject_name']) . ' - <span>' . htmlspecialchars($mark['teacher_remark'] ?? 'NA') . '</span></p>';
+                        }
+                    }
+                } else {
+                    // No subjects or remarks
+                    echo '<h4>Teacher\'s Comments:</h4><p>NA</p>';
+                }
                 ?>
             </section>
+
 
             <!-- Signatures Section -->
             <section class="signatures-section">

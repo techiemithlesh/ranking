@@ -749,6 +749,9 @@ class Report extends Admin_Controller
 
                 $this->data['subjects'] = $this->report_model->getOnlineExamProgressReport($branchID, $classID, $sectionId, $examID, $studentId);
 
+                // printVar($this->data['subjects']);
+                // die;
+
                 if (empty($this->data['subjects'])) {
                     set_alert('error', translate('Smart Progress not found.'));
                     redirect(base_url('Report/online_exam_progress'));
@@ -820,6 +823,9 @@ class Report extends Admin_Controller
 
                 $this->data['progress'] = $progress;
                 $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId);
+                // printVar($this->data['class_average']);
+                // printVar($this->db->last_query());
+                // die;
                
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;
