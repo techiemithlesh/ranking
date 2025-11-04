@@ -824,7 +824,6 @@ class Report extends Admin_Controller
                 $this->data['progress'] = $progress;
                 $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId);
                 // printVar($this->data['class_average']);
-                // printVar($this->db->last_query());
                 // die;
                
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);

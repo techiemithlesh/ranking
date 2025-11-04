@@ -434,7 +434,7 @@ class Report_model extends CI_Model
     }
 
 
-    public function getSubjectWiseClassAverage($branch_id, $class_id, $subject_id)
+    public function getSubjectWiseClassAverage1($branch_id, $class_id, $subject_id)
     {
         // 🧠 Step 1: Fetch all exams that include this subject
         $this->db->select('oe.id, oe.title');
@@ -448,6 +448,8 @@ class Report_model extends CI_Model
         $this->db->where("JSON_CONTAINS(oe.subject_id, " . $this->db->escape(json_encode([$subject_id])) . ")", null, false);
 
         $exams = $this->db->get()->result_array();
+
+        log_message("debug", "THE LAST QUERY " . $this->db->last_query());
 
         if (empty($exams)) {
             return [];
@@ -480,6 +482,8 @@ class Report_model extends CI_Model
                 $count++;
             }
 
+            log_message("debug", "The total student appeared" . $count);
+
             // 🧠 Step 4: Compute class average percentage
             $average = ($totalFullMarks > 0 && $count > 0)
                 ? round(($totalMarks / $totalFullMarks) * 100, 2)
@@ -491,6 +495,75 @@ class Report_model extends CI_Model
         return $averages;
     }
 
+    public function getSubjectWiseClassAverage($branch_id, $class_id, $subject_id)
+    {
+        // Step 1️⃣: Find all exams that actually contain questions of this subject
+        $this->db->select('DISTINCT(qm.onlineexam_id) AS exam_id, oe.title');
+        $this->db->from('questions_manage AS qm');
+        $this->db->join('questions AS q', 'q.id = qm.question_id', 'inner');
+        $this->db->join('online_exam AS oe', 'oe.id = qm.onlineexam_id', 'inner');
+        $this->db->join('exam_assignment AS ea', 'ea.exam_id = oe.id', 'left');
+        $this->db->group_start();
+        $this->db->where('ea.branch_id', $branch_id);
+        $this->db->or_where('oe.created_by_branch', $branch_id);
+        $this->db->group_end();
+        $this->db->where('oe.class_id', $class_id);
+        $this->db->where('q.subject_id', $subject_id);
+        $this->db->order_by('oe.id', 'ASC');
+
+        $exams = $this->db->get()->result_array();
+
+        if (empty($exams)) {
+            return [];
+        }
+
+        $averages = [];
+
+        // Step 2️⃣: Loop through exams that actually have questions for this subject
+        foreach ($exams as $exam) {
+            $examID = $exam['exam_id'];
+            $examTitle = $exam['title'];
+
+            // Fetch students who submitted this exam
+            $students = $this->db->select('DISTINCT(student_id)', false)
+                ->from('online_exam_submitted')
+                ->where('online_exam_id', $examID)
+                ->get()
+                ->result_array();
+
+            if (empty($students)) {
+                $averages[$examTitle] = 'N/A';
+                continue;
+            }
+
+            $totalMarks = 0;
+            $totalFullMarks = 0;
+            $count = 0;
+
+            // Step 3️⃣: Calculate each student's subject performance
+            foreach ($students as $s) {
+                $studentID = $s['student_id'];
+                $result = $this->examProgressReportSubjectwise($examID, $studentID, $subject_id);
+
+                if ($result['total_marks'] > 0) {
+                    $totalMarks += $result['total_obtain_marks'];
+                    $totalFullMarks += $result['total_marks'];
+                    $count++;
+                }
+            }
+
+            // Step 4️⃣: Compute average percentage
+            if ($count > 0 && $totalFullMarks > 0) {
+                $average = round(($totalMarks / $totalFullMarks) * 100, 2);
+            } else {
+                $average = 'N/A';
+            }
+
+            $averages[$examTitle] = $average;
+        }
+
+        return $averages;
+    }
 
 
     private function array_equal($a, $b)

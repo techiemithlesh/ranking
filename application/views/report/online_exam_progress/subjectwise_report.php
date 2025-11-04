@@ -111,10 +111,7 @@
                 <div class="school-info">
                     <h1><?= $branchData["name"]; ?></h1>
                     <p><?php if (isset($branchData["address"]) && $branchData["address"] != '') { ?><?= $branchData["address"]; ?>,<?php } ?>
-                        <?php if (isset($branchData["city"]) && $branchData["city"] != '') { ?>
-                            <?= $branchData["city"]; ?>,<?php } ?>
-                        <?php if (isset($branchData["state"]) && $branchData["state"] != '') { ?>
-                            <?= $branchData["state"]; ?><?php } ?>
+                        
                     </p>
                 </div>
                 <div class="qr-code">
@@ -139,7 +136,7 @@
                 <p><strong>Class:</strong> <?= $studentMpped["class_name"]; ?></p>
                 <p><strong>Section:</strong> <?= trim($studentMpped["section_name"], $studentMpped["class_name"]); ?>
                 </p>
-                <p><strong>Roll No:</strong> <?= $studentMpped["register_no"]; ?></p>
+                <p><strong>Reg No:</strong> <?= $studentMpped["register_no"]; ?></p>
 
             </section>
 
