@@ -1371,6 +1371,12 @@ class Userrole extends User_Controller
 
                 // Subject info & restructuring
                 $subjectName = $this->db->get_where('subject', ['id' => $subjectId])->row('name');
+
+                 $student_exam_ids = array_map(function ($exam) {
+                    return $exam['exam_id'];
+                }, $progress);
+
+
                 foreach ($progress as $key => $exam) {
                     $progress[$key]['subject_name'] = $subjectName;
                     $progress[$key]['marks_obtained'] = $exam['total_obtain_marks'];
@@ -1379,8 +1385,13 @@ class Userrole extends User_Controller
                     $progress[$key]['name'] = $exam['title'];
                 }
 
+                $classAaverage = $this->report_model->getSubjectWiseClassAverage($branchId, $classId, $subjectId, $student_exam_ids);
+                $this->data['class_average'] = !empty($classAaverage)
+                    ? array_column($classAaverage, 'avg_percentage')
+                    : [];
+
                 $this->data['progress'] = $progress;
-                $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchId, $classId, $subjectId);
+               
 
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;

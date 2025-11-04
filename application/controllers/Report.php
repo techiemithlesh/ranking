@@ -756,7 +756,7 @@ class Report extends Admin_Controller
                     set_alert('error', translate('Smart Progress not found.'));
                     redirect(base_url('Report/online_exam_progress'));
                 }
-               
+
                 $this->data['class_average'] = $this->report_model->getClassAverageByOnlineExam($branchID, $classID, $sectionId, $examID);
 
                 $this->load->view('report/online_exam_progress/overall_report', $this->data);
@@ -806,26 +806,35 @@ class Report extends Admin_Controller
                 $this->data['studentID'] = $studentId;
                 $this->data['subjectID'] = $subjectId;
                 $this->data['studentMpped'] = json_decode(json_encode($this->report_model->getStudentDetails($studentId)), true);
-               
+
                 $this->data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branchID . "'")->row_array();
 
                 $progress = $this->report_model->getSubjectWiseOnlineExamProgress($branchID, $classID, $sectionId, $subjectId, $studentId);
-
                 $subjectName = $this->db->get_where('subject', ['id' => $subjectId])->row('name');
 
-                foreach ($progress as $key => $exam) {
-                    $progress[$key]['subject_name'] = $subjectName;
-                    $progress[$key]['marks_obtained'] = $exam['total_obtain_marks'];
-                    $progress[$key]['full_mark'] = $exam['total_marks'];
-                    $progress[$key]['pass_mark'] = 0;
-                    $progress[$key]['name'] = $exam['title']; 
+                $student_exam_ids = array_map(function ($exam) {
+                    return $exam['exam_id'];
+                }, $progress);
+
+
+                if (!empty($progress)) {
+                    foreach ($progress as $key => $exam) {
+                        $progress[$key]['subject_name'] = $subjectName;
+                        $progress[$key]['marks_obtained'] = $exam['total_obtain_marks'];
+                        $progress[$key]['full_mark'] = $exam['total_marks'];
+                        $progress[$key]['pass_mark'] = 0;
+                        $progress[$key]['name'] = $exam['title'];
+                    }
                 }
 
                 $this->data['progress'] = $progress;
-                $this->data['class_average'] = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId);
-                // printVar($this->data['class_average']);
-                // die;
-               
+
+                $classAaverage = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId, $student_exam_ids);
+                $this->data['class_average'] = !empty($classAaverage)
+                    ? array_column($classAaverage, 'avg_percentage')
+                    : [];
+
+                
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;
             }
@@ -839,6 +848,67 @@ class Report extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    public function online_exam_progress_subjectwise1()
+    {
+        if (!get_permission('online_exam_progress', 'is_view')) {
+            access_denied();
+        }
+
+        if (isset($_POST['search'])) {
+            $branchID = $this->application_model->get_branch_id();
+
+            if (is_superadmin_loggedin()) {
+                $this->form_validation->set_rules('branch_id', 'Branch', 'trim|required');
+            }
+            $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
+            $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
+            $this->form_validation->set_rules('student_id', 'Student', 'trim|required');
+            $this->form_validation->set_rules('subject_id', 'Subject', 'trim|required');
+
+            if ($this->form_validation->run() == true) {
+                $classID = $this->input->post('class_id');
+                $sectionId = $this->input->post('section_id');
+                $studentId = $this->input->post('student_id');
+                $subjectId = $this->input->post('subject_id');
+
+                $this->data['studentID'] = $studentId;
+                $this->data['subjectID'] = $subjectId;
+                $this->data['studentMpped'] = json_decode(json_encode($this->report_model->getStudentDetails($studentId)), true);
+
+                $this->data['branchData'] = $this->db->query("SELECT * FROM branch WHERE id='" . $branchID . "'")->row_array();
+
+                $progress = $this->report_model->getSubjectWiseOnlineExamProgress($branchID, $classID, $sectionId, $subjectId, $studentId);
+
+                $subjectName = $this->db->get_where('subject', ['id' => $subjectId])->row('name');
+                $averages = $this->report_model->getSubjectWiseClassAverage($branchID, $classID, $subjectId);
+
+                foreach ($progress as $key => $exam) {
+
+                    $progress[$key]['subject_name'] = $subjectName;
+                    $progress[$key]['marks_obtained'] = $exam['total_obtain_marks'];
+                    $progress[$key]['full_mark'] = $exam['total_marks'];
+                    $progress[$key]['pass_mark'] = 0;
+                    $progress[$key]['name'] = $exam['title'];
+                    $examArv = (array_filter($averages, function ($item) use ($exam) {
+                        return $item["exam_id"] == $exam["exam_id"];
+                    }));
+                    $this->data['class_average'][$exam["title"]] = $examArv[$exam["exam_id"]]["average"] ?? 0;
+                }
+
+                $this->data['progress'] = $progress;
+
+                $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
+                return;
+            }
+        }
+
+        $this->data['branch_id'] = $branchID;
+        $this->data['title'] = translate('subject_wise_exam_progress');
+        $this->data['sub_page'] = 'report/online_exam_progress/subjectwise_filter';
+        $this->data['main_menu'] = 'online_exam_progress';
+
+        $this->load->view('layout/index', $this->data);
+    }
 
 
 }
