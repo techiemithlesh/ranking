@@ -245,7 +245,7 @@ class Userrole_model extends MY_Model
         return $this->db->get()->row_array();
     }
 
-   
+
     public function examListDT_Old($postData, $currency_symbol = '')
     {
         date_default_timezone_set('Asia/Kolkata');
@@ -438,15 +438,10 @@ class Userrole_model extends MY_Model
             ->result_array();
         $assignedExamIDs = array_column($assignedExamIDs, 'exam_id');
 
-        log_message('error', 'Assigned Exam IDs: ' . print_r($assignedExamIDs, true));
+        // log_message('error', 'Assigned Exam IDs: ' . print_r($assignedExamIDs, true));
 
         // ✅ Build WHERE condition: created_by_branch OR assigned to branch
         $search_arr[] = " `online_exam`.`class_id` = " . $this->db->escape($class_id) . " ";
-        // $search_arr[] = " (
-        // `online_exam`.`created_by_branch` IS NULL
-        //     OR `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
-        //     OR `online_exam`.`id` IN (" . implode(',', $assignedExamIDs ?: [0]) . ")
-        // )";
 
         $search_arr[] = " (
                 `online_exam`.`created_by_branch` = " . $this->db->escape($branch_id) . "
@@ -460,8 +455,6 @@ class Userrole_model extends MY_Model
         // ✅ Total number of records with filtering
         $sql = "SELECT `id`, `section_id` FROM `online_exam`
             WHERE `publish_status` = '1' AND " . $searchQuery;
-
-        // log_message('error', 'Exam Count Query: ' . $sql);
         $records = $this->db->query($sql)->result();
 
         $totalRecords = 0;
@@ -487,8 +480,6 @@ class Userrole_model extends MY_Model
             WHERE `publish_status` = '1' AND " . $searchQuery . "
             ORDER BY " . $column_order[$columnIndex] . " $columnSortOrder
             LIMIT $start, $rowperpage";
-
-        log_message('error', 'Exam Fetch Query: ' . $sql);
         $records = $this->db->query($sql)->result();
 
         $data = array();

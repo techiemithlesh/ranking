@@ -1078,107 +1078,7 @@ class Userrole extends User_Controller
     }
 
 
-    // public function onlineexam_submit_answer()
-    // {
-    //     if ($_POST) {
-    //         if (!is_student_loggedin()) {
-    //             access_denied();
-    //         }
-    //         $studentID = get_loggedin_user_id();
-    //         $online_examID = $this->input->post('online_exam_id');
-    //         $variable = $this->input->post('answer');
-
-    //         // log_message('info', 'Exam submission started. StudentID: ' . $studentID . ', ExamID: ' . $online_examID);
-
-    //         if (!empty($variable)) {
-    //             $saveAnswer = array();
-    //             foreach ($variable as $key => $value) {
-    //                 if (isset($value[1])) {
-    //                     $saveAnswer[] = array(
-    //                         'student_id' => $studentID,
-    //                         'online_exam_id' => $online_examID,
-    //                         'question_id' => $key,
-    //                         'answer' => $value[1],
-    //                         'created_at' => date('Y-m-d H:i:s'),
-    //                     );
-    //                 }
-    //                 if (isset($value[2])) {
-    //                     $saveAnswer[] = array(
-    //                         'student_id' => $studentID,
-    //                         'online_exam_id' => $online_examID,
-    //                         'question_id' => $key,
-    //                         'answer' => json_encode($value[2]),
-    //                         'created_at' => date('Y-m-d H:i:s'),
-    //                     );
-    //                 }
-    //                 if (isset($value[3])) {
-    //                     $saveAnswer[] = array(
-    //                         'student_id' => $studentID,
-    //                         'online_exam_id' => $online_examID,
-    //                         'question_id' => $key,
-    //                         'answer' => $value[3],
-    //                         'created_at' => date('Y-m-d H:i:s'),
-    //                     );
-    //                 }
-    //                 if (isset($value[4])) {
-    //                     $saveAnswer[] = array(
-    //                         'student_id' => $studentID,
-    //                         'online_exam_id' => $online_examID,
-    //                         'question_id' => $key,
-    //                         'answer' => $value[4],
-    //                         'created_at' => date('Y-m-d H:i:s'),
-    //                     );
-    //                 }
-    //             }
-
-    //             // log_message('debug', 'Prepared Answers: ' . json_encode($saveAnswer));
-
-    //             $this->db->insert_batch('online_exam_answer', $saveAnswer);
-
-    //             // log_message('info', 'Answers inserted into online_exam_answer, Rows: ' . $this->db->affected_rows());
-
-    //             $this->db->insert('online_exam_submitted', ['student_id' => get_loggedin_user_id(), 'online_exam_id' => $online_examID, 'created_at' => date('Y-m-d H:i:s')]);
-
-    //             // log_message('info', 'Exam submission entry inserted into online_exam_submitted, Rows: ' . $this->db->affected_rows());
-
-    //             // FETCH RESULT FOR REWARD SYSTEM
-    //             if ($this->db->affected_rows() > 0) {
-
-    //                 // log_message('info', 'Exam submission confirmed for StudentID: ' . $studentID);
-
-    //                 $result = $this->onlineexam_model->examResult($online_examID, get_loggedin_user_id());
-    //                 // log_message('debug', 'Exam Result: ' . json_encode($result));
-    //                 $exam = $this->onlineexam_model->getExamDetails($online_examID);
-    //                 // log_message('debug', 'Exam Details: ' . json_encode($exam));
-    //                 $total_marks = $result['total_marks'];
-    //                 $total_obtain_marks = $result['total_obtain_marks'];
-    //                 $total_neg_marks = ($exam->neg_mark == 0 ? 0 : $result['total_neg_marks']);
-
-    //                 $percentage = ($total_marks === 0) ? 0 : (($total_obtain_marks - $total_neg_marks) * 100) / $total_marks;
-
-    //                 // log_message('info', 'EXAM PERCENTAGE: ' . $percentage);
-
-    //                 $isRewarded = $this->reward_model->isRewarded($exam->id, $studentID);
-
-    //                 // log_message('info', 'Reward already given? ' . ($isRewarded ? 'YES' : 'NO'));
-
-    //                 if (!$isRewarded) {
-    //                     // log_message('info', 'Calling Reward Library -> processExamReward() for StudentID: ' . $studentID . ', ExamID: ' . $exam->id);
-    //                     $this->reward_lib->processExamReward($studentID, $exam->id, 'online', $percentage);
-    //                     // log_message('info', 'Reward process executed for StudentID: ' . $studentID);
-    //                 } else {
-    //                     // log_message('info', 'Skipping reward, already rewarded.');
-    //                 }
-    //             }
-
-    //         }
-    //         set_alert('success', translate('your_exam_has_been_successfully_submitted'));
-    //         redirect(base_url('userrole/online_exam'));
-    //     }
-    // }
-
-
-    public function onlineexam_submit_answer()
+    public function onlineexam_submit_answerWithoutRedirect()
     {
         if ($_POST) {
             if (!is_student_loggedin()) {
@@ -1274,10 +1174,127 @@ class Userrole extends User_Controller
     }
 
 
+    public function onlineexam_submit_answer()
+    {
+        if ($_POST) {
+            if (!is_student_loggedin()) {
+                access_denied();
+            }
+
+            $studentID = get_loggedin_user_id();
+            $online_examID = $this->input->post('online_exam_id');
+            $answers = $this->input->post('answer');
+
+            if (!empty($answers)) {
+                $saveAnswer = [];
+                $timestamp = date('Y-m-d H:i:s');
+
+                // ✅ Prepare submitted answers
+                foreach ($answers as $question_id => $value) {
+                    foreach ($value as $type => $ans) {
+                        if (!empty($ans)) {
+                            $saveAnswer[] = [
+                                'student_id' => $studentID,
+                                'online_exam_id' => $online_examID,
+                                'question_id' => $question_id,
+                                'answer' => is_array($ans) ? json_encode($ans) : $ans,
+                                'created_at' => $timestamp,
+                            ];
+                        }
+                    }
+                }
+
+                // ✅ Insert answers in bulk
+                if (!empty($saveAnswer)) {
+                    $this->db->insert_batch('online_exam_answer', $saveAnswer);
+
+                    // ✅ Mark submission entry
+                    $this->db->insert('online_exam_submitted', [
+                        'student_id' => $studentID,
+                        'online_exam_id' => $online_examID,
+                        'created_at' => $timestamp
+                    ]);
+
+                    // ✅ Process results and rewards
+                    if ($this->db->affected_rows() > 0) {
+
+                        $result = $this->onlineexam_model->examResult($online_examID, $studentID);
+                        $exam = $this->onlineexam_model->getExamDetails($online_examID);
+
+                        if (!empty($result) && !empty($exam)) {
+                            $total_marks = floatval($result['total_marks']);
+                            $total_obtain = floatval($result['total_obtain_marks']);
+                            $total_neg = ($exam->neg_mark == 0 ? 0 : floatval($result['total_neg_marks']));
+
+                            // ✅ Compute final percentage
+                            $percentage = ($total_marks > 0)
+                                ? (($total_obtain - $total_neg) * 100) / $total_marks
+                                : 0;
+
+                            $performance = ['percentage' => $percentage];
+
+                            // ✅ Online exams always have reward_scope = 'exam' (one-time)
+                            $exam_type = 'online';
+                            $session_code = null;
+
+
+                            // ✅ Check if eligible for reward
+                            if ($this->reward_lib->shouldReward($studentID, $online_examID, $exam_type, $session_code)) {
+                                $rewardSuccess = $this->reward_lib->processExamReward(
+                                    $studentID,
+                                    $online_examID,
+                                    $exam_type,
+                                    $performance,
+                                    null,
+                                    $session_code
+                                );
+
+                                if ($rewardSuccess) {
+                                    $rewardRule = $this->reward_model->getApplicableReward(
+                                        $studentID,
+                                        $online_examID,
+                                        $exam_type,
+                                        $performance,
+                                        $session_code
+                                    );
+
+                                    log_message("debug", "THE REWARD RULE" . json_encode($rewardRule));
+                                    
+                                    if (!empty($rewardRule) && isset($rewardRule['coin_reward'])) {
+                                        $coins = (int) $rewardRule['coin_reward'];
+                                        $rewardMsg = " You have earned <strong>{$coins} coins</strong> 🎉";
+                                    } else {
+                                        $rewardMsg = " Reward has been successfully added!";
+                                    }
+                                    
+                                    log_message('debug', "[Reward] Online exam reward granted → Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
+
+                                } else {
+                                    log_message('debug', "[Reward] No applicable reward found for Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
+                                }
+
+                            } 
+
+                            $rewardMsg = "Testing";
+                            log_message("debug", "The reward MSG" . $rewardMsg);
+                            
+                        }
+                    }
+                }
+            }
+
+            log_message("debug", "REWARD MSG" . $rewardMsg);
+
+            set_alert('success', translate('your_exam_has_been_successfully_submitted') . $rewardMsg);
+            // redirect(base_url('userrole/online_exam'));
+
+            redirect(base_url('userrole/online_exam_progress?exam_id=' . $online_examID));
+        }
+    }
 
 
     // ONLINE EXAM CUSTOM REPORT CARD
-    public function online_exam_progress()
+    public function online_exam_progress1()
     {
         if (isset($_POST['search'])) {
             $this->form_validation->set_rules('exam_id', translate('Exam'), 'trim|required');
@@ -1331,6 +1348,88 @@ class Userrole extends User_Controller
 
         $this->load->view('layout/index', $this->data);
     }
+
+    public function online_exam_progress()
+    {
+        // Get exam ID from POST (form) or GET (redirect)
+        $examID = $this->input->post('exam_id') ?: $this->input->get('exam_id');
+
+        // Determine if we need to validate
+        $isFormSubmit = isset($_POST['search']);
+        if ($isFormSubmit) {
+            $this->form_validation->set_rules('exam_id', translate('Exam'), 'trim|required');
+        }
+
+        // If form is submitted and fails validation, reload filter page
+        if ($isFormSubmit && $this->form_validation->run() == false) {
+            $this->data['title'] = translate('online_exam_progress');
+            $this->data['main_menu'] = 'online_exam_progress';
+            $this->data['sub_page'] = 'userrole/report/online_exam_progress_filter';
+            $this->load->view('layout/index', $this->data);
+            return;
+        }
+        if (!empty($examID)) {
+            // Determine student
+            if (is_student_loggedin()) {
+                $studentID = get_loggedin_user_id();
+            } elseif (is_parent_loggedin()) {
+                $studentID = get_activeChildren_id();
+            }
+
+            $studentDetail = $this->application_model->getStudentDetails($studentID);
+            if (!$studentDetail) {
+                set_alert('error', translate('Student information not found.'));
+                redirect(base_url('userrole/online_exam_progress'));
+            }
+
+            $branchId = $studentDetail['branch_id'];
+            $classId = $studentDetail['class_id'];
+            $sectionId = $studentDetail['section_id'];
+
+            // Student Info
+            $studentMpped = $this->report_model->getStudentDetails($studentID);
+            $this->data['studentMpped'] = json_decode(json_encode($studentMpped), true);
+            $this->data['studentPhoto'] = base_url('uploads/images/student/' . $this->data['studentMpped']['student_photo']);
+            $this->data['examID'] = $examID;
+            $this->data['branchData'] = $this->db->get_where('branch', ['id' => $branchId])->row_array();
+            $this->data['examName'] = $this->db->get_where('online_exam', ['id' => $examID])->row_array();
+            $this->data['presentDays'] = 0;
+            $this->data['absentDays'] = 0;
+
+            // Fetch Progress Data
+            $this->data['subjects'] = $this->report_model->getOnlineExamProgressReport(
+                $branchId,
+                $classId,
+                $sectionId,
+                $examID,
+                $studentID
+            );
+
+            if (empty($this->data['subjects'])) {
+                set_alert('error', translate('Smart Progress not found.'));
+                redirect(base_url('userrole/online_exam_progress'));
+            }
+
+            // Fetch Class Average
+            $this->data['class_average'] = $this->report_model->getClassAverageByOnlineExam(
+                $branchId,
+                $classId,
+                $sectionId,
+                $examID
+            );
+
+            // Load report view
+            $this->load->view('report/online_exam_progress/overall_report', $this->data);
+            return;
+        }
+
+        // ✅ Default case: No exam selected yet
+        $this->data['title'] = translate('online_exam_progress');
+        $this->data['main_menu'] = 'online_exam_progress';
+        $this->data['sub_page'] = 'userrole/report/online_exam_progress_filter';
+        $this->load->view('layout/index', $this->data);
+    }
+
     public function exam_progress_subjectwise()
     {
         if (isset($_POST['search'])) {
@@ -1372,7 +1471,7 @@ class Userrole extends User_Controller
                 // Subject info & restructuring
                 $subjectName = $this->db->get_where('subject', ['id' => $subjectId])->row('name');
 
-                 $student_exam_ids = array_map(function ($exam) {
+                $student_exam_ids = array_map(function ($exam) {
                     return $exam['exam_id'];
                 }, $progress);
 
@@ -1391,7 +1490,7 @@ class Userrole extends User_Controller
                     : [];
 
                 $this->data['progress'] = $progress;
-               
+
 
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;

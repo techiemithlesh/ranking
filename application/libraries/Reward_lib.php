@@ -40,45 +40,7 @@ class Reward_lib
     /**
      * Unified reward processing method (supports percentage, rank, percentile).
      */
-    public function processExamReward_1($student_id, $exam_id, $exam_type, $value, $basis = 'percentage', $session_code = null)
-    {
-        $rewardRule = $this->CI->reward_model->getApplicableReward($student_id, $exam_id, $exam_type, $value, $session_code);
-
-        if (!$rewardRule) {
-            log_message('debug', "[Reward] No rule found for student={$student_id}, exam={$exam_id}, value={$value}");
-            return false;
-        }
-
-        // Validate rule based on basis type
-        switch ($rewardRule['reward_basis']) {
-            case 'percentage':
-            case 'percentile':
-                if ($value < $rewardRule['qualifying_value'])
-                    return false;
-                break;
-
-            case 'rank':
-                // For rank-based rewards, value is rank position (lower is better)
-                if ($value > $rewardRule['qualifying_value'])
-                    return false;
-                break;
-        }
-
-        $coins = (int) $rewardRule['coin_reward'];
-        $remarks = "Rewarded for {$rewardRule['reward_basis']} achievement ({$value}) in {$exam_type}";
-        $scope = $rewardRule['reward_scope'] ?? 'exam';
-
-        return $this->CI->reward_model->logRewardTransaction(
-            $student_id,
-            $exam_id,
-            $exam_type,
-            $coins,
-            $remarks,
-            'exam',
-            $session_code,
-            $scope
-        );
-    }
+    
 
     public function processExamReward($student_id, $exam_id, $exam_type, $value, $basis = 'percentage', $session_code = null)
     {
@@ -87,7 +49,7 @@ class Reward_lib
             ? $value
             : [$basis => (float) $value];
 
-        log_message('debug', "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" . json_encode($performance) . " Session={$session_code}");
+        // log_message('debug', "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" . json_encode($performance) . " Session={$session_code}");
 
         $rewardRule = $this->CI->reward_model->getApplicableReward(
             $student_id,
@@ -97,10 +59,10 @@ class Reward_lib
             $session_code
         );
 
-        log_message('debug', "APPLICABLE REWARD". json_encode($rewardRule));
+        // log_message('debug', "APPLICABLE REWARD". json_encode($rewardRule));
 
         if (!$rewardRule) {
-            log_message('debug', "[RewardLib] No applicable reward rule.");
+            // log_message('debug', "[RewardLib] No applicable reward rule.");
             return false;
         }
 
@@ -124,7 +86,7 @@ class Reward_lib
         $checkSession = ($scope === 'session') ? $session_code : null;
 
         if ($this->CI->reward_model->isAlreadyRewarded($student_id, $exam_id, $exam_type, $checkSession)) {
-            log_message('debug', "[RewardLib] Skipped (duplicate) | Scope={$scope}");
+            // log_message('debug', "[RewardLib] Skipped (duplicate) | Scope={$scope}");
             return false;
         }
 
@@ -140,12 +102,6 @@ class Reward_lib
             $scope
         );
 
-        log_message(
-            $result ? 'debug' : 'error',
-            $result
-            ? "[RewardLib] ✅ Reward granted | Student={$student_id} Coins={$coins} Basis={$basis_used} Scope={$scope}"
-            : "[RewardLib] ❌ Failed to grant reward"
-        );
 
         return $result;
     }
