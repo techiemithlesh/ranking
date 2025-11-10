@@ -25,6 +25,7 @@ class LiveExam extends Admin_Controller
         $this->load->model('leaderboard_model');
         $this->load->model('reward_model');
         $this->load->library('reward_lib');
+        $this->load->library('whatsapp_lib');
 
         $this->data['headerelements'] = array(
             'css' => array(
@@ -204,48 +205,8 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Failed to update']);
         }
     }
-    // public function endSession()
-    // {
-    //     $session_id = $this->input->post('session_id');
-    //     $aborted = (int) $this->input->post('aborted');
-    //     $publish = (int) $this->input->post('publish'); // 0 = no, 1 = yes
 
-
-    //     if (empty($session_id)) {
-    //         echo json_encode(['status' => 0, 'message' => 'Missing session id']);
-    //         exit;
-    //     }
-
-    //     $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
-
-    //     if ($ok) {
-
-    //         $session = $this->live_exam_model->getSession($session_id);
-
-    //         $session_code = !empty($session) ? $session->session_code : null;
-
-    //         // log_message('debug', 'The Session Code' .$session_code);
-
-    //         /** 
-    //          * Only compute leaderboard if published and not aborted
-    //          * */
-
-    //         if ($publish && !$aborted && !empty($session_code)) {
-    //             log_message('debug', 'The Code Comes in ' . $publish);
-    //             $this->leaderboard_model->computeLeaderboard($session_code);
-
-    //             // log_message('debug', 'Leaderboard call');
-
-    //         }
-
-    //         echo json_encode(['status' => 1, 'message' => 'Session ended', 'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)]);
-    //     } else {
-    //         echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
-    //     }
-    // }
-
-
-    public function endSession()
+    public function endSession1()
     {
         $session_id = $this->input->post('session_id');
         $aborted = (int) $this->input->post('aborted');
@@ -277,12 +238,9 @@ class LiveExam extends Admin_Controller
         // Only compute and reward if published & not aborted
         if ($publish && !$aborted && $session_code) {
 
-            log_message('debug', "[LiveExam] Computing leaderboard for session={$session_code}");
-
             // Compute leaderboard
             $this->leaderboard_model->computeLeaderboard($session_code);
 
-            // Fetch ranked students
             $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
 
             $rewardCount = 0;
@@ -325,6 +283,80 @@ class LiveExam extends Admin_Controller
     }
 
 
+    public function endSession()
+    {
+        $session_id = $this->input->post('session_id');
+        $aborted = (int) $this->input->post('aborted');
+        $publish = (int) $this->input->post('publish');
+
+        if (empty($session_id)) {
+            echo json_encode(['status' => 0, 'message' => 'Missing session id']);
+            return;
+        }
+
+        // End session
+        $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
+        if (!$ok) {
+            echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
+            return;
+        }
+
+        // Get session details
+        $session = $this->live_exam_model->getSession($session_id);
+        if (empty($session)) {
+            echo json_encode(['status' => 0, 'message' => 'Session not found']);
+            return;
+        }
+
+        $session_code = $session->session_code;
+        $exam_id = $session->exam_id;
+        $exam_type = 'live_exam';
+
+        // Only compute and reward if published & not aborted
+        if ($publish && !$aborted && $session_code) {
+
+            // Compute leaderboard
+            $this->leaderboard_model->computeLeaderboard($session_code);
+
+            $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
+
+            $rewardCount = 0;
+
+            foreach ($leaderboard as $entry) {
+
+                $student_id = $entry['student_id'];
+                $performance = [
+                    'percentage' => (float) $entry['percentage'],
+                    'percentile' => (float) $entry['percentile'],
+                    'rank' => (int) $entry['rank_position'],
+                ];
+
+                log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
+
+                $granted = $this->reward_lib->processExamReward(
+                    $student_id,
+                    $exam_id,
+                    $exam_type,
+                    $performance,    // Now passing all values
+                    'percentage',    // fallback basis (not actually used)
+                    $session_code     // Required for session-scope rewards
+                );
+
+                if ($granted) {
+                    $rewardCount++;
+                }
+            }
+
+            log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
+        }
+
+        // Response
+        echo json_encode([
+            'status' => 1,
+            'message' => 'Session ended successfully',
+            'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)
+        ]);
+    }
 
     public function getParticipants()
     {
