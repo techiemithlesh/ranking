@@ -312,6 +312,10 @@ class LiveExam extends Admin_Controller
         $exam_id = $session->exam_id;
         $exam_type = 'live_exam';
 
+        // Load WhatsApp library (for messaging)
+        $this->load->library('whatsapp_lib');
+        $this->load->model('whatsapp_model'); // for student data
+
         // Only compute and reward if published & not aborted
         if ($publish && !$aborted && $session_code) {
 
@@ -321,6 +325,7 @@ class LiveExam extends Admin_Controller
             $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
 
             $rewardCount = 0;
+            $sentCount = 0;
 
             foreach ($leaderboard as $entry) {
 
@@ -333,30 +338,62 @@ class LiveExam extends Admin_Controller
 
                 log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
 
+                // ✅ Process reward
                 $granted = $this->reward_lib->processExamReward(
                     $student_id,
                     $exam_id,
                     $exam_type,
-                    $performance,    // Now passing all values
-                    'percentage',    // fallback basis (not actually used)
-                    $session_code     // Required for session-scope rewards
+                    $performance,
+                    'percentage',
+                    $session_code
                 );
 
                 if ($granted) {
                     $rewardCount++;
                 }
+
+                // ✅ WhatsApp notification (static message for now)
+                try {
+                    $student = $this->whatsapp_model->getStudentWhatsappData($student_id);
+                    if (!empty($student) && !empty($student['student_phone'])) {
+
+                        // For now, just use a static message
+                        $message = sprintf(
+                            "Hi %s, your live exam has ended successfully. Your score: %.2f%% and Rank: #%d. Check leaderboard for more details.",
+                            $student['student_name'],
+                            $performance['percentage'],
+                            $performance['rank']
+                        );
+
+                        $response = $this->whatsapp_lib->send_text(
+                            $student['student_phone'],
+                            $message,
+                            'live_exam',
+                            $student['branch_id']
+                        );
+
+                        if (!empty($response['success'])) {
+                            $sentCount++;
+                        }
+
+                        log_message('debug', "[WhatsApp] Sent exam message to {$student['student_phone']} => " . json_encode($response));
+                    }
+                } catch (Exception $e) {
+                    log_message('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
+                }
             }
 
-            log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
+            log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted, {$sentCount} WhatsApp messages sent for session {$session_code}");
         }
 
-        // Response
+        // Final response
         echo json_encode([
             'status' => 1,
             'message' => 'Session ended successfully',
             'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)
         ]);
     }
+
 
     public function getParticipants()
     {

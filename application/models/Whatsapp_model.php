@@ -51,37 +51,29 @@ class Whatsapp_model extends MY_Model
         $this->db->insert('whatsapp_logs', $data);
     }
 
+   
     public function getStudentWhatsappData($student_id)
     {
-        $query = $this->db->select("
-            s.id AS student_id,
-            s.fullname AS student_name,
-            s.mobileno AS student_phone,
-            p.father_name AS parent_name,
-            p.mobileno AS parent_phone,
-            s.branch_id,
-            c.name AS class_name,
-            sec.name AS section_name
-        ")
-            ->from('student s')
-            ->join('enroll e', 'e.student_id = s.id', 'left')
-            ->join('class c', 'c.id = e.class_id', 'left')
-            ->join('section sec', 'sec.id = e.section_id', 'left')
-            ->join('parent p', 'p.id = s.parent_id', 'left')
-            ->where('s.id', $student_id)
-            ->limit(1)
-            ->get();
+        $query = $this->db->query("
+        SELECT 
+            v.student_id,
+            CONCAT(v.first_name, ' ', v.last_name) AS student_name,
+            v.mobile_no AS student_phone,
+            v.branch_id,
+            v.class_name,
+            v.section_name
+        FROM view_student_details v
+        WHERE v.student_id = ?
+        LIMIT 1
+        ", [$student_id]);
 
         if ($query->num_rows() > 0) {
-            $row = $query->row_array();
-
-            // Normalize phone numbers (remove spaces / non-digits)
-            $row['parent_phone'] = preg_replace('/\D+/', '', $row['parent_phone']);
-            $row['student_phone'] = preg_replace('/\D+/', '', $row['student_phone']);
-
-            return $row;
+            $data = $query->row_array();
+            $data['student_phone'] = preg_replace('/\D+/', '', $data['student_phone']);
+            return $data;
         }
 
         return null;
     }
+
 }
