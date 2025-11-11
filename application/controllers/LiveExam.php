@@ -356,7 +356,7 @@ class LiveExam extends Admin_Controller
                     if (!empty($student) && !empty($student['student_phone'])) {
 
                         // ✅ Generate and save report card PDF
-                        $reportData = $this->liveexam_student->generateAndSaveReportPdf($session_code, $student_id);
+                        $reportData = $this->generateAndSaveReportPdf($session_code, $student_id);
 
                         // ✅ WhatsApp caption/message
                         $message = sprintf(
