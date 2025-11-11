@@ -362,7 +362,7 @@ class LiveExam extends Admin_Controller
 
                         // ✅ WhatsApp caption/message
                         $message = sprintf(
-                            "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick below to view/download your report card 👇",
+                            "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick to view/download your report card",
                             $student['student_name'],
                             $exam_name,
                             $performance['percentage'],
