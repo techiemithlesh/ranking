@@ -58,7 +58,7 @@ class Whatsapp_model extends MY_Model
         SELECT 
             v.student_id,
             CONCAT(v.first_name, ' ', v.last_name) AS student_name,
-            v.mobile_no AS student_phone,
+            v.mobileno AS student_phone,
             v.branch_id,
             v.class_name,
             v.section_name

@@ -25,7 +25,7 @@ class Whatsapp_lib
         }
 
         $payload = [
-            'number' => preg_replace('/\D+/', '', $number),
+            'number' => $this->normalize_number($number, $config['country_code'] ?? '91'),
             'type' => 'text',
             'message' => $message,
             'instance_id' => $config['instance_id'],
@@ -49,7 +49,7 @@ class Whatsapp_lib
         }
 
         $payload = [
-            'number' => preg_replace('/\D+/', '', $number),
+            'number' => $this->normalize_number($number, $config['country_code'] ?? '91'),
             'type' => 'media',
             'message' => $caption,
             'media_url' => $media_url,
@@ -106,4 +106,16 @@ class Whatsapp_lib
             'created_at' => date('Y-m-d H:i:s')
         ]);
     }
+
+    private function normalize_number($number, $country_code = '91')
+    {
+        $clean = preg_replace('/\D+/', '', $number);
+
+        if (strpos($clean, $country_code) !== 0) {
+            $clean = $country_code . $clean;
+        }
+
+        return $clean;
+    }
+
 }

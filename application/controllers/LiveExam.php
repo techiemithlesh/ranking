@@ -369,7 +369,7 @@ class LiveExam extends Admin_Controller
                             $student['student_phone'],
                             $message,
                             'live_exam',
-                            $student['branch_id']
+                            0
                         );
 
                         if (!empty($response['success'])) {
@@ -660,6 +660,34 @@ class LiveExam extends Admin_Controller
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
+
+    public function test_whatsapp()
+    {
+        $this->load->library('whatsapp_lib');
+        $response = $this->whatsapp_lib->send_text('917667043372', 'Hi Mithlesh Your Coding is awesome', 'test', 0);
+
+        echo '<pre>';
+        print_r($response);
+    }
+
+    public function test_media_send()
+    {
+        $number = '917667043372';
+        $caption = 'Hi! Please check your attached test report card.';
+        $pdf_url = base_url('uploads/reportcards/sample.pdf');
+
+        $response = $this->whatsapp_lib->send_media(
+            $number,
+            $caption,
+            $pdf_url,
+            'test_media',
+            0
+        );
+
+        echo '<pre>';
+        print_r($response);
+    }
+
 
 
 }
