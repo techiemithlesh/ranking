@@ -24,6 +24,8 @@ class LiveExam extends Admin_Controller
         $this->load->model('email_model');
         $this->load->model('leaderboard_model');
         $this->load->model('reward_model');
+        $this->load->library('pdf');
+        $this->load->library('ciqrcode');
         $this->load->library('reward_lib');
         $this->load->library('whatsapp_lib');
 
