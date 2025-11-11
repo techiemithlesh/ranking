@@ -312,9 +312,7 @@ class LiveExam extends Admin_Controller
         $exam_id = $session->exam_id;
         $exam_type = 'live_exam';
 
-        // Load WhatsApp library (for messaging)
-        $this->load->library('whatsapp_lib');
-        $this->load->model('whatsapp_model'); // for student data
+        $exam_name = get_type_tittle_by_id('online_exam', $exam_id);
 
         // Only compute and reward if published & not aborted
         if ($publish && !$aborted && $session_code) {
@@ -352,31 +350,36 @@ class LiveExam extends Admin_Controller
                     $rewardCount++;
                 }
 
-                // ✅ WhatsApp notification (static message for now)
+                // ✅ WhatsApp notification 
                 try {
                     $student = $this->whatsapp_model->getStudentWhatsappData($student_id);
                     if (!empty($student) && !empty($student['student_phone'])) {
 
-                        // For now, just use a static message
+                        // ✅ Generate and save report card PDF
+                        $reportData = $this->liveexam_student->generateAndSaveReportPdf($session_code, $student_id);
+
+                        // ✅ WhatsApp caption/message
                         $message = sprintf(
-                            "Hi %s, your live exam has ended successfully. Your score: %.2f%% and Rank: #%d. Check leaderboard for more details.",
+                            "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick below to view/download your report card 👇",
                             $student['student_name'],
+                            $exam_name,
                             $performance['percentage'],
                             $performance['rank']
                         );
 
-                        $response = $this->whatsapp_lib->send_text(
+                        // ✅ Send PDF as media (note: must be a publicly accessible URL)
+                        $response = $this->whatsapp_lib->send_media(
                             $student['student_phone'],
                             $message,
-                            'live_exam',
-                            0
+                            $reportData['url'],   // ✅ public URL (not path)
+                            'live_exam'
                         );
 
                         if (!empty($response['success'])) {
                             $sentCount++;
                         }
 
-                        log_message('debug', "[WhatsApp] Sent exam message to {$student['student_phone']} => " . json_encode($response));
+                        log_message('debug', "[WhatsApp] Sent report card to {$student['student_phone']} => " . json_encode($response));
                     }
                 } catch (Exception $e) {
                     log_message('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
@@ -455,7 +458,6 @@ class LiveExam extends Admin_Controller
     /**
      * REPORTING 
      */
-
     public function getSessionReport()
     {
         if (!get_permission('live_exam', 'is_view')) {
@@ -586,7 +588,6 @@ class LiveExam extends Admin_Controller
         echo $options;
     }
 
-
     public function leaderboard($sessionCode)
     {
         if (empty($sessionCode)) {
@@ -660,6 +661,82 @@ class LiveExam extends Admin_Controller
         $this->data['main_menu'] = 'onlineexam';
         $this->load->view('layout/index', $this->data);
     }
+
+    /**WHATSAPP INTGERATION */
+
+    public function generateAndSaveReportPdf($sessionCode, $studentId)
+    {
+        $this->db->reset_query();
+
+        // Fetch student data
+        $data['student'] = $this->application_model->getStudentDetails($studentId);
+        $branch_id = $data['student']['branch_id'];
+        $data['branchData'] = $this->db->where('id', $branch_id)->get('branch')->row_array() ?? [];
+
+        // Get exam report
+        $data['report'] = $this->live_exam_model->getLiveExamSessionReport($sessionCode, $studentId);
+
+        // ✅ Generate QR Code
+        $qrText = base_url("Liveexam_student/verify?session=" . $sessionCode . "&student=" . $studentId);
+        $params = [
+            'data' => $qrText,
+            'level' => 'H',
+            'size' => 5,
+            'savename' => FCPATH . "uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png"
+        ];
+        $this->ciqrcode->generate($params);
+        $data['qr_code'] = base_url("uploads/qrcodes/" . $studentId . "_" . $sessionCode . ".png");
+
+        // ✅ Create Chart URL
+        $chartUrl = "https://quickchart.io/chart?c=" . urlencode(json_encode([
+            'type' => 'pie',
+            'data' => [
+                'labels' => ['Correct', 'Wrong', 'Unanswered'],
+                'datasets' => [
+                    [
+                        'data' => [
+                            $data['report']['correct_ans'],
+                            $data['report']['wrong_ans'],
+                            $data['report']['total_question'] - $data['report']['total_answered']
+                        ]
+                    ]
+                ]
+            ]
+        ]));
+        $data['chart_url'] = $chartUrl;
+
+        // ✅ Render the HTML view
+        $html = $this->load->view('userrole/liveexam/report_pdf', $data, true);
+
+        // ✅ Generate PDF
+        $this->pdf->loadHtml($html);
+        $this->pdf->setPaper('A4', 'portrait');
+        $this->pdf->render();
+
+        // ✅ Prepare file name
+        $studentName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['student']['first_name'] . '_' . $data['student']['last_name']));
+        $examName = preg_replace('/[^A-Za-z0-9_-]/', '', str_replace(' ', '_', $data['report']['exam_name']));
+        $fileName = "{$studentName}_{$examName}_{$sessionCode}.pdf";
+
+        // ✅ Save path
+        $saveDir = FCPATH . "uploads/reportcards/";
+        if (!file_exists($saveDir)) {
+            mkdir($saveDir, 0777, true);
+        }
+
+        $savePath = $saveDir . $fileName;
+
+        // ✅ Save the file
+        file_put_contents($savePath, $this->pdf->output());
+
+        // ✅ Return useful info
+        return [
+            'path' => $savePath,
+            'url' => base_url('uploads/reportcards/' . $fileName),
+            'file' => $fileName
+        ];
+    }
+
 
     public function test_whatsapp()
     {
