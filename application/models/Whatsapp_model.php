@@ -32,6 +32,13 @@ class Whatsapp_model extends MY_Model
         return $this->db->get()->result_array();
     }
 
+    public function getConfigByBranch($branch_id)
+    {
+        return $this->db->where('branch_id', $branch_id)
+            ->get('whatsapp_config')
+            ->row_array();
+    }
+
 
     public function get_active_config($branch_id = 0)
     {
