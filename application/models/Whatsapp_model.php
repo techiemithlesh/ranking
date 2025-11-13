@@ -5,6 +5,34 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Whatsapp_model extends MY_Model
 {
 
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function getConfigList($branchID = null)
+    {
+        $this->db->select('wc.*');
+
+        // Add CASE WHEN without escaping
+        $this->db->select('
+        CASE 
+            WHEN wc.branch_id = 0 THEN "Global"
+            ELSE b.name
+        END AS branch_name
+    ', FALSE);
+
+        $this->db->from('whatsapp_config AS wc');
+        $this->db->join('branch AS b', 'b.id = wc.branch_id', 'left');
+
+        if ($branchID !== null) {
+            $this->db->where('wc.branch_id', $branchID);
+        }
+
+        return $this->db->get()->result_array();
+    }
+
+
     public function get_active_config($branch_id = 0)
     {
         $query = $this->db->query("
@@ -51,7 +79,7 @@ class Whatsapp_model extends MY_Model
         $this->db->insert('whatsapp_logs', $data);
     }
 
-   
+
     public function getStudentWhatsappData($student_id)
     {
         $query = $this->db->query("

@@ -144,12 +144,6 @@
 				</div>
 			
 				<div class="form-group">
-					<label class="col-md-3 control-label">WhatsApp Instance Id</label>
-					<div class="col-md-6">
-						<input type="text" class="form-control" name="wp_instance_id" value="<?=set_value('wp_instance_id', $global_config['wp_instance_id'])?>" />
-					</div>
-				</div>
-				<div class="form-group">
 					<label class="col-md-3 control-label">Facebook URL</label>
 					<div class="col-md-6">
 						<input type="text" class="form-control" name="facebook_url" value="<?=set_value('facebook_url', $global_config['facebook_url'])?>" />

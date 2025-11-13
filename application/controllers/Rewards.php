@@ -109,8 +109,6 @@ class Rewards extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-
-
     public function config()
     {
         if ($this->input->post('search')) {

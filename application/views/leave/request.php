@@ -4,11 +4,11 @@
 			<li class="<?php echo (empty(validation_errors()) ? 'active' : ''); ?>">
 				<a href="#list" data-toggle="tab"><i class="fas fa-list-ul"></i> <?php echo translate('leave_list'); ?></a>
 			</li>
-<?php if (get_permission('leave_request', 'is_add')) { ?>
-			<li class="<?php echo (!empty(validation_errors()) ? 'active' : ''); ?>">
-				<a href="#create" data-toggle="tab"><i class="far fa-edit"></i> <?php echo translate('leave_request'); ?></a>
-			</li>
-<?php } ?>
+		<?php if (get_permission('leave_request', 'is_add')) { ?>
+					<li class="<?php echo (!empty(validation_errors()) ? 'active' : ''); ?>">
+						<a href="#create" data-toggle="tab"><i class="far fa-edit"></i> <?php echo translate('leave_request'); ?></a>
+					</li>
+			<?php } ?>
 		</ul>
 		<div class="tab-content">
 			<div id="list" class="tab-pane <?php echo (empty(validation_errors()) ? 'active' : ''); ?>">
