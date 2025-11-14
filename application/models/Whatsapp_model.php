@@ -39,6 +39,40 @@ class Whatsapp_model extends MY_Model
             ->row_array();
     }
 
+    public function saveConfig($data)
+    {
+        if (empty($data['branch_id']) || empty($data['instance_id'])) {
+            return false;
+        }
+
+        // Keep ALL fields passed from controller
+        $save = [
+            'branch_id' => $data['branch_id'],
+            'provider' => $data['provider'] ?? 'bulkwa',
+            'instance_id' => $data['instance_id'],
+            'sender_number' => $data['sender_number'] ?? null,
+            'alias_name' => $data['alias_name'] ?? null,
+            'country_code' => $data['country_code'] ?? '91',
+            'status' => $data['status'] ?? 0,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        // Fetch existing config
+        $existing = $this->getConfigByBranch($data['branch_id']);
+
+        // ------- UPDATE -------
+        if (!empty($existing)) {
+            $this->db->where('id', $existing['id'])->update('whatsapp_config', $save);
+            return $existing['id'];
+        }
+
+        // ------- INSERT -------
+        $save['created_at'] = date('Y-m-d H:i:s');
+        $this->db->insert('whatsapp_config', $save);
+
+        return $this->db->insert_id();
+    }
+
 
     public function get_active_config($branch_id = 0)
     {
