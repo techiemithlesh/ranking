@@ -1095,7 +1095,6 @@
                         }
                     }
                     ?>
-
                     <?php
                     if (
                         get_permission('hostel', 'is_view') ||
@@ -1365,7 +1364,6 @@
                         <?php
                     }
                     ?>
-
                     <?php
                     if (
                         get_permission('event', 'is_view') ||
@@ -1398,7 +1396,6 @@
                             </ul>
                         </li>
                     <?php } ?>
-
 
                     <?php
                     if (
@@ -1621,7 +1618,7 @@
                             $main_menu == 'skill_report' ||
                             $main_menu == 'online_exam_progress' ||
                             $main_menu == 'live_exam' ||
-                            $main_menu = 'progress_tracker'
+                            $main_menu == 'progress_tracker'
                         )
                             echo 'nav-expanded nav-active'; ?>">
                             <a>
@@ -1653,7 +1650,6 @@
                                                 <a
                                                     href="<?= base_url('fees/fine_report') ?>"><?= translate('fine_report') ?></a>
                                             </li>
-
 
                                         </ul>
                                     </li>
@@ -1831,7 +1827,8 @@
                                     <li class="nav-parent <?php if ($main_menu == 'online_exam_progress')
                                         echo 'nav-expanded nav-active'; ?>">
                                         <a>
-                                            <i class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
+                                            <i
+                                                class="fas fa-laptop-code"></i><span><?php echo translate('online_exam'); ?></span></a>
                                         <ul class="nav nav-children">
                                             <li class="<?php if ($sub_page == 'report/online_exam_progress/index')
                                                 echo 'nav-active'; ?>">
@@ -1901,7 +1898,8 @@
                         get_permission('translations', 'is_view') ||
                         get_permission('cron_job', 'is_view') ||
                         get_permission('custom_field', 'is_view') ||
-                        get_permission('backup', 'is_view')
+                        get_permission('backup', 'is_view') ||
+                        get_permission('whatsapp_config', 'is_view')
                     ) {
                         ?>
                         <!-- setting -->
@@ -1983,9 +1981,20 @@
                                         </a>
                                     </li>
                                 <?php } ?>
+
+                                <!--WHATSAPP SETTINGS -->
+                                <?php if (get_permission('whatsapp_config', 'is_view')) { ?>
+                                    <li class="<?php if ($sub_page == 'whatsapp/config')
+                                        echo 'nav-active'; ?>">
+                                        <a href="<?= base_url('whatsapp/config') ?>">
+                                            <span>
+                                                <i class="fas fa-caret-right"></i>
+                                                <?= translate('whatsapp_settings') ?>
+                                            </span>
+                                        </a>
+                                    </li>
+                                <?php } ?>
                             </ul>
-
-
                         </li>
                     <?php } ?>
 
