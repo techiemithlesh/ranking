@@ -145,4 +145,13 @@ class Whatsapp_model extends MY_Model
         return null;
     }
 
+
+    public function update_status($instance, $status)
+    {
+        $this->db->where('instance_id', $instance)->update('whatsapp_config', [
+            'status' => $status,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+
 }

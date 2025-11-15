@@ -5,21 +5,21 @@ class Whatsapp extends Admin_Controller
 {
     private $apiBase;
     private $webhookUrl;
-
-
+    private $token;
 
     public function __construct()
     {
         parent::__construct();
         $this->load->model('whatsapp_model');
-        $this->load->library('bulkwa_lib');
+        $this->load->library('whatsapp_lib');
 
         $this->apiBase = "https://bulkwapanel.com/api/";
         $this->webhookUrl = base_url("whatsapp/webhook");
+        $this->token = get_global_setting('wp_access_token');
     }
 
     /* ---------------------------------------------------------
-     * SAVE CONFIG PAGE
+     * MAIN CONFIG PAGE
      * --------------------------------------------------------- */
     public function config()
     {
@@ -28,47 +28,50 @@ class Whatsapp extends Admin_Controller
 
         $branchId = is_superadmin_loggedin() ? null : get_loggedin_branch_id();
 
-        /* ------ SAVE CONFIG ------ */
+        /* ---------------------------------------------------------
+         * SAVE CONFIG FORM SUBMISSION
+         * --------------------------------------------------------- */
         if ($_POST) {
 
             $this->form_validation->set_rules('instance_id', 'Instance ID', 'required');
             $this->form_validation->set_rules('access_token', 'Access Token', 'required');
 
-            if (is_superadmin_loggedin())
+            if (is_superadmin_loggedin()) {
                 $this->form_validation->set_rules('branch_id', 'Branch', 'required|integer');
+            }
 
-            if ($this->form_validation->run() !== FALSE) {
+            if ($this->form_validation->run() !== false) {
 
                 $branch_id = is_superadmin_loggedin()
                     ? $this->input->post('branch_id')
                     : get_loggedin_branch_id();
 
                 $instance_id = $this->input->post('instance_id');
-                $token = $this->input->post('access_token');
 
-                /** SAVE */
                 $data = [
                     'branch_id' => $branch_id,
                     'provider' => 'bulkwa',
                     'instance_id' => $instance_id,
-                    'access_token' => $token,
                     'status' => 0,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
                 $this->whatsapp_model->saveConfig($data);
 
-                /** 🔥 SET WEBHOOK IMMEDIATELY */
-                $this->setWebhook($instance_id, $token);
+                /** SET WEBHOOK AUTOMATICALLY */
+                $this->setWebhook($instance_id);
 
                 set_alert('success', 'WhatsApp configuration saved.');
                 redirect('whatsapp/config');
             }
         }
 
+        /* ---------------------------------------------------------
+         * LOAD CONFIG VIEW
+         * --------------------------------------------------------- */
         $this->data['configs'] = $this->whatsapp_model->getConfigList($branchId);
         $this->data['branch_id'] = $branchId;
+
         $this->data['title'] = "WhatsApp Config";
         $this->data['sub_page'] = 'whatsapp/config';
         $this->data['main_menu'] = 'whatsapp';
@@ -77,12 +80,11 @@ class Whatsapp extends Admin_Controller
     }
 
     /* ---------------------------------------------------------
-     * AJAX: CHECK BRANCH INSTANCE
+     * AJAX → FIND INSTANCE FOR BRANCH
      * --------------------------------------------------------- */
     public function get_branch_instance()
     {
         $branch_id = $this->input->post('branch_id');
-
         if (!$branch_id) {
             echo json_encode(['status' => 0]);
             return;
@@ -92,8 +94,8 @@ class Whatsapp extends Admin_Controller
 
         if ($cfg) {
 
-            /** 🔥 Ensure webhook is always updated */
-            $this->setWebhook($cfg['instance_id'], $cfg['access_token']);
+            // auto ensure webhook
+            $this->setWebhook($cfg['instance_id']);
 
             echo json_encode([
                 'status' => 1,
@@ -107,25 +109,23 @@ class Whatsapp extends Admin_Controller
     }
 
     /* ---------------------------------------------------------
-     * AJAX: CREATE NEW INSTANCE
+     * AJAX → CREATE BULKWA INSTANCE
      * --------------------------------------------------------- */
     public function ajax_create_instance()
     {
-        $token = get_global_setting('wp_access_token');
-        if (!$token) {
-            echo json_encode(['status' => 0, 'msg' => 'Token missing']);
+        if (!$this->token) {
+            echo json_encode(['status' => 0, 'msg' => 'Access token missing']);
             return;
         }
 
-        $url = $this->apiBase . "create_instance?access_token=" . $token;
-
-        $resp = file_get_contents($url);
+        $url = $this->apiBase . "create_instance?access_token=" . $this->token;
+        $resp = $this->curl_get($url);
         $json = json_decode($resp, true);
 
         if (!empty($json['instance_id'])) {
 
-            /** 🔥 Register webhook immediately */
-            $this->setWebhook($json['instance_id'], $token);
+            // register webhook
+            $this->setWebhook($json['instance_id']);
 
             echo json_encode([
                 'status' => 1,
@@ -137,36 +137,35 @@ class Whatsapp extends Admin_Controller
     }
 
     /* ---------------------------------------------------------
-     * AJAX: GET QR CODE
+     * AJAX → GET QR
      * --------------------------------------------------------- */
     public function ajax_get_qr()
     {
         $instance_id = $this->input->post('instance_id');
-        $token = get_global_setting('wp_access_token');
 
-        $url = $this->apiBase . "get_qrcode?instance_id={$instance_id}&access_token={$token}";
-        $resp = file_get_contents($url);
+        $url = $this->apiBase . "get_qrcode?instance_id={$instance_id}&access_token={$this->token}";
+        $resp = $this->curl_get($url);
         $json = json_decode($resp, true);
 
         if (!empty($json['base64'])) {
             echo json_encode(['status' => 1, 'qr' => $json['base64']]);
         } else {
-            echo json_encode(['status' => 0, 'msg' => 'QR could not load']);
+            echo json_encode(['status' => 0, 'msg' => 'QR failed to load']);
         }
     }
 
     /* ---------------------------------------------------------
-     * 🔥 SET WEBHOOK FOR INSTANCE
+     * SET WEBHOOK FOR INSTANCE
      * --------------------------------------------------------- */
-    private function setWebhook($instance_id, $token)
+    private function setWebhook($instance_id)
     {
         $url = $this->apiBase
-            . "set_webhook?access_token={$token}"
+            . "set_webhook?access_token={$this->token}"
             . "&instance_id={$instance_id}"
             . "&webhook_url=" . urlencode($this->webhookUrl)
             . "&enable=true";
 
-        $resp = file_get_contents($url);
+        $resp = $this->curl_get($url);
         log_message('debug', '[Webhook Set] ' . $resp);
     }
 
@@ -175,22 +174,20 @@ class Whatsapp extends Admin_Controller
      * --------------------------------------------------------- */
     public function webhook()
     {
-        // Get JSON from BulkWA
         $json = file_get_contents("php://input");
         $data = json_decode($json, true);
 
-        // Log raw input for debugging
         log_message('debug', '[BulkWA Webhook RAW] ' . $json);
 
         if (empty($data)) {
-            echo json_encode(['status' => 0, 'msg' => 'Invalid JSON']);
+            echo json_encode(['status' => 0]);
             return;
         }
 
         $instance_id = $data['instance_id'] ?? null;
         $event = $data['event'] ?? 'unknown';
 
-        // Save webhook event to log table
+        // store in webhook logs
         $this->db->insert('whatsapp_webhook_log', [
             'instance_id' => $instance_id,
             'event' => $event,
@@ -199,91 +196,47 @@ class Whatsapp extends Admin_Controller
         ]);
 
         if (!$instance_id) {
-            echo json_encode(['status' => 1, 'msg' => 'Logged but instance missing']);
+            echo json_encode(['status' => 1]);
             return;
         }
 
-        // Fetch config for this instance
-        $config = $this->db->where('instance_id', $instance_id)
-            ->get('whatsapp_config')
-            ->row_array();
-
-        if (!$config) {
-            echo json_encode(['status' => 1, 'msg' => 'Instance not registered']);
-            return;
-        }
-
-        // Process status change events
+        // update instance status
         switch ($event) {
-
             case 'logged_in':
-                $this->db->where('instance_id', $instance_id)->update('whatsapp_config', [
-                    'status' => 1,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                $this->whatsapp_model->update_status($instance_id, 1);
                 break;
 
             case 'logout':
             case 'disconnected':
-                $this->db->where('instance_id', $instance_id)->update('whatsapp_config', [
-                    'status' => 0,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                $this->whatsapp_model->update_status($instance_id, 0);
                 break;
         }
 
-        echo json_encode(['status' => 1, 'msg' => 'OK']);
+        echo json_encode(['status' => 1]);
     }
 
-
+    /* ---------------------------------------------------------
+     * TEST SENDING MESSAGE
+     * --------------------------------------------------------- */
     public function test_whatsapp()
     {
         $this->load->library('whatsapp_lib');
-        $response = $this->whatsapp_lib->send_text('917667043372', 'Hi Mithlesh Your Coding is awesome', 'test', 4);
+        $response = $this->whatsapp_lib->send_text('917667043372', 'Hi Mithlesh Your Coding is awesome', 'test', 3);
 
-        echo '<pre>';
-        print_r($response);
+        printVar($response);
+        die;
     }
 
-
-    public function test_send()
+    /* ---------------------------------------------------------
+     * HELPERS → CURL GET
+     * --------------------------------------------------------- */
+    private function curl_get($url)
     {
-        $number = $this->input->post('number');
-        $message = $this->input->post('message');
-        $media = $this->input->post('media'); // optional media URL
-        $branch = $this->input->post('branch_id') ?? 0;
-
-        if (!$number) {
-            echo json_encode([
-                'status' => 0,
-                'error' => "Please provide 'number'"
-            ]);
-            return;
-        }
-
-        if (!$message) {
-            echo json_encode([
-                'status' => 0,
-                'error' => "Please provide 'message'"
-            ]);
-            return;
-        }
-
-        // Load library
-        $this->load->library('whatsapp_lib');
-
-        if (!empty($media)) {
-            // Test media send
-            $res = $this->whatsapp_lib->send_media($number, $message, $media, "test_api", $branch);
-        } else {
-            // Test text send
-            $res = $this->whatsapp_lib->send_text($number, $message, "test_api", $branch);
-        }
-
-        echo "<pre>";
-        print_r($res);
-        echo "</pre>";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $out = curl_exec($ch);
+        curl_close($ch);
+        return $out;
     }
-
-
 }
