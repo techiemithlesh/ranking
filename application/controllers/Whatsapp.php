@@ -235,6 +235,17 @@ class Whatsapp extends Admin_Controller
         echo json_encode(['status' => 1, 'msg' => 'OK']);
     }
 
+
+    public function test_whatsapp()
+    {
+        $this->load->library('whatsapp_lib');
+        $response = $this->whatsapp_lib->send_text('917667043372', 'Hi Mithlesh Your Coding is awesome', 'test', 4);
+
+        echo '<pre>';
+        print_r($response);
+    }
+
+
     public function test_send()
     {
         $number = $this->input->post('number');
