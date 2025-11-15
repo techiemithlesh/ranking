@@ -6,6 +6,8 @@ class Whatsapp extends Admin_Controller
     private $apiBase;
     private $webhookUrl;
 
+
+
     public function __construct()
     {
         parent::__construct();
@@ -232,5 +234,45 @@ class Whatsapp extends Admin_Controller
 
         echo json_encode(['status' => 1, 'msg' => 'OK']);
     }
+
+    public function test_send()
+    {
+        $number = $this->input->post('number');
+        $message = $this->input->post('message');
+        $media = $this->input->post('media'); // optional media URL
+        $branch = $this->input->post('branch_id') ?? 0;
+
+        if (!$number) {
+            echo json_encode([
+                'status' => 0,
+                'error' => "Please provide 'number'"
+            ]);
+            return;
+        }
+
+        if (!$message) {
+            echo json_encode([
+                'status' => 0,
+                'error' => "Please provide 'message'"
+            ]);
+            return;
+        }
+
+        // Load library
+        $this->load->library('whatsapp_lib');
+
+        if (!empty($media)) {
+            // Test media send
+            $res = $this->whatsapp_lib->send_media($number, $message, $media, "test_api", $branch);
+        } else {
+            // Test text send
+            $res = $this->whatsapp_lib->send_text($number, $message, "test_api", $branch);
+        }
+
+        echo "<pre>";
+        print_r($res);
+        echo "</pre>";
+    }
+
 
 }

@@ -6,12 +6,15 @@ class Whatsapp_lib
     private $CI;
     private $provider;
 
+    private $token;
+
     public function __construct()
     {
         $this->CI =& get_instance();
         $this->CI->load->model('whatsapp_model');
         $this->CI->load->library('bulkwa_lib');
         $this->provider = 'bulkwa';
+        $this->token = get_global_setting('wp_access_token');
     }
 
     /**
@@ -29,7 +32,7 @@ class Whatsapp_lib
             'type' => 'text',
             'message' => $message,
             'instance_id' => $config['instance_id'],
-            'access_token' => $config['access_token']
+            'access_token' => $this->token
         ];
 
         $response = $this->CI->bulkwa_lib->send($payload);
@@ -54,7 +57,7 @@ class Whatsapp_lib
             'message' => $caption,
             'media_url' => $media_url,
             'instance_id' => $config['instance_id'],
-            'access_token' => $config['access_token']
+            'access_token' => $this->token
         ];
 
         $response = $this->CI->bulkwa_lib->send($payload);
