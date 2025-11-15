@@ -221,7 +221,7 @@ class Whatsapp extends Admin_Controller
     public function test_whatsapp()
     {
         $this->load->library('whatsapp_lib');
-        $response = $this->whatsapp_lib->send_text('917667043372', 'Hi Mithlesh Your Coding is awesome', 'test', 3);
+        $response = $this->whatsapp_lib->send_text('919546858183', 'Hi Mithlesh Your Coding is awesome', 'test', 1);
 
         printVar($response);
         die;
