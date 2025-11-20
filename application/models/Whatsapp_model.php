@@ -154,4 +154,14 @@ class Whatsapp_model extends MY_Model
         ]);
     }
 
+
+    public function deleteInstance($instance_id)
+    {
+        $this->db->where('instance_id', $instance_id)->delete('whatsapp_config');
+        $this->db->where('instance_id', $instance_id)->delete('whatsapp_webhook_log');
+
+        return true;
+    }
+
+
 }

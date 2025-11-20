@@ -61,14 +61,30 @@
                                 <td><?= get_nicetime($c['updated_at']) ?></td>
 
                                 <td>
-                                    <?php if (get_permission('whatsapp_config', 'is_edit')): ?>
-                                        <a href="<?= base_url('whatsapp/edit/' . $c['id']) ?>" class="btn btn-default btn-sm">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    <?php endif; ?>
+                                    <!-- Reconnect -->
+                                    <button class="btn btn-success btn-xs"
+                                        onclick="instanceAction('reconnect', '<?= $c['instance_id'] ?>')">
+                                        <i class="fas fa-sync"></i> Reconnect
+                                    </button>
+
+                                    <!-- Reboot -->
+                                    <button class="btn btn-warning btn-xs"
+                                        onclick="instanceAction('reboot', '<?= $c['instance_id'] ?>')">
+                                        <i class="fas fa-redo"></i> Reboot
+                                    </button>
+
+                                    <!-- Reset -->
+                                    <button class="btn btn-danger btn-xs"
+                                        onclick="instanceAction('reset', '<?= $c['instance_id'] ?>')">
+                                        <i class="fas fa-power-off"></i> Reset
+                                    </button>
+
 
                                     <?php if (get_permission('whatsapp_config', 'is_delete')): ?>
-                                        <?= btn_delete_ajax('whatsapp/config_delete/' . $c['id']) ?>
+                                        <button class="btn btn-danger btn-xs"
+                                            onclick="instanceAction('delete', '<?= $c['instance_id'] ?>')">
+                                            <i class="fas fa-power-off"></i> Delete
+                                        </button>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -152,70 +168,93 @@
 
 
 <script type="text/javascript">
-function loadBranchInstance(branchId) {
-    $("#instance_id").val("");
-    $("#qr_box").html("");
-    $("#btn_create_instance").show();
-    $("#qr_btn").hide();
 
-    $.post("<?= base_url('whatsapp/get_branch_instance') ?>",
-        { branch_id: branchId },
-        function (res) {
-            let data = JSON.parse(res);
 
-            if (data.status == 1) {
-                $("#instance_id").val(data.instance_id);
-                $("#btn_create_instance").hide();
-                $("#qr_btn").show();
+    function instanceAction(type, instanceId) {
+        let text = {
+            reconnect: "Reconnect this instance?",
+            reboot: "Reboot this instance?",
+            reset: "Reset this instance? You will need to scan QR again.",
+            delete: "Delete this Instance? You will need to set new configs."
+        };
 
-                if (data.connected == 1) {
-                    $("#qr_box").html('<span class="badge badge-success">Connected</span>');
+        if (!confirm(text[type])) return;
+
+        $.post("<?= base_url('whatsapp/instance_action') ?>",
+            { action: type, instance_id: instanceId },
+            function (res) {
+                let d = JSON.parse(res);
+                alert(d.message);
+                location.reload();
+            }
+        );
+    }
+
+
+    function loadBranchInstance(branchId) {
+        $("#instance_id").val("");
+        $("#qr_box").html("");
+        $("#btn_create_instance").show();
+        $("#qr_btn").hide();
+
+        $.post("<?= base_url('whatsapp/get_branch_instance') ?>",
+            { branch_id: branchId },
+            function (res) {
+                let data = JSON.parse(res);
+
+                if (data.status == 1) {
+                    $("#instance_id").val(data.instance_id);
+                    $("#btn_create_instance").hide();
+                    $("#qr_btn").show();
+
+                    if (data.connected == 1) {
+                        $("#qr_box").html('<span class="badge badge-success">Connected</span>');
+                    } else {
+                        $("#qr_box").html('<span class="badge badge-warning">Not Connected</span>');
+                    }
+
                 } else {
-                    $("#qr_box").html('<span class="badge badge-warning">Not Connected</span>');
+                    $("#qr_box").html('<span class="badge badge-danger">No Instance</span>');
                 }
-
-            } else {
-                $("#qr_box").html('<span class="badge badge-danger">No Instance</span>');
             }
-        }
-    );
-}
+        );
+    }
 
-$("#btn_create_instance").click(function () {
-    $.post("<?= base_url('whatsapp/ajax_create_instance') ?>", {},
-        function (res) {
-            let data = JSON.parse(res);
+    $("#btn_create_instance").click(function () {
+        $.post("<?= base_url('whatsapp/ajax_create_instance') ?>", {},
+            function (res) {
+                let data = JSON.parse(res);
 
-            if (data.status == 1) {
-                $("#instance_id").val(data.instance_id);
-                $("#btn_create_instance").hide();
-                $("#qr_btn").show();
-            } else {
-                alert(data.msg);
+                if (data.status == 1) {
+                    $("#instance_id").val(data.instance_id);
+                    $("#btn_create_instance").hide();
+                    $("#qr_btn").show();
+                } else {
+                    alert(data.msg);
+                }
             }
-        }
-    );
-});
+        );
+    });
 
-$("#qr_btn").click(function () {
-    let instance_id = $("#instance_id").val();
+    $("#qr_btn").click(function () {
+        let instance_id = $("#instance_id").val();
 
-    $("#qr_box").html("Loading QR...");
+        $("#qr_box").html("Loading QR...");
 
-    $.post("<?= base_url('whatsapp/ajax_get_qr') ?>",
-        { instance_id: instance_id },
-        function (res) {
-            let data = JSON.parse(res);
+        $.post("<?= base_url('whatsapp/ajax_get_qr') ?>",
+            { instance_id: instance_id },
+            function (res) {
+                let data = JSON.parse(res);
 
-            if (data.status == 1) {
-                $("#qr_box").html(
-                    `<img src="${data.qr}" 
+                if (data.status == 1) {
+                    $("#qr_box").html(
+                        `<img src="${data.qr}" 
                           style="max-width:300px; background:#fff; padding:10px; border-radius:8px;">`
-                );
-            } else {
-                $("#qr_box").html(`<span style="color:red">${data.msg}</span>`);
+                    );
+                } else {
+                    $("#qr_box").html(`<span style="color:red">${data.msg}</span>`);
+                }
             }
-        }
-    );
-});
+        );
+    });
 </script>

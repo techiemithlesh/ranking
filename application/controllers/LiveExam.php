@@ -284,7 +284,6 @@ class LiveExam extends Admin_Controller
         ]);
     }
 
-
     public function endSession()
     {
         $session_id = $this->input->post('session_id');
@@ -398,7 +397,6 @@ class LiveExam extends Admin_Controller
             'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)
         ]);
     }
-
 
     public function getParticipants()
     {
@@ -665,7 +663,6 @@ class LiveExam extends Admin_Controller
     }
 
     /**WHATSAPP INTGERATION */
-
     public function generateAndSaveReportPdf($sessionCode, $studentId)
     {
         $this->db->reset_query();
@@ -738,8 +735,6 @@ class LiveExam extends Admin_Controller
             'file' => $fileName
         ];
     }
-
-
     public function test_whatsapp()
     {
         $this->load->library('whatsapp_lib');
@@ -766,6 +761,7 @@ class LiveExam extends Admin_Controller
         echo '<pre>';
         print_r($response);
     }
+
 
 
 

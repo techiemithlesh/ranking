@@ -16,10 +16,6 @@
     }
 </style>
 
-<?php
-$selectedExamType = isset($exam_type) ? $exam_type : '';
-?>
-
 <div class="row">
     <div class="col-sm-12">
         <section class="panel">
@@ -67,16 +63,15 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
                     <div class="col-md-3 mb-sm">
                         <label class="control-label"><?= translate('Exam_type') ?> <span
                                 class="required">*</span></label>
-
+                        <?php
+                        $selectedExamType = isset($filter_exam_type) ? $filter_exam_type : '';
+                        ?>
                         <select class='form-control' name="exam_type" data-plugin-selectTwo data-width="100%"
                             id="exam_type">
                             <option value="">Select Exam Type</option>
                             <option value="offline" <?= ($selectedExamType == 'offline' ? 'selected' : '') ?>>OFFLINE
                             </option>
                             <option value="online" <?= ($selectedExamType == 'online' ? 'selected' : '') ?>>ONLINE</option>
-                            <option value="live_exam" <?= ($selectedExamType == 'live_exam' ? 'selected' : '') ?>>
-                                <?= translate('live_exam') ?>
-                            </option>
                         </select>
                     </div>
 
@@ -84,19 +79,9 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
                         <div class="form-group">
                             <label class="control-label"><?= translate('exam') ?> <span
                                     class="required">*</span></label>
-                            <select name="exam_id" id="exam_id" class="form-control" data-plugin-selectTwo
+                            <select name="exam_id" class="form-control" data-plugin-selectTwo
                                 data-width="100%"></select>
                         </div>
-                    </div>
-
-                    <div class="col-md-3 mb-sm" id="session_code_container">
-                        <label class="control-label"><?= translate('session') ?></label>
-                        <select class="form-control" name="session_code" id="session_code" data-plugin-selectTwo
-                            data-width="100%">
-                            <?php if (!empty($sessionCode)): ?>
-                                <option value="<?= $sessionCode; ?>" selected><?= $sessionCode; ?></option>
-                            <?php endif; ?>
-                        </select>
                     </div>
 
                     <div class="col-md-3 mb-sm">
@@ -123,80 +108,100 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
 
         <!-- leaderboard view -->
         <?php if (!empty($leaderboard)): ?>
+            <section class="panel">
+                <header class="panel-heading">
+                    <h4 class="panel-title"><?= translate('leaderboard_result') ?></h4>
+                </header>
+                <div class="panel-body">
+                    <div class="row">
+                        <?php
+                        $rankIcons = ['🥇', '🥈', '🥉'];
+                        $count = 1;
+                        foreach ($leaderboard as $row):
+                            $rank = $count;
+                            $isTop3 = $rank <= 3;
+                            $student_photo = get_image_url('student', $row['photo']);
+                            $subject = $row['subject_name'];
+                            $register = $row['register_no'];
+                            $name = $row['full_name'];
+                            $marks = isset($row['obtain_mark']) ? $row['obtain_mark'] : $row['marks'];
+                            $badge = $count <= 3 ? $rankIcons[$count - 1] : "#$count";
+                            $percentage = (float) $row['percentage'];
 
-            <?php if ($exam_type == 'live_exam'): ?>
+                            // Dynamic progress bar color
+                            if ($percentage >= 90) {
+                                $barColor = '#28a745';
+                            } elseif ($percentage >= 70) {
+                                $barColor = '#17a2b8';
+                            } elseif ($percentage >= 50) {
+                                $barColor = '#ffc107';
+                            } else {
+                                $barColor = '#dc3545';
+                            }
+                            ?>
+                            <div class="col-md-4">
+                                <div
+                                    class="card shadow rounded border-0 <?= $isTop3 ? 'border-top border-4 border-warning' : '' ?>">
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0 fw-bold"><?= $badge ?></h3>
+                                        <img src="<?= $student_photo ?>" class="rounded-circle my-2" width="60" height="60"
+                                            style="object-fit: cover; border: 2px solid #dee2e6;" alt="<?= $name ?>" />
+                                        <h5 class="card-title mt-2"><?= $name ?></h5>
+                                        <p class="text-muted mb-1"><?= $register ?></p>
+                                        <p class="text-uppercase small text-secondary"> <?= $subject ?></p>
 
-                <?php if (!empty($filter_subject_id)): ?>
-
-                    <!-- SUBJECT-WISE LIVE EXAM RANK -->
-                    <?php $this->load->view('leaderboard/partials/subject_wise_rank_list', $this->data); ?>
-
-                <?php else: ?>
-
-                    <!-- EXAM-WISE LIVE EXAM RANK -->
-                    <?php $this->load->view('leaderboard/partials/table_live_exam', $this->data); ?>
-
-                <?php endif; ?>
-
-            <?php else: ?>
-
-                <!-- ONLINE / OFFLINE CARD VIEW -->
-                <?php $this->load->view('leaderboard/partials/card_exam', $this->data); ?>
-
-            <?php endif; ?>
-
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                style="width: <?= $percentage ?>%; padding: 0 5px; background-color: <?= $barColor; ?>"
+                                                aria-valuenow="<?= $percentage ?>" aria-valuemin="0" aria-valuemax="100">
+                                                <span style="font-weight: bold;"><?= $percentage ?>%</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-dark mt-3">Rank #<?= $rank ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php $count++; endforeach; ?>
+                    </div>
+                </div>
+            </section>
         <?php else: ?>
-
             <div class="alert alert-info text-center mt-4">
                 <strong><?= translate('leaderboard_result') ?>:</strong> <?= translate('no_data_available') ?>
             </div>
-
         <?php endif; ?>
-
-
     </div>
 </div>
 
 <script type="text/javascript">
     $(document).ready(function () {
-
         $('#branch_id').on('change', function () {
             var branchID = $(this).val();
             getClassByBranch(branchID);
-            getSubjectByBranch(branchID);
+            getExamByBranch(branchID);
+            $('#subject_id').html('').append('<option value=""><?= translate("select") ?></option>');
         });
 
-        function getSubjectByBranch(branchID) {
+        // Fetch subjects when section is changed
+        $('#section_id').on('change', function () {
+            var classID = $('#class_id').val();
+            var sectionID = $(this).val();
             $.ajax({
-                url: base_url + 'ajax/getSubjectByBranch',
+                url: base_url + 'subject/getByClassSection',
                 type: 'POST',
-                data: { branch_id: branchID },
+                data: {
+                    classID: classID,
+                    sectionID: sectionID
+                },
                 success: function (data) {
                     $('#subject_id').html(data);
                 }
-            })
-        }
+            });
+        });
 
         // EXAM FETCHED
         $('#exam_type').on('change', function () {
             var examType = $(this).val();
-
-            // Default: hide session, show subject, exam is required
-            $('#session_code_container').hide();
-            $('#subject_id').show();
-            $('#exam_id').prop('required', true);
-            $('#subject_id').prop('required', false); // subject is optional always
-
-            if (examType == 'live_exam') {
-                // Subject and Exam OPTIONAL
-                $('#exam_id').prop('required', false);
-                $('#subject_id').prop('required', false);
-
-                // Show only session_code
-                $('#session_code_container').show();
-            }
-
-            // Load Exam Dropdown
             var branchID = $('#branch_id').val();
             var classID = $('#class_id').val();
             var sectionID = $('#section_id').val();
@@ -219,24 +224,10 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
                     }
                 });
             } else {
-                $('select[name="exam_id"]').html('<option value="">Select Exam Type First</option>');
+                $('select[name="exam_id"]').html('<option value="">' + translate("select_exam_type_first") + '</option>');
             }
         });
 
-        $('#exam_id').on('change', function () {
-            let exam_id = $(this).val();
-            $.ajax({
-                url: base_url + 'LiveExam/getSessionsByExamWithAll',
-                type: 'POST',
-                data: { exam_id: exam_id },
-                success: function (data) {
-                    $('#session_code').html(data);
-                    if (preSessionCode) {
-                        $('#session_code').val(preSessionCode).trigger('change');
-                    }
-                }
-            });
-        });
-
     });
+
 </script>

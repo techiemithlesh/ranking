@@ -18,74 +18,6 @@ class Leaderboard_model extends MY_Model
 
         $sql = "SELECT 
                 mark.*,
-                subject.subject_name,
-                subject.mark_distribution,
-                student.register_no,
-                student.photo,
-                CONCAT(student.first_name, ' ', student.last_name) AS full_name
-            FROM mark
-            JOIN (
-                SELECT 
-                    timetable_exam.exam_id,
-                    timetable_exam.subject_id,
-                    timetable_exam.mark_distribution,
-                    subject.name AS subject_name
-                FROM timetable_exam
-                JOIN subject ON subject.id = timetable_exam.subject_id
-                WHERE timetable_exam.exam_id = {$exam_id}
-                AND timetable_exam.class_id = {$class_id}
-                AND timetable_exam.section_id = {$section_id}
-                AND timetable_exam.branch_id = {$branch_id}
-            ) AS subject 
-            ON subject.subject_id = mark.subject_id 
-            AND subject.exam_id = mark.exam_id
-            JOIN student ON student.id = mark.student_id
-            WHERE mark.exam_id = {$exam_id}
-                AND mark.class_id = {$class_id}
-                AND mark.section_id = {$section_id}
-                AND mark.branch_id = {$branch_id}
-                {$subjectWhere}";
-
-        $result = $this->db->query($sql)->result_array();
-        $leaderboard = [];
-        foreach ($result as $row) {
-            $markJson = json_decode($row['mark'], true);
-            $markDistribution = json_decode($row['mark_distribution'], true);
-            foreach ($markJson as $subId => $obtainMark) {
-                $fullMark = isset($markDistribution[$subId]['full_mark']) ? $markDistribution[$subId]['full_mark'] : 100;
-                $passMark = isset($markDistribution[$subId]['pass_mark']) ? $markDistribution[$subId]['pass_mark'] : 50;
-
-                $percentage = ($fullMark > 0) ? round(($obtainMark / $fullMark) * 100, 2) : 0;
-
-                $leaderboard[] = [
-                    'student_id' => $row['student_id'],
-                    'register_no' => $row['register_no'],
-                    'photo' => $row['photo'],
-                    'full_name' => $row['full_name'],
-                    'subject_id' => $subId,
-                    'subject_name' => $row['subject_name'],
-                    'obtain_mark' => $obtainMark,
-                    'full_mark' => $fullMark,
-                    'pass_mark' => $passMark,
-                    'percentage' => $percentage,
-                    'remarks' => $row['remarks']
-                ];
-            }
-        }
-
-        usort($leaderboard, function ($a, $b) {
-            return $b['obtain_mark'] <=> $a['obtain_mark'];
-        });
-
-        return $leaderboard;
-    }
-
-    public function getOfflineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
-    {
-        $subjectWhere = $subject_id ? "AND mark.subject_id = {$subject_id}" : "";
-
-        $sql = "SELECT 
-                mark.*,
                 subject.subject_id AS exam_subject_id,
                 subject.subject_name,
                 subject.mark_distribution,
@@ -195,65 +127,8 @@ class Leaderboard_model extends MY_Model
         usort($leaderboard, fn($a, $b) => $b['percentage'] <=> $a['percentage']);
         return $leaderboard;
     }
+
     public function getOnlineExamLeaderboard($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
-    {
-        $this->db->select('online_exam_submitted.student_id, student.register_no, student.photo, CONCAT(student.first_name, " ", student.last_name) as full_name, online_exam.*');
-        $this->db->from('online_exam_submitted');
-        $this->db->join('online_exam', 'online_exam.id = online_exam_submitted.online_exam_id', 'inner');
-        $this->db->join('student', 'student.id = online_exam_submitted.student_id', 'left');
-        $this->db->where('online_exam_submitted.online_exam_id', $exam_id);
-        $this->db->where('online_exam.session_id', get_session_id());
-        $this->db->where('online_exam.class_id', $class_id);
-        $this->db->where('online_exam.created_by_branch', $branch_id);
-
-        $results = $this->db->get()->result_array();
-        $leaderboard = [];
-
-        foreach ($results as $row) {
-            $examSections = json_decode($row['section_id'], true);
-            $examSubjects = json_decode($row['subject_id'], true);
-
-            if (!in_array($section_id, $examSections))
-                continue;
-            if ($subject_id && !in_array($subject_id, $examSubjects))
-                continue;
-
-            $examResult = $this->examResult($row['id'], $row['student_id']);
-
-            $total_neg_marks = $row['neg_mark'] == 0 ? 0 : $examResult['total_neg_marks'];
-            $mark = ($examResult['total_obtain_marks'] - $total_neg_marks);
-            $fullMark = $examResult['total_marks'];
-            $score = ($examResult['total_marks'] === 0) ? '0.00' : number_format(($mark * 100 / $examResult['total_marks']), 2, '.', '');
-
-            $percentage = ($fullMark > 0) ? round(($mark / $fullMark) * 100, 2) : 0;
-
-            foreach ($examSubjects as $subId) {
-                if ($subject_id && $subId != $subject_id)
-                    continue;
-
-                $leaderboard[] = [
-                    'student_id' => $row['student_id'],
-                    'register_no' => $row['register_no'],
-                    'photo' => $row['photo'],
-                    'full_name' => $row['full_name'],
-                    'subject_id' => $subId,
-                    'subject_name' => get_type_name_by_id('subject', $subId),
-                    'obtain_mark' => $mark,
-                    'full_mark' => $examResult['total_marks'],
-                    'pass_mark' => $row['passing_mark'],
-                    'percentage' => $percentage,
-                    'remarks' => $row['remark']
-                ];
-            }
-        }
-
-        usort($leaderboard, function ($a, $b) {
-            return $b['obtain_mark'] <=> $a['obtain_mark'];
-        });
-
-        return $leaderboard;
-    }
-    public function getOnlineExamLeaderboard2($branch_id, $class_id, $section_id, $exam_id, $subject_id = null)
     {
         $this->db->select('online_exam_submitted.student_id, student.register_no, student.photo, CONCAT(student.first_name, " ", student.last_name) as full_name, online_exam.*');
         $this->db->from('online_exam_submitted');
@@ -614,10 +489,6 @@ class Leaderboard_model extends MY_Model
     }
 
     /**
-     * STUDENT SIDE LEADERBOARD
-     */
-
-    /**
      * Get student’s own rank details
      */
     public function getStudentRank($session_code, $student_id)
@@ -694,7 +565,7 @@ class Leaderboard_model extends MY_Model
     public function getAllRankBySession($session_code)
     {
         if (empty($session_code)) {
-            log_message('error', '[Leaderboard] Missing session_code in getAllRankBySession');
+            // log_message('error', '[Leaderboard] Missing session_code in getAllRankBySession');
             return [];
         }
 
@@ -734,7 +605,7 @@ class Leaderboard_model extends MY_Model
         $results = $query->result_array();
 
         if (empty($results)) {
-            log_message('debug', "[Leaderboard] No records found in leaderboard for session {$session_code}");
+            // log_message('debug', "[Leaderboard] No records found in leaderboard for session {$session_code}");
             return [];
         }
 
@@ -752,10 +623,128 @@ class Leaderboard_model extends MY_Model
             $row['percentile'] = (float) $row['percentile'];
         }
 
-        log_message('debug', "[Leaderboard] Prepared leaderboard for reward processing: " . json_encode($results));
+        // log_message('debug', "[Leaderboard] Prepared leaderboard for reward processing: " . json_encode($results));
 
         return $results;
     }
+
+
+    public function getLiveExamSubjectRank($branchID, $classID, $sectionID, $subjectID)
+    {
+        // Step 1: Fetch ALL session IDs where questions of this subject were used
+        $this->db->select('es.id');
+        $this->db->from('exam_sessions es');
+        $this->db->join('questions_manage qm', 'qm.onlineexam_id = es.exam_id');
+        $this->db->join('questions q', 'q.id = qm.question_id');
+        $this->db->where('q.subject_id', $subjectID);
+        $sessionRows = $this->db->get()->result_array();
+
+        if (empty($sessionRows)) {
+            return [];
+        }
+
+        $sessionIDs = array_column($sessionRows, 'id');
+
+        // Step 2: Build main subject-wise leaderboard query
+        $this->db->select("
+        s.id AS student_id,
+        s.first_name,
+        s.last_name,
+        s.photo,
+
+        -- Marks obtained only when correct
+        SUM(CASE WHEN esa.answer = q.answer THEN qm.marks ELSE 0 END) AS obtained_marks,
+
+        -- Total possible marks
+        SUM(qm.marks) AS total_marks,
+
+        -- Percentage
+        (
+            SUM(CASE WHEN esa.answer = q.answer THEN qm.marks ELSE 0 END)
+            / SUM(qm.marks)
+        ) * 100 AS percentage,
+
+        -- Wrong / Skipped / Time
+        SUM(CASE WHEN esa.answer != q.answer AND esa.answer != '' THEN 1 ELSE 0 END) AS wrong,
+        SUM(CASE WHEN esa.answer = '' OR esa.answer IS NULL THEN 1 ELSE 0 END) AS skipped,
+        MIN(esa.submitted_at) AS submit_time
+    ");
+
+        $this->db->from('exam_session_answers esa');
+        $this->db->join('exam_sessions es', 'es.id = esa.session_id');
+        $this->db->join('questions q', 'q.id = esa.question_id');
+        $this->db->join('questions_manage qm', 'qm.question_id = q.id AND qm.onlineexam_id = es.exam_id');
+        $this->db->join('student s', 's.id = esa.student_id');
+        $this->db->join('enroll e', 'e.student_id = s.id');
+
+        // Filters
+        $this->db->where('q.subject_id', $subjectID);
+        $this->db->where_in('esa.session_id', $sessionIDs);
+        $this->db->where('e.class_id', $classID);
+        $this->db->where('e.section_id', $sectionID);
+        $this->db->where('e.branch_id', $branchID);
+
+        $this->db->group_by('esa.student_id');
+
+        $result = $this->db->get()->result_array();
+
+        // Apply subject-wise ranking
+        return $this->applySubjectWiseRank($result);
+    }
+
+
+
+    private function applySubjectWiseRank($list)
+    {
+        if (empty($list))
+            return $list;
+
+        // SORT by marks, wrong, skipped, time
+        usort($list, function ($a, $b) {
+
+            // 1. Higher marks first
+            if ($b['obtained_marks'] != $a['obtained_marks']) {
+                return $b['obtained_marks'] <=> $a['obtained_marks'];
+            }
+
+            // 2. Less wrong
+            if ($a['wrong'] != $b['wrong']) {
+                return $a['wrong'] <=> $b['wrong'];
+            }
+
+            // 3. Less skipped
+            if ($a['skipped'] != $b['skipped']) {
+                return $a['skipped'] <=> $b['skipped'];
+            }
+
+            // 4. Faster submit time wins
+            return strtotime($a['submit_time']) <=> strtotime($b['submit_time']);
+        });
+
+        // Assign rank
+        $rank = 1;
+        $last = null;
+
+        foreach ($list as $i => &$row) {
+
+            $keys = [
+                $row['obtained_marks'],
+                $row['wrong'],
+                $row['skipped'],
+                $row['submit_time']
+            ];
+
+            if ($last !== null && $keys !== $last) {
+                $rank = $i + 1;
+            }
+
+            $row['rank'] = $rank;
+            $last = $keys;
+        }
+
+        return $list;
+    }
+
 
 
     public function array_equal($a, $b)

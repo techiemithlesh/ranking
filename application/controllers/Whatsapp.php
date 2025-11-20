@@ -220,7 +220,6 @@ class Whatsapp extends Admin_Controller
      * --------------------------------------------------------- */
     public function test_whatsapp()
     {
-        $this->load->library('whatsapp_lib');
         $response = $this->whatsapp_lib->send_text('919546858183', 'Hi Mithlesh Your Coding is awesome', 'test', 1);
 
         printVar($response);
@@ -239,4 +238,60 @@ class Whatsapp extends Admin_Controller
         curl_close($ch);
         return $out;
     }
+
+
+    public function instance_action()
+    {
+        $action = $this->input->post('action');
+        $instance_id = $this->input->post('instance_id');
+
+        if (!$instance_id)
+            responseMsg(0, "Instance ID missing");
+
+        switch ($action) {
+
+            case 'reconnect':
+                $url = $this->apiBase . "reconnect?instance_id={$instance_id}&access_token={$this->token}";
+                break;
+
+            case 'reboot':
+                $url = $this->apiBase . "restart?instance_id={$instance_id}&access_token={$this->token}";
+                break;
+
+            case 'reset':
+                $url = $this->apiBase . "reset_instance?instance_id={$instance_id}&access_token={$this->token}";
+
+                // clear config completely
+                $this->db->where('instance_id', $instance_id)->update('whatsapp_config', [
+                    'status' => 0,
+                    'sender_number' => null,
+                    'alias_name' => null,
+                    'country_code' => null,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                break;
+
+            case 'delete':
+                $this->db->where('instance_id', $instance_id)->delete('whatsapp_config');
+                responseMsg(1, "Instance deleted");
+                return;
+
+            default:
+                responseMsg(0, "Invalid action");
+        }
+
+        $resp = $this->curl_get($url);
+        log_message('debug', "[Instance Action - $action] " . $resp);
+
+        responseMsg(1, ucfirst($action) . " executed successfully");
+    }
+
+
+    public function config_delete($instance_id)
+    {
+        $this->db->where('instance_id', $instance_id)->delete('whatsapp_config');
+        responseMsg(1, "Deleted");
+    }
+
+
 }

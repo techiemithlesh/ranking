@@ -180,9 +180,6 @@ class Ajax extends MY_Controller
 
         echo json_encode($data);
     }
-
-
-
     public function getAdvanceSalaryDetails()
     {
         if (get_permission('advance_salary', 'is_add')) {
@@ -407,8 +404,6 @@ class Ajax extends MY_Controller
 
         echo $html;
     }
-
-
     public function getStafflistRole()
     {
         $html = "";
@@ -524,7 +519,6 @@ class Ajax extends MY_Controller
             echo json_encode($result);
         }
     }
-
     public function designation_details()
     {
         if (get_permission('designation', 'is_edit')) {
@@ -535,7 +529,6 @@ class Ajax extends MY_Controller
             echo json_encode($result);
         }
     }
-
 
     public function getSubjectsByBranch()
     {
@@ -561,8 +554,6 @@ class Ajax extends MY_Controller
 
         echo $html;
     }
-
-
     public function getSkillCategory()
     {
         $html = "<option value=''>" . translate("select") . "</option>";
@@ -608,10 +599,9 @@ class Ajax extends MY_Controller
             $branchID = get_loggedin_branch_id();
         }
 
-        // Ensure branch ID is not empty
+        
         if (!empty($branchID)) {
             if ($exam_type == 'offline') {
-                // For offline exams, get from exam table
                 $this->db->select('id, name, term_id');
                 $this->db->where('branch_id', $branchID);
                 $this->db->where('session_id', get_session_id());
