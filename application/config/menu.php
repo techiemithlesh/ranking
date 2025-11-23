@@ -72,6 +72,7 @@ $config['menus'] = [
                     'icon' => 'fas fa-laptop-code',
                     'children' => [
                         ['label' => 'Session Report', 'icon' => 'fas fa-globe', 'url' => 'Liveexam_student/myReports'],
+                        ['label' => 'Global Subject Ranking', 'icon' => 'fas fa-trophy', 'url' => 'Liveexam_student/subjectLeaderboard'],
                     ]
                 ]
             ]

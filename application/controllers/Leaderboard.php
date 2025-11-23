@@ -71,10 +71,7 @@ class Leaderboard extends Admin_Controller
                             ->getAllRank($branch_id, $class_id, $section_id, $exam_id, $sessionCode);
                     }
                 }
-                log_message("debug", "THE QUERY". $this->db->last_query());
-                // printVar($this->db->last_query());
-                // die;
-
+                
             } else {
                 $this->data['form_error'] = $this->form_validation->error_array();
             }

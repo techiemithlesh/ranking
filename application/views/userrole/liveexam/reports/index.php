@@ -30,7 +30,7 @@
                     <div class="col-md-3 mt-4 pt-2" style="margin-top: 20px;">
                         <button type="submit" name="search" value="1" class="btn btn-warning btn-block"
                             style="margin-top:8px;">
-                            <i class="fas fa-chart-line"></i> <?= translate('generate_report') ?>
+                            <i class="fas fa-chart-line"></i> <?= translate('Leaderboard') ?>
                         </button>
                     </div>
 

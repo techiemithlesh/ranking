@@ -605,9 +605,58 @@ class Liveexam_student extends Public_Controller
         $this->data['title'] = translate('leaderboard');
         $this->data['sub_page'] = 'userrole/liveexam/leaderboard';
         $this->data['main_menu'] = 'onlineexam';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function subjectLeaderboard()
+    {
+        if (!is_student_loggedin() && !is_parent_loggedin()) {
+            set_alert('error', 'You are not authorised to access this report');
+            return redirect(base_url('dashboard'));
+        }
+
+        if (is_student_loggedin()) {
+            $studentID = get_loggedin_user_id();
+        } else {
+            $studentID = get_activeChildren_id();
+        }
+
+        $studentDetails = $this->application_model->getStudentDetails($studentID);
+
+        $branchId = $studentDetails['branch_id'];
+        $classId = $studentDetails['class_id'];
+        $sectionId = $studentDetails['section_id'];
+
+        $this->data['leaderboard'] = [];
+        $subjectId = null;
+
+        if ($this->input->post('search')) {
+
+            $this->form_validation->set_rules('subject_id', translate('Subject'), 'trim|required');
+
+            if ($this->form_validation->run() == true) {
+
+                $subjectId = $this->input->post('subject_id');
+
+                $this->data['leaderboard'] =
+                    $this->leaderboard_model->getLiveExamSubjectRank(
+                        $branchId,
+                        $classId,
+                        $sectionId,
+                        $subjectId
+                    );
+            }
+        }
+
+        $this->data['studentDetails'] = $studentDetails;
+        $this->data['subjectId'] = $subjectId;
+        $this->data['title'] = translate('leaderboard');
+        $this->data['sub_page'] = 'userrole/liveexam/reports/subjectranking';
+        $this->data['main_menu'] = 'onlineexam';
 
         $this->load->view('layout/index', $this->data);
     }
+
 
 
 }
