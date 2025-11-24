@@ -22,6 +22,12 @@
         background: #CD7F32;
     }
 
+    .rank-default {
+        background: #c85151ff;
+        /* soft grey */
+        color: #fff;
+    }
+
     /* Bronze */
 </style>
 
@@ -75,16 +81,21 @@
 
                                 <td>
                                     <?php
-                                    $badge = "";
-                                    if ($rank == 1)
-                                        $badge = "rank-1";
-                                    elseif ($rank == 2)
-                                        $badge = "rank-2";
-                                    elseif ($rank == 3)
-                                        $badge = "rank-3";
+                                    // default neutral badge for rank > 3
+                                    $badgeClass = "rank-default";
+
+                                    if ($rank == 1) {
+                                        $badgeClass = "rank-1"; // gold
+                                    } elseif ($rank == 2) {
+                                        $badgeClass = "rank-2"; // silver
+                                    } elseif ($rank == 3) {
+                                        $badgeClass = "rank-3"; // bronze
+                                    }
                                     ?>
-                                    <span class="rank-badge <?= $badge ?>"><?= $rank ?></span>
+
+                                    <span class="rank-badge <?= $badgeClass ?>"><?= $rank ?></span>
                                 </td>
+
                             </tr>
                             <?php
                             $rank++;
