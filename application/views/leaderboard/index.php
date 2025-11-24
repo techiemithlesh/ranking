@@ -66,7 +66,10 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
                                 ?>
                             </div>
                         </div>
+                    <?php else: ?>
+                        <input type="hidden" id="branch_id" name="branch_id" value="<?= get_loggedin_branch_id(); ?>">
                     <?php endif; ?>
+
 
                     <div class="col-md-3 mb-sm">
                         <label class="control-label"><?= translate('class') ?> <span class="required">*</span></label>
@@ -186,6 +189,8 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
         var preBranchId = "<?= set_value('branch_id', $branch_id) ?>";
         var preClassId = "<?= set_value('class_id') ?>";
         var preSectionId = "<?= set_value('section_id') ?>";
+
+        console.log("branch", preBranchId);
 
         /* ------------------------------------------------------
            INIT TOOLTIP

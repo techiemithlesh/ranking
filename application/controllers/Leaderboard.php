@@ -82,6 +82,7 @@ class Leaderboard extends Admin_Controller
         $this->data['filter_exam_id'] = $this->input->post('exam_id');
         $this->data['filter_subject_id'] = $this->input->post('subject_id');
         $this->data['branch_id'] = $this->application_model->get_branch_id();
+
         $this->data['sessionCode'] = $sessionCode;
 
         $this->data['title'] = translate('leaderboard');

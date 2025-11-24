@@ -647,7 +647,7 @@ class Liveexam_student extends Public_Controller
                     );
             }
         }
-
+        $this->data['loggedStudentID'] = $studentDetails['id'];
         $this->data['studentDetails'] = $studentDetails;
         $this->data['subjectId'] = $subjectId;
         $this->data['title'] = translate('leaderboard');
