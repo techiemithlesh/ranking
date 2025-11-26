@@ -122,6 +122,7 @@ class Leaderboard extends Admin_Controller
             $this->form_validation->set_rules('subject_id', 'Subject', 'trim|required');
         }
     }
+    
 
 
 }

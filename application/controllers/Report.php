@@ -451,7 +451,6 @@ class Report extends Admin_Controller
         return $classAverages;
     }
 
-
     public function getClassAverageByExamId($branchId, $classId, $sectionId, $exam_id)
     {
         $params = [$classId, $sectionId, $branchId, $exam_id];
@@ -848,6 +847,17 @@ class Report extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+    public function subjectWiseResult(){
+
+        $branchID = $this->application_model->get_branch_id();
+        $this->data['branch_id'] = $branchID;
+        $this->data['title'] = translate('subject_wise_report');
+        $this->data['sub_page'] = 'report/subject_wise_report';
+        $this->data['main_menu'] = 'online_exam_progress';
+
+        $this->load->view('layout/index', $this->data);
+
+    }
 
 }
 

@@ -148,30 +148,7 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
         </section>
 
 
-        <?php if (!empty($leaderboard)): ?>
-
-            <?php if ($exam_type == 'live_exam'): ?>
-
-                <?php if (!empty($filter_subject_id)): ?>
-                    <!-- SUBJECT-WISE LIVE EXAM RANK -->
-                    <?php $this->load->view('leaderboard/partials/subject_wise_rank_list', $this->data); ?>
-                <?php else: ?>
-                    <!-- EXAM-WISE LIVE EXAM RANK -->
-                    <?php $this->load->view('leaderboard/partials/table_live_exam', $this->data); ?>
-                <?php endif; ?>
-
-            <?php else: ?>
-                <!-- ONLINE / OFFLINE CARD VIEW -->
-                <?php $this->load->view('leaderboard/partials/card_exam', $this->data); ?>
-            <?php endif; ?>
-
-        <?php else: ?>
-
-            <div class="alert alert-info text-center mt-4">
-                <strong><?= translate('leaderboard_result') ?>:</strong> <?= translate('no_data_available') ?>
-            </div>
-
-        <?php endif; ?>
+       <!-- TABULAR FORMAT GOES HERE -->
 
     </div>
 </div>
