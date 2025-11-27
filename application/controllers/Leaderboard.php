@@ -65,6 +65,9 @@ class Leaderboard extends Admin_Controller
                         $this->data['leaderboard'] = $this->leaderboard_model
                             ->getLiveExamSubjectRank($branch_id, $class_id, $section_id, $subject_id);
 
+                            // printVar($this->db->last_query());
+                            // die;
+
                     } else {
                         // ⭐ EXAM-WISE LIVE EXAM
                         $this->data['leaderboard'] = $this->leaderboard_model

@@ -118,7 +118,6 @@ class Report extends Admin_Controller
     }
 
 
-
     public function annual_examination_report()
     {
         $reportCardData = $this->session->userdata("reportCardData");
@@ -214,7 +213,6 @@ class Report extends Admin_Controller
         $this->data['title'] = 'Exam Based - Matterhorn Report';
         $this->load->view('report/annual_examination_report/report', $this->data);
     }
-
 
     public function checkExistingReport()
     {
@@ -833,7 +831,7 @@ class Report extends Admin_Controller
                     ? array_column($classAaverage, 'avg_percentage')
                     : [];
 
-                
+
                 $this->load->view('report/online_exam_progress/subjectwise_report', $this->data);
                 return;
             }
@@ -847,10 +845,79 @@ class Report extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function subjectWiseResult(){
+    public function subjectWiseResult()
+    {
 
         $branchID = $this->application_model->get_branch_id();
+        $reportRows = [];
+        $sessionCode = null;
+        $examType = null;
+        $examId = null;
+        $subjectId = null;
+
+        if ($this->input->post('search')) {
+            $classId = $this->input->post('class_id');
+            $sectionId = $this->input->post('section_id');
+            $examType = $this->input->post('exam_type');
+            $examId = $this->input->post('exam_id');
+            $subjectId = $this->input->post('subject_id');
+            $sessionCode = $this->input->post('session_code');
+            $sessionCode = !empty($sessionCode) ? $sessionCode : null;
+
+            if (is_superadmin_loggedin()) {
+                $this->form_validation->set_rules('branch_id', 'Branch', 'trim|required');
+            }
+
+            $this->form_validation->set_rules('class_id', 'Class', 'trim|required');
+            $this->form_validation->set_rules('section_id', 'Section', 'trim|required');
+            $this->form_validation->set_rules('exam_type', 'Exam Type', 'trim|required');
+
+            if ($examType === 'online') {
+                $this->form_validation->set_rules('exam_id', 'Exam', 'trim|required');
+            }
+
+            if ($this->form_validation->run() === true) {
+                if ($examType === 'live_exam') {
+
+                    $reportRows = $this->leaderboard_model->getLiveExamSubjectReport(
+                        $branchID,
+                        $classId,
+                        $sectionId,
+                        $subjectId,   // null allowed
+                        $examId,      // null NOT allowed
+                        $sessionCode  // null allowed
+                    );
+                    // printVar($this->db->last_query());
+                    // die;
+                } elseif ($examType === 'online') {
+                    $reportRows = $this->leaderboard_model->getOnlineExamSubjectReport(
+                        $branchID,
+                        $classId,
+                        $sectionId,
+                        $examId,
+                        $subjectId    // null = all subjects combined
+                    );
+
+                    printVar($this->db->last_query());
+                    die;
+                }
+            } else {
+                $this->data['form_error'] = $this->form_validation->error_array();
+            }
+        }
+
+
         $this->data['branch_id'] = $branchID;
+        $this->data['class_id'] = $classId;
+        $this->data['section_id'] = $sectionId;
+        $this->data['exam_type'] = $examType;
+        $this->data['exam_id'] = $examId;
+        $this->data['subject_id'] = $subjectId;
+        $this->data['sessionCode'] = $sessionCode;
+
+        $this->data['report_rows'] = $reportRows;
+
+
         $this->data['title'] = translate('subject_wise_report');
         $this->data['sub_page'] = 'report/subject_wise_report';
         $this->data['main_menu'] = 'online_exam_progress';

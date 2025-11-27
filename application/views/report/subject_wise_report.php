@@ -54,8 +54,8 @@
                         <select class='form-control' name="exam_type" data-plugin-selectTwo data-width="100%"
                             id="exam_type">
                             <option value="">Select Exam Type</option>
-                            <option value="online" <?= ($selectedExamType == 'online' ? 'selected' : '') ?>>ONLINE</option>
-                            <option value="live_exam" <?= ($selectedExamType == 'live_exam' ? 'selected' : '') ?>>
+                            <option value="online" <?= ($exam_type == 'online' ? 'selected' : '') ?>>ONLINE</option>
+                            <option value="live_exam" <?= ($exam_type == 'live_exam' ? 'selected' : '') ?>>
                                 <?= translate('live_exam') ?>
                             </option>
                         </select>
@@ -63,8 +63,7 @@
 
                     <div class="col-md-3 mb-sm exam-col">
                         <div class="form-group">
-                            <label class="control-label"><?= translate('exam') ?> <span
-                                    class="required exam_required">*</span></label>
+                            <label class="control-label"><?= translate('exam') ?></label>
                             <select name="exam_id" id="exam_id" class="form-control" data-plugin-selectTwo
                                 data-width="100%"></select>
                         </div>
@@ -103,16 +102,143 @@
             <?php echo form_close(); ?>
         </section>
 
-        <!-- TABULAR FORMAT CODE GOES HERE -->
-       
+        <section class="panel">
+            <header class="panel-heading">
+                <h4 class="panel-title"><?= translate('subject_wise_report_card'); ?></h4>
+            </header>
+
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover mb-none">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th><?= translate('student_name') ?></th>
+                                <th><?= translate('total_questions') ?></th>
+                                <th><?= translate('skipped_questions') ?></th>
+                                <th><?= translate('wrong__questions') ?></th>
+                                <th><?= translate('obtained_marks') ?></th>
+                                <th><?= translate('total_marks') ?></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <?php if (!empty($report_rows)): ?>
+                                <?php $i = 1;
+                                foreach ($report_rows as $row): ?>
+                                    <tr>
+                                        <td><?= $i++; ?></td>
+                                        <td><?= html_escape($row['full_name']); ?></td>
+                                        <td><?= (int) $row['total_questions']; ?></td>
+                                        <td><?= (int) $row['skipped']; ?></td>
+                                        <td><?= (int) $row['wrong']; ?></td>
+                                        <td><?= (float) $row['obtained_marks']; ?></td>
+                                        <td><?= (float) $row['total_marks']; ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-danger">
+                                        <?= translate('no_records_found'); ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
 
     </div>
 </div>
 
 <script type="text/javascript">
-    $(document).ready(function(){
+    $(document).ready(function () {
 
-       
+        var selectExamType = <?= json_encode($exam_type ?? null) ?>;
+        var selectedExam = <?= json_encode($exam_id ?? '') ?>;
+        var selectedSubject = <?= json_encode($subject_id ?? '') ?>;
+        var selectedSession = <?= json_encode($sessionCode ?? '') ?>;
+
+
+        if (selectExamType !== 'live_exam') {
+            $('#session_code_container').hide();
+        }
+
+        $('#branch_id').on('change', function () {
+            var branchID = $(this).val();
+            getClassByBranch(branchID);
+
+            $.ajax({
+                url: base_url + 'ajax/getSubjectByBranch',
+                method: 'POST',
+                data: { branch_id: branchID },
+                success: function (data) {
+                    $('#subject_id').html(data);
+
+                    if (selectedSubject) {
+                        $('#subject_id').val(selectedSubject).trigger('change');
+                    }
+                }
+            })
+        });
+
+        $('#exam_type').on('change', function () {
+            var examType = $(this).val();
+            var branchID = $('#branch_id').val();
+            var classID = $('#class_id').val();
+            var sectionID = $('#section_id').val();
+
+            if (examType === 'live_exam') {
+                $('#session_code_container').show();
+            } else {
+                $('#session_code_container').hide();
+            }
+
+            if (examType !== '') {
+                $.ajax({
+                    url: base_url + "ajax/getExamType",
+                    type: 'POST',
+                    data: {
+                        exam_type: examType,
+                        branch_id: branchID,
+                        class_id: classID,
+                        section_id: sectionID
+                    },
+                    success: function (data) {
+                        $('#exam_id').html(data);
+
+                        if (selectedExam) {
+                            $('#exam_id').val(selectedExam).trigger('change');
+                        }
+                    }
+                });
+            }
+        })
+
+        $('#exam_id').on('change', function () {
+            var exam_id = $(this).val();
+            var examType = $('#exam_type').val();
+
+            if (!exam_id) return;
+
+            $.ajax({
+                url: base_url + 'LiveExam/getSessionsByExamWithAll',
+                method: "POST",
+                data: { exam_id: exam_id },
+                success: function (data) {
+                    $('#session_code').html(data);
+
+                    if (selectedSession) {
+                        $('#session_code').val(selectedSession).trigger('change');
+                    }
+                }
+            })
+
+        });
 
     });
 </script>

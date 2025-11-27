@@ -628,7 +628,6 @@ class Leaderboard_model extends MY_Model
         return $results;
     }
 
-
     public function getLiveExamSubjectRank($branchID, $classID, $sectionID, $subjectID)
     {
         // Step 1: Fetch ALL session IDs where questions of this subject were used
@@ -692,8 +691,6 @@ class Leaderboard_model extends MY_Model
         return $this->applySubjectWiseRank($result);
     }
 
-
-
     private function applySubjectWiseRank($list)
     {
         if (empty($list))
@@ -743,6 +740,188 @@ class Leaderboard_model extends MY_Model
         }
 
         return $list;
+    }
+
+
+    public function getOnlineExamSubjectReport($branchID, $classID, $sectionID, $examID, $subjectID = null)
+    {
+        $this->db->select("
+        oes.student_id,
+        s.first_name,
+        s.last_name,
+        s.photo,
+        s.register_no,
+        oe.subject_id,
+        oe.section_id,
+        oe.neg_mark,
+        oe.passing_mark
+    ");
+        $this->db->from('online_exam_submitted oes');
+        $this->db->join('online_exam oe', 'oe.id = oes.online_exam_id', 'inner');
+        $this->db->join('student s', 's.id = oes.student_id', 'left');
+        $this->db->where('oes.online_exam_id', $examID);
+        $this->db->where('oe.class_id', $classID);
+        $this->db->where('oe.created_by_branch', $branchID);
+
+        $rows = $this->db->get()->result_array();
+        $report = [];
+
+        foreach ($rows as $row) {
+
+            // Get full exam result
+            $examResult = $this->examResult($examID, $row['student_id']);
+
+            if ($subjectID) {
+
+                // Check if exam contains this subject
+                $examSubjectArr = json_decode($row['subject_id'], true);
+                if (!in_array($subjectID, $examSubjectArr))
+                    continue;
+
+                // Filter exam results to this subject
+                $subjectResults = $this->filterExamResultBySubject($examID, $row['student_id'], $subjectID);
+
+                if (!$subjectResults)
+                    continue;
+
+                $report[] = [
+                    'student_id' => $row['student_id'],
+                    'full_name' => trim($row['first_name'] . " " . $row['last_name']),
+                    'photo' => $row['photo'],
+                    'register_no' => $row['register_no'],
+
+                    'total_questions' => $subjectResults['total_question'],
+                    'correct' => $subjectResults['correct_ans'],
+                    'wrong' => $subjectResults['wrong_ans'],
+                    'skipped' => $subjectResults['total_question'] - $subjectResults['total_answered'],
+                    'obtained_marks' => $subjectResults['total_obtain_marks'],
+                    'total_marks' => $subjectResults['total_marks'],
+                    'percentage' => $subjectResults['percentage'],
+                ];
+
+            } else {
+                // FULL (ALL SUBJECTS)
+                $report[] = [
+                    'student_id' => $row['student_id'],
+                    'full_name' => trim($row['first_name'] . " " . $row['last_name']),
+                    'photo' => $row['photo'],
+                    'register_no' => $row['register_no'],
+
+                    'total_questions' => $examResult['total_question'],
+                    'correct' => $examResult['correct_ans'],
+                    'wrong' => $examResult['wrong_ans'],
+                    'skipped' => $examResult['total_question'] - $examResult['total_answered'],
+                    'obtained_marks' => $examResult['total_obtain_marks'],
+                    'total_marks' => $examResult['total_marks'],
+                    'percentage' => ($examResult['total_marks'] > 0)
+                        ? round(($examResult['total_obtain_marks'] / $examResult['total_marks']) * 100, 2)
+                        : 0,
+                ];
+            }
+        }
+
+        return $report;
+    }
+
+    private function filterExamResultBySubject($examID, $studentID, $subjectID)
+    {
+        $results = $this->getExamResults($examID, $studentID);
+
+        $correct = 0;
+        $wrong = 0;
+        $total = 0;
+        $answered = 0;
+        $fullMarks = 0;
+        $obtainMarks = 0;
+
+        foreach ($results as $q) {
+            if ($q->subject_id != $subjectID)
+                continue;
+
+            $total++;
+            $fullMarks += $q->marks;
+
+            if (!empty($q->ans_id)) {
+                $answered++;
+
+                if ($q->sb_ans == $q->answer) {
+                    $correct++;
+                    $obtainMarks += $q->marks;
+                } else {
+                    $wrong++;
+                }
+            }
+        }
+
+        return [
+            'total_question' => $total,
+            'correct_ans' => $correct,
+            'wrong_ans' => $wrong,
+            'total_answered' => $answered,
+            'total_obtain_marks' => $obtainMarks,
+            'total_marks' => $fullMarks,
+            'percentage' => ($fullMarks > 0) ? round(($obtainMarks / $fullMarks) * 100, 2) : 0
+        ];
+    }
+
+    public function getLiveExamSubjectReport($branchID, $classID, $sectionID, $subjectID = null, $examID = null, $sessionCode = null)
+    {
+       
+        $this->db->select("
+        esa.student_id,
+        s.first_name,
+        s.last_name,
+        s.photo,
+        
+        COUNT(esa.question_id) AS total_questions,
+
+        SUM(CASE WHEN esa.answer = q.answer THEN 1 ELSE 0 END) AS correct,
+        SUM(CASE WHEN esa.answer != q.answer AND esa.answer != '' THEN 1 ELSE 0 END) AS wrong,
+        SUM(CASE WHEN esa.answer = '' OR esa.answer IS NULL THEN 1 ELSE 0 END) AS skipped,
+
+        SUM(qm.marks) AS total_marks,
+        SUM(CASE WHEN esa.answer = q.answer THEN qm.marks ELSE 0 END) AS obtained_marks
+    ");
+
+        $this->db->from('exam_session_answers esa');
+        $this->db->join('exam_sessions es', 'es.id = esa.session_id');
+        $this->db->join('questions q', 'q.id = esa.question_id');
+        $this->db->join('questions_manage qm', 'qm.question_id = q.id AND qm.onlineexam_id = es.exam_id');
+        $this->db->join('student s', 's.id = esa.student_id');
+        $this->db->join('enroll e', 'e.student_id = s.id');
+
+        // 🟢 1. Subject Filter (if selected)
+        if (!empty($subjectID)) {
+            $this->db->where('q.subject_id', $subjectID);
+        }
+
+        // 🟢 2. Exam Filter (if selected)
+        if (!empty($examID)) {
+            $this->db->where('es.exam_id', $examID);
+        }
+
+        // 🟢 3. Session Filter (if selected)
+        if (!empty($sessionCode)) {
+            $this->db->where('es.session_code', $sessionCode);
+        }
+
+        // 🟢 Class/Section/Branch filters
+        $this->db->where('e.class_id', $classID);
+        $this->db->where('e.section_id', $sectionID);
+        $this->db->where('e.branch_id', $branchID);
+
+        $this->db->group_by('esa.student_id');
+
+        $rows = $this->db->get()->result_array();
+
+        foreach ($rows as &$r) {
+            $r['full_name'] = trim($r['first_name'] . " " . $r['last_name']);
+            $r['percentage'] = ($r['total_marks'] > 0)
+                ? round(($r['obtained_marks'] / $r['total_marks']) * 100, 2)
+                : 0;
+        }
+
+        return $rows;
     }
 
 
