@@ -149,9 +149,6 @@
                 </div>
             </div>
         </section>
-
-
-
     </div>
 </div>
 
@@ -163,11 +160,28 @@
         var selectedSubject = <?= json_encode($subject_id ?? '') ?>;
         var selectedSession = <?= json_encode($sessionCode ?? '') ?>;
 
-
         if (selectExamType !== 'live_exam') {
             $('#session_code_container').hide();
         }
 
+        // 🔥 Auto-load subjects for NON-superadmin
+        <?php if (!is_superadmin_loggedin()): ?>
+            let branchID = $('#branch_id').val();
+            $.ajax({
+                url: base_url + 'ajax/getSubjectByBranch',
+                method: 'POST',
+                data: { branch_id: branchID },
+                success: function (data) {
+                    $('#subject_id').html(data);
+
+                    if (selectedSubject) {
+                        $('#subject_id').val(selectedSubject).trigger('change');
+                    }
+                }
+            });
+        <?php endif; ?>
+
+        // Superadmin: load subjects on branch change
         $('#branch_id').on('change', function () {
             var branchID = $(this).val();
             getClassByBranch(branchID);
@@ -217,11 +231,10 @@
                     }
                 });
             }
-        })
+        });
 
         $('#exam_id').on('change', function () {
             var exam_id = $(this).val();
-            var examType = $('#exam_type').val();
 
             if (!exam_id) return;
 
@@ -237,7 +250,6 @@
                     }
                 }
             })
-
         });
 
     });

@@ -983,6 +983,7 @@
                             get_permission('online_exam', 'is_view') ||
                             get_permission('question_bank', 'is_view') ||
                             get_permission('exam_result', 'is_view') ||
+                            get_permission('subject_wise_exam_result', 'is_view') ||
                             get_permission('position_generate', 'is_view') ||
                             get_permission('question_group', 'is_view') ||
                             get_permission('live_exam', 'is_view')
@@ -1047,6 +1048,16 @@
                                             <a href="<?= base_url('onlineexam/result') ?>">
                                                 <span><i class="fas fa-caret-right"
                                                         aria-hidden="true"></i><?= translate('exam_result') ?></span>
+                                            </a>
+                                        </li>
+                                    <?php } ?>
+
+                                    <?php if (get_permission('subject_wise_exam_result', 'is_view')) { ?>
+                                        <li class="<?php if ($sub_page == 'report/subject_wise_report')
+                                            echo 'nav-active'; ?>">
+                                            <a href="<?= base_url('report/subjectWiseResult') ?>">
+                                                <span><i
+                                                        class="fas fa-caret-right"></i><?= translate('subject_wise_report') ?></span>
                                             </a>
                                         </li>
                                     <?php } ?>

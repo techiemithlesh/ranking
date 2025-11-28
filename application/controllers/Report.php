@@ -848,6 +848,10 @@ class Report extends Admin_Controller
     public function subjectWiseResult()
     {
 
+        if(!get_permission('subject_wise_exam_result', 'is_view')){
+            access_denied();
+        }
+
         $branchID = $this->application_model->get_branch_id();
         $reportRows = [];
         $sessionCode = null;
@@ -898,8 +902,8 @@ class Report extends Admin_Controller
                         $subjectId    // null = all subjects combined
                     );
 
-                    printVar($this->db->last_query());
-                    die;
+                    // printVar($this->db->last_query());
+                    // die;
                 }
             } else {
                 $this->data['form_error'] = $this->form_validation->error_array();
@@ -920,7 +924,7 @@ class Report extends Admin_Controller
 
         $this->data['title'] = translate('subject_wise_report');
         $this->data['sub_page'] = 'report/subject_wise_report';
-        $this->data['main_menu'] = 'online_exam_progress';
+        $this->data['main_menu'] = 'onlineexam';
 
         $this->load->view('layout/index', $this->data);
 
