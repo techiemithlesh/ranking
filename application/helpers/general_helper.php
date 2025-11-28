@@ -632,36 +632,34 @@ if (!function_exists("sendWhatsAppMsg")) {
         }
     }
 
+}
 
+if (!function_exists('is_new_design')) {
+    function is_new_design()
+    {
+        $CI = &get_instance();
+        $CI->load->database();
 
-    if (!function_exists('is_new_design')) {
-        function is_new_design()
-        {
-            $CI = &get_instance();
-            $CI->load->database();
+        $global_config = $CI->db->get_where('global_settings', ['id' => 1])->row_array();
 
-            $global_config = $CI->db->get_where('global_settings', ['id' => 1])->row_array();
-
-            return isset($global_config['is_new_student_design']) && $global_config['is_new_student_design'] == 1;
-        }
+        return isset($global_config['is_new_student_design']) && $global_config['is_new_student_design'] == 1;
     }
+}
 
-    if (!function_exists("responseMsg")) {
-        function responseMsg($status, $message, $data = null)
-        {
-            header('Content-Type: application/json');
+if (!function_exists("responseMsg")) {
+    function responseMsg($status, $message, $data = null)
+    {
+        header('Content-Type: application/json');
 
-            $response = [
-                'status' => $status,
-                'message' => $message,
-                'data' => $data,
-            ];
+        $response = [
+            'status' => $status,
+            'message' => $message,
+            'data' => $data,
+        ];
 
-            echo json_encode($response);
-            exit;
-        }
+        echo json_encode($response);
+        exit;
     }
-
 }
 
 // 3.0 STARTED
