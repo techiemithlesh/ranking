@@ -147,9 +147,6 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
             <?php echo form_close(); ?>
         </section>
 
-
-
-
         <?php if (!empty($leaderboard)): ?>
 
             <?php if ($exam_type == 'live_exam'): ?>
@@ -192,7 +189,7 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
         var preClassId = "<?= set_value('class_id') ?>";
         var preSectionId = "<?= set_value('section_id') ?>";
 
-        console.log("branch", preBranchId);
+        //console.log("branch", preBranchId);
 
         /* ------------------------------------------------------
            INIT TOOLTIP
