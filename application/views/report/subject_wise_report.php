@@ -54,7 +54,7 @@
                         <select class='form-control' name="exam_type" data-plugin-selectTwo data-width="100%"
                             id="exam_type">
                             <option value="">Select Exam Type</option>
-                            <option value="online" <?= ($exam_type == 'online' ? 'selected' : '') ?>>ONLINE</option>
+                            <!-- <option value="online" <?= ($exam_type == 'online' ? 'selected' : '') ?>>ONLINE</option> -->
                             <option value="live_exam" <?= ($exam_type == 'live_exam' ? 'selected' : '') ?>>
                                 <?= translate('live_exam') ?>
                             </option>
