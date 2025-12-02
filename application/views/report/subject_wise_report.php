@@ -180,8 +180,7 @@
                 }
             });
         <?php endif; ?>
-
-        // Superadmin: load subjects on branch change
+        
         $('#branch_id').on('change', function () {
             var branchID = $(this).val();
             getClassByBranch(branchID);

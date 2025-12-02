@@ -37,7 +37,7 @@
                                                 <a href="<?php echo $row['book_url']; ?>" target="_blank"
                                                     data-toggle="tooltip" data-original-title="<?= translate('Open') ?>">
                                                     <img src="<?php echo base_url($bookImage); ?>" alt="Book Image"
-                                                        class="img-fluid img-thumbnail"
+                                                        class="img-fluid img-thumbnail" loading="lazy"
                                                         style="height: 350px; object-fit: cover;">
                                                 </a>
                                             </div>
@@ -46,10 +46,14 @@
                                             <div class="card-footer mt-auto">
                                                 <div class="d-flex justify-content-between">
                                                     <p><strong><?= translate('Class') ?>:</strong>
-                                                        <?php echo (empty($row['class_name']) ? '<span class="text-dark">All</span>' : $row['class_name']); ?>
+                                                        <?= empty($row['class_name']) ? '<span class="text-dark">All</span>' : $row['class_name']; ?>
                                                     </p>
-                                                   
+
+                                                    <p><strong><?= translate('Book Type') ?>:</strong>
+                                                        <?= $row['book_type'] ?>
+                                                    </p>
                                                 </div>
+
 
                                                 <div class="d-flex justify-content-between">
                                                     <p><strong><?= translate('Publisher') ?>:</strong>
@@ -74,14 +78,12 @@
                                                             href="javascript:void(0);" data-id="<?= $row['id'] ?>"
                                                             data-title="<?= $row['title'] ?>"
                                                             data-status="<?= $row['status'] ?>" data-book-img="<?= $book_img ?>"
-                                                            data-book-url="<?= $row['book_url'] ?>">
+                                                            data-book-url="<?= $row['book_url'] ?>"
+                                                            data-book-type="<?= $row['book_type'] ?>">
                                                             <i class="fas fa-pen-nib"></i>
                                                         </a>
-
-
                                                         <?php
                                                     }
-
                                                     ?>
                                                 </div>
                                             </div>
@@ -103,6 +105,19 @@
                                     <input type="text" class="form-control" name="title"
                                         value="<?= set_value('title') ?>" />
                                     <span class="error"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="col-md-3 control-label"><?= translate('book_type') ?> <span
+                                        class="required">*</span></label>
+                                <div class="col-md-6">
+                                    <select class="form-control" name="book_type" id="book_type">
+                                        <option value="">Select Book Type</option>
+                                        <option value="interactive">Interactive</option>
+                                        <option value="learning">Learning</option>
+                                    </select>
+                                    <span class="error"><?= form_error('book_type'); ?></span>
                                 </div>
                             </div>
 
@@ -165,6 +180,14 @@
                 </div>
 
                 <div class="form-group mb-md">
+                    <select class="form-control" name="book_type" id="ebook_type">
+                        <option value="">Select Book Type</option>
+                        <option value="interactive">Interactive</option>
+                        <option value="learning">Learning</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-md">
                     <label class="control-label"><?= translate('Book Url') ?> <span class="required">*</span></label>
                     <input type="text" class="form-control" value="" name="book_url" id="ebook_url">
                     <span class="book_url"></span>
@@ -211,14 +234,18 @@
     $(document).ready(function () {
 
         function getBookEditModal(e) {
-            console.log("data", e);
+            // console.log("data", e);
             var bookId = $(e).data('id');
             var bookTitle = $(e).data('title');
             var bookStatus = $(e).data('status');
             var bookImg = $(e).data('book-img');
             var bookUrl = $(e).data('book-url');
+            var bookType = $(e).data('book-type');
+
+            // console.log("book type", bookType);
 
             $('#ebook_id').val(bookId);
+            $('#ebook_type').val(bookType);
             $('#etitle').val(bookTitle);
             $('#estatus').val(bookStatus);
             $('#ebook_url').val(bookUrl);
@@ -255,14 +282,16 @@
                     console.log("response", response.status);
                     if (response.status === 'success') {
                         swal({
-                            title: 'success!',
+                            title: "Success!",
                             text: response.message || 'updated successfully!.',
-                        });
-
+                            type: "success",
+                            buttonsStyling: false,
+                            showCloseButton: true,
+                            focusConfirm: false,
+                        })
                         $.magnificPopup.close();
                         location.reload();
                     } else {
-
                         swal({
                             title: 'Error!',
                             text: response.message || 'Something went wrong. Please try again.',
@@ -270,7 +299,6 @@
                     }
                 },
                 error: function (xhr, status, error) {
-
                     swal({
                         title: 'Error!',
                         text: 'An error occurred: ' + error,

@@ -2,13 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : MULTI SCHOOL MANAGMENT
- * @version : 2.0
+ * @package : SCHOOL MANAGEMENT
+ * @version : 4.0
  * @developed by : MITHLESH KUMAR
  * @support : mithlesh@knaptix.com
  * @author url : http://codewithmithlesh.com/
  * @filename : StudentBookUpload.php
- * @copyright : tech.schoolexcel
+ * @copyright : Eduprojects Pvt Ltd.
  */
 
 
@@ -50,9 +50,9 @@ class StudentBookUpload extends Admin_Controller
             redirect(base_url('StudentBookUpload'));
         }
 
-        // $this->form_validation->set_rules('branch_id', translate('branch'), 'required');
         $this->form_validation->set_rules('title', translate('title'), 'trim|required');
         $this->form_validation->set_rules('book_url', translate('Book Url'), 'trim|valid_url|required');
+        $this->form_validation->set_rules('book_type',translate('book_type'),'required|in_list[interactive,learning]');
         $this->form_validation->set_rules('img_path', translate('Book Img'));
 
         if ($this->form_validation->run() === TRUE) {

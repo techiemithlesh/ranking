@@ -21,7 +21,8 @@ $config['menus'] = [
             'label' => 'My Learning Kit',
             'icon' => 'icon-book-open',
             'children' => [
-                ['label' => 'My Interactive Book', 'icon' => 'icons icon-cloud-upload', 'url' => 'userrole/books_upload_list'],
+                ['label' => 'My Learning Book', 'icon' => 'fas fa-book-reader', 'url' => 'userrole/myLearningBook'],
+                ['label' => 'My Interactive Book', 'icon' => 'fas fa-tablet-alt', 'url' => 'userrole/myInteractiveBook'],
                 ['label' => 'Attachment Book', 'icon' => 'icons icon-cloud-upload', 'url' => 'userrole/attachments'],
                 ['label' => 'My Homework', 'icon' => 'icon-note', 'url' => 'userrole/homework'],
                 ['label' => 'Smart Library', 'icon' => 'icon-book-open', 'url' => 'userrole/digitalBook'],

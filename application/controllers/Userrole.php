@@ -83,7 +83,7 @@ class Userrole extends User_Controller
     }
 
 
-    public function books_upload_list()
+    public function myLearningBook()
     {
         $student_data = $this->userrole_model->getStudentDetails();
         $branch_id = $student_data['branch_id'];
@@ -92,9 +92,25 @@ class Userrole extends User_Controller
             return;
         }
 
-        $this->data['booklist'] = $this->getBookUploadsList($student_data['class_id'], $student_data['branch_id']);
-        $this->data['title'] = translate('Books Link');
-        $this->data['sub_page'] = 'userrole/uploadbook_link';
+        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'learning');
+        $this->data['title'] = translate('my_learning_book');
+        $this->data['sub_page'] = 'userrole/learningbook';
+        $this->data['main_menu'] = 'BookUpload';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function myInteractiveBook()
+    {
+        $student_data = $this->userrole_model->getStudentDetails();
+        $branch_id = $student_data['branch_id'];
+        $class_id = $student_data['class_id'];
+        if (empty($student_data)) {
+            return;
+        }
+
+        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'interactive');
+        $this->data['title'] = translate('my_interactive_book');
+        $this->data['sub_page'] = 'userrole/interactivebook';
         $this->data['main_menu'] = 'BookUpload';
         $this->load->view('layout/index', $this->data);
     }
@@ -153,12 +169,13 @@ class Userrole extends User_Controller
         return $query->result_array();
     }
 
-    public function getBookUploadsList($class_id, $branch_id)
+    public function getBookUploadsList($class_id, $branch_id, $book_type)
     {
         $this->db->select('sb.title, sb.book_url, sb.book_img');
         $this->db->from('student_books as sb');
         $this->db->join('class_books as cb', 'cb.book_id = sb.id', 'left');
         $this->db->join('class as c', 'c.id = cb.class_id', 'left');
+        $this->db->where('sb.book_type', $book_type);
         $this->db->where('cb.class_id', $class_id);
         $this->db->where('cb.branch_id', $branch_id);
 

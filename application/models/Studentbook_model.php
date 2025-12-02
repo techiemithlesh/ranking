@@ -19,6 +19,7 @@ class Studentbook_model extends MY_Model
         $arrayData = array(
             'title' => $data['title'],
             'book_url' => $data['book_url'],
+            'book_type' => $data['book_type']
         );
 
         if (isset($data['uploader_id'])) {
@@ -45,7 +46,7 @@ class Studentbook_model extends MY_Model
             }
         }
 
-        log_message('debug', 'Saving book upload with data: ' . json_encode($data));
+        // log_message('debug', 'Saving book upload with data: ' . json_encode($data));
 
         if ($this->db->affected_rows() > 0) {
             return true;
@@ -497,6 +498,7 @@ class Studentbook_model extends MY_Model
     {
         $arrayData = array(
             'title' => $data['title'],
+            'book_type' => $data['book_type'],
             'status' => $data['status'],
             'book_url' => $data['book_url']
         );
@@ -543,8 +545,5 @@ class Studentbook_model extends MY_Model
             return false;
         }
     }
-
-
-
 
 }
