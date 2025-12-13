@@ -190,13 +190,13 @@
                 branch_id: branch_id
             };
 
-            console.log("formdata", formData);
+            // console.log("formdata", formData);
 
             // Add CSRF token
             formData['<?php echo $this->security->get_csrf_token_name(); ?>'] = '<?php echo $this->security->get_csrf_hash(); ?>';
 
             $.ajax({
-                url: "<?= base_url('StudentBookUpload/assign_class_to_books') ?>",
+                url: "<?= base_url('StudentBooks/assign_class_to_books') ?>",
                 type: 'POST',
                 data: formData,
                 success: function (response) {
