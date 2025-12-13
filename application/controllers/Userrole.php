@@ -85,6 +85,7 @@ class Userrole extends User_Controller
 
     public function myLearningBook()
     {
+        $month = $this->input->get('month');
         $student_data = $this->userrole_model->getStudentDetails();
         $branch_id = $student_data['branch_id'];
         $class_id = $student_data['class_id'];
@@ -92,7 +93,9 @@ class Userrole extends User_Controller
             return;
         }
 
-        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'learning');
+        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'learning', $month);
+        // printVar($this->db->last_query());
+        // die;
         $this->data['title'] = translate('my_learning_book');
         $this->data['sub_page'] = 'userrole/learningbook';
         $this->data['main_menu'] = 'BookUpload';
@@ -101,6 +104,8 @@ class Userrole extends User_Controller
 
     public function myInteractiveBook()
     {
+        $month = $this->input->get('month');
+        
         $student_data = $this->userrole_model->getStudentDetails();
         $branch_id = $student_data['branch_id'];
         $class_id = $student_data['class_id'];
@@ -108,11 +113,30 @@ class Userrole extends User_Controller
             return;
         }
 
-        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'interactive');
+        $this->data['booklist'] = $this->getBookUploadsList($class_id, $branch_id, 'interactive', $month);
         $this->data['title'] = translate('my_interactive_book');
         $this->data['sub_page'] = 'userrole/interactivebook';
         $this->data['main_menu'] = 'BookUpload';
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function getBookUploadsList($class_id, $branch_id, $book_type, $month = null)
+    {
+        $this->db->select('sb.title, sb.book_url, sb.book_img');
+        $this->db->from('student_books as sb');
+        $this->db->join('class_books as cb', 'cb.book_id = sb.id', 'left');
+        $this->db->join('class as c', 'c.id = cb.class_id', 'left');
+        $this->db->where('sb.book_type', $book_type);
+        $this->db->where('cb.class_id', $class_id);
+        $this->db->where('cb.branch_id', $branch_id);
+        $this->db->where('sb.status', 1);
+
+        if ($month != null) {
+            $this->db->where('sb.month_no', (int)$month);
+        }
+        $this->db->order_by('sb.month_no', 'ASC');
+        $query = $this->db->get();
+        return $query->result_array();
     }
 
     public function my_gallery()
@@ -162,20 +186,6 @@ class Userrole extends User_Controller
         $this->db->from('tbl_digital_library as sb');
         $this->db->join('tbl_digital_library_class as cb', 'cb.digital_id = sb.id', 'left');
         $this->db->join('class as c', 'c.id = cb.class_id', 'left');
-        $this->db->where('cb.class_id', $class_id);
-        $this->db->where('cb.branch_id', $branch_id);
-
-        $query = $this->db->get();
-        return $query->result_array();
-    }
-
-    public function getBookUploadsList($class_id, $branch_id, $book_type)
-    {
-        $this->db->select('sb.title, sb.book_url, sb.book_img');
-        $this->db->from('student_books as sb');
-        $this->db->join('class_books as cb', 'cb.book_id = sb.id', 'left');
-        $this->db->join('class as c', 'c.id = cb.class_id', 'left');
-        $this->db->where('sb.book_type', $book_type);
         $this->db->where('cb.class_id', $class_id);
         $this->db->where('cb.branch_id', $branch_id);
 

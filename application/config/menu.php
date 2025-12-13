@@ -5,11 +5,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Centralized menu structure.
  * Each item:
- *  - `title`: language key or string
- *  - `icon`: FontAwesome / Bootstrap icon class
- *  - `url`: controller/method or full URL
- *  - `roles`: which user types see this (e.g. ['student','parent'])
- *  - `children`: optional array of sub-items
+ * - `title`: language key or string
+ * - `icon`: FontAwesome / Bootstrap icon class
+ * - `url`: controller/method or full URL
+ * - `roles`: which user types see this (e.g. ['student','parent'])
+ * - `children`: optional array of sub-items
  */
 
 
@@ -21,8 +21,44 @@ $config['menus'] = [
             'label' => 'My Learning Kit',
             'icon' => 'icon-book-open',
             'children' => [
-                ['label' => 'My Learning Book', 'icon' => 'fas fa-book-reader', 'url' => 'userrole/myLearningBook'],
-                ['label' => 'My Interactive Book', 'icon' => 'fas fa-tablet-alt', 'url' => 'userrole/myInteractiveBook'],
+                [
+                    'label' => 'My Learning Book',
+                    'icon' => 'fas fa-book-reader',
+                    'url' => 'userrole/myLearningBook',
+                    'children' => [
+                        ['label' => 'Month - 1', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=1'],
+                        ['label' => 'Month - 2', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=2'],
+                        ['label' => 'Month - 3', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=3'],
+                        ['label' => 'Month - 4', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=4'],
+                        ['label' => 'Month - 5', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=5'],
+                        ['label' => 'Month - 6', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=6'],
+                        ['label' => 'Month - 7', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=7'],
+                        ['label' => 'Month - 8', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=8'],
+                        ['label' => 'Month - 9', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=9'],
+                        ['label' => 'Month - 10', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=10'],
+                        ['label' => 'Month - 11', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=11'],
+                        ['label' => 'Month - 12', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myLearningBook?month=12'],
+                    ]
+                ],
+                [
+                    'label' => 'My Interactive Book',
+                    'icon' => 'fas fa-tablet-alt',
+                    'url' => 'userrole/myInteractiveBook',
+                    'children' => [
+                        ['label' => 'Month - 1', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=1'],
+                        ['label' => 'Month - 2', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=2'],
+                        ['label' => 'Month - 3', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=3'],
+                        ['label' => 'Month - 4', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=4'],
+                        ['label' => 'Month - 5', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=5'],
+                        ['label' => 'Month - 6', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=6'],
+                        ['label' => 'Month - 7', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=7'],
+                        ['label' => 'Month - 8', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=8'],
+                        ['label' => 'Month - 9', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=9'],
+                        ['label' => 'Month - 10', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=10'],
+                        ['label' => 'Month - 11', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=11'],
+                        ['label' => 'Month - 12', 'icon' => 'far fa-calendar-alt', 'url' => 'userrole/myInteractiveBook?month=12'],
+                    ]
+                ],
                 ['label' => 'Attachment Book', 'icon' => 'icons icon-cloud-upload', 'url' => 'userrole/attachments'],
                 ['label' => 'My Homework', 'icon' => 'icon-note', 'url' => 'userrole/homework'],
                 ['label' => 'Smart Library', 'icon' => 'icon-book-open', 'url' => 'userrole/digitalBook'],
@@ -46,8 +82,6 @@ $config['menus'] = [
                 ['label' => 'Attendance', 'icon' => 'icons icon-chart', 'url' => 'userrole/attendance'],
                 ['label' => 'Events', 'icon' => 'icons icon-speech', 'url' => 'userrole/event'],
                 ['label' => 'Online Exam', 'icon' => 'icon-screen-desktop', 'url' => 'userrole/online_exam'],
-                ['label' => 'Live Exam', 'icon' => 'fas fa-users', 'url' => 'Liveexam_student'],
-
             ]
         ],
         ['label' => 'Live Classroom', 'icon' => 'fas fa-chalkboard-teacher', 'url' => 'userrole/live_class'],
@@ -60,22 +94,10 @@ $config['menus'] = [
                 ['label' => 'Progress Tracker', 'icon' => 'fas fa-chart-line', 'url' => 'userrole/my_progress'],
                 ['label' => 'Skill Report', 'icon' => 'fas fa-clipboard-list', 'url' => 'userrole/skillBasedReport'],
 
-                [
-                    'label' => 'Online Exam',
-                    'icon' => 'fas fa-laptop-code',
-                    'children' => [
-                        ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
-                        ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
-                    ]
-                    ],
-                [
-                    'label' => 'Live Exam',
-                    'icon' => 'fas fa-laptop-code',
-                    'children' => [
-                        ['label' => 'Session Report', 'icon' => 'fas fa-globe', 'url' => 'Liveexam_student/myReports'],
-                        ['label' => 'Global Subject Ranking', 'icon' => 'fas fa-trophy', 'url' => 'Liveexam_student/subjectLeaderboard'],
-                    ]
-                ]
+                ['label' => 'Online Exam', 'icon' => 'fas fa-laptop-code', 'children' => [
+                    ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
+                    ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
+                ]]
             ]
         ],
         ['label' => 'My Gallery', 'icon' => 'fas fa-images', 'url' => 'userrole/my_gallery'],
@@ -87,6 +109,7 @@ $config['menus'] = [
                 ['label' => 'Message', 'icon' => 'icons icon-envelope-open', 'url' => 'communication/mailbox/inbox']
             ]
         ],
+
     ],
 
     // MENU FOR PARENT LOGIN

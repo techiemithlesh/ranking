@@ -38,55 +38,82 @@
                                                     data-toggle="tooltip" data-original-title="<?= translate('Open') ?>">
                                                     <img src="<?php echo base_url($bookImage); ?>" alt="Book Image"
                                                         class="img-fluid img-thumbnail" loading="lazy"
-                                                        style="height: 350px; object-fit: cover;">
+                                                        style="height: 350px; width:100%; object-fit: cover;">
                                                 </a>
                                             </div>
-
                                             <!-- Card Footer (Details and Buttons) -->
                                             <div class="card-footer mt-auto">
-                                                <div class="d-flex justify-content-between">
-                                                    <p><strong><?= translate('Class') ?>:</strong>
-                                                        <?= empty($row['class_name']) ? '<span class="text-dark">All</span>' : $row['class_name']; ?>
-                                                    </p>
+                                                <!-- Row 1: Class | Book Type -->
+                                                <div class="row mb-1">
+                                                    <div class="col-xs-6">
+                                                        <p><strong><?= translate('Class') ?>:</strong>
+                                                            <?= empty($row['class_name']) ? '<span class="text-dark">All</span>' : $row['class_name']; ?>
+                                                        </p>
+                                                    </div>
 
-                                                    <p><strong><?= translate('Book Type') ?>:</strong>
-                                                        <?= $row['book_type'] ?>
-                                                    </p>
+                                                    <div class="col-xs-6 text-right">
+                                                        <p><strong><?= translate('Book Type') ?>:</strong>
+                                                            <?= ucfirst($row['book_type']); ?>
+                                                        </p>
+                                                    </div>
                                                 </div>
 
+                                                <!-- Row 2: Publisher | Month -->
+                                                <div class="row mb-1">
+                                                    <div class="col-xs-6">
+                                                        <p><strong><?= translate('Publisher') ?>:</strong>
+                                                            <?= get_type_name_by_id('staff', $row['uploader_id']); ?>
+                                                        </p>
+                                                    </div>
 
-                                                <div class="d-flex justify-content-between">
-                                                    <p><strong><?= translate('Publisher') ?>:</strong>
-                                                        <?php echo get_type_name_by_id('staff', $row['uploader_id']); ?>
-                                                    </p>
-
+                                                    <div class="col-xs-6 text-right">
+                                                        <p><strong><?= translate('Month') ?>:</strong>
+                                                            Month <?= $row['month_no']; ?>
+                                                        </p>
+                                                    </div>
                                                 </div>
 
+                                                <!-- Row 3: Status -->
+                                                <div class="row mb-2">
+                                                    <div class="col-xs-12">
+                                                        <p><strong><?= translate('Status') ?>:</strong>
+                                                            <?php if ($row['status'] == 1): ?>
+                                                                <span class="label label-success">Active</span>
+                                                            <?php else: ?>
+                                                                <span class="label label-danger">Inactive</span>
+                                                            <?php endif; ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Buttons -->
                                                 <div class="btn-group d-flex justify-content-end">
-                                                    <a href="<?php echo ($row['book_url']) ?>" target="_blank"
+                                                    <a href="<?= $row['book_url'] ?>" target="_blank"
                                                         class="btn btn-sm btn-primary" data-toggle="tooltip"
                                                         data-original-title="<?= translate('Open') ?>">
                                                         <i class="fas fa-external-link-alt"></i> <?= translate('Open') ?>
                                                     </a>
 
-                                                    <?php if (is_superadmin_loggedin()) {
-                                                        ?>
-                                                        <?php echo btn_delete('StudentBookUpload/deleteBooks/' . $row['id']); ?>
-
+                                                    <?php if (is_superadmin_loggedin()): ?>
+                                                        <?= btn_delete_ajax('StudentBooks/deleteBooks/' . $row['id']); ?>
 
                                                         <a class="btn btn-default btn-circle icon btn-edit"
-                                                            href="javascript:void(0);" data-id="<?= $row['id'] ?>"
+                                                            href="javascript:void(0);"
+                                                            data-id="<?= $row['id'] ?>"
                                                             data-title="<?= $row['title'] ?>"
-                                                            data-status="<?= $row['status'] ?>" data-book-img="<?= $book_img ?>"
+                                                            data-status="<?= $row['status'] ?>"
+                                                            data-book-img="<?= $book_img ?>"
                                                             data-book-url="<?= $row['book_url'] ?>"
-                                                            data-book-type="<?= $row['book_type'] ?>">
+                                                            data-book-type="<?= $row['book_type'] ?>"
+                                                            data-month="<?= $row['month_no'] ?>">
                                                             <i class="fas fa-pen-nib"></i>
                                                         </a>
-                                                        <?php
-                                                    }
-                                                    ?>
+                                                    <?php endif; ?>
                                                 </div>
+
                                             </div>
+
+
 
                                         </div>
                                     </div>
@@ -96,7 +123,7 @@
                         </div>
                     </div>
                     <div class="tab-pane" id="create">
-                        <?php echo form_open_multipart('StudentBookUpload/save', array('class' => 'form-bordered form-horizontal frm-submit-data')); ?>
+                        <?php echo form_open_multipart('StudentBooks/saveBook', array('class' => 'form-bordered form-horizontal frm-submit-data')); ?>
                         <?php if (is_superadmin_loggedin()): ?>
                             <div class="form-group">
                                 <label class="col-md-3 control-label"><?= translate('title') ?> <span
@@ -120,6 +147,20 @@
                                     <span class="error"><?= form_error('book_type'); ?></span>
                                 </div>
                             </div>
+
+                            <div class="form-group">
+                                <label class="col-md-3 control-label">Month <span class="required">*</span></label>
+                                <div class="col-md-6">
+                                    <select class="form-control" name="month_no" id="month_no" required>
+                                        <option value="">Select Month</option>
+                                        <?php foreach (month_list() as $num => $label): ?>
+                                            <option value="<?= $num ?>"><?= $label ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <span class="error"><?= form_error('month_no'); ?></span>
+                                </div>
+                            </div>
+
 
                             <div class="form-group">
                                 <label class="col-md-3 control-label"><?= translate('Book Url') ?> <span
@@ -162,10 +203,10 @@
 
 
 <?php if (is_superadmin_loggedin()) {
-    ?>
+?>
     <div class="zoom-anim-dialog modal-block modal-block-primary mfp-hide" id="modal">
         <section class="panel">
-            <?php echo form_open_multipart('StudentBookUpload/update', array('class' => 'edit-frm-submit-book', 'enctype' => 'multipart/form-data')); ?>
+            <?php echo form_open_multipart('StudentBooks/update', array('class' => 'edit-frm-submit-book', 'enctype' => 'multipart/form-data')); ?>
 
             <input type="hidden" name="book_id" id="ebook_id" value="" />
             <header class="panel-heading">
@@ -180,12 +221,24 @@
                 </div>
 
                 <div class="form-group mb-md">
+                    <label class="control-label"><?= translate('Book_type') ?> <span class="required">*</span></label>
                     <select class="form-control" name="book_type" id="ebook_type">
                         <option value="">Select Book Type</option>
                         <option value="interactive">Interactive</option>
                         <option value="learning">Learning</option>
                     </select>
                 </div>
+
+                <div class="form-group mb-md">
+                    <label class="control-label">Month <span class="required">*</span></label>
+                    <select class="form-control" name="month_no" id="emonth_no">
+                        <option value="">Select Month</option>
+                        <?php foreach (month_list() as $num => $label): ?>
+                            <option value="<?= $num ?>"><?= $label ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
 
                 <div class="form-group mb-md">
                     <label class="control-label"><?= translate('Book Url') ?> <span class="required">*</span></label>
@@ -226,21 +279,20 @@
             <?php echo form_close(); ?>
         </section>
     </div>
-    <?php
+<?php
 }
 ?>
 
 <script type="text/javascript">
-    $(document).ready(function () {
-
+    $(document).ready(function() {
         function getBookEditModal(e) {
-            // console.log("data", e);
             var bookId = $(e).data('id');
             var bookTitle = $(e).data('title');
             var bookStatus = $(e).data('status');
             var bookImg = $(e).data('book-img');
             var bookUrl = $(e).data('book-url');
             var bookType = $(e).data('book-type');
+            var bookMonth = $(e).data('month');
 
             // console.log("book type", bookType);
 
@@ -249,6 +301,7 @@
             $('#etitle').val(bookTitle);
             $('#estatus').val(bookStatus);
             $('#ebook_url').val(bookUrl);
+            $('#emonth_no').val(bookMonth);
 
             $("#ebookImg_path").attr("data-default-file", bookImg);
             $(".dropify").dropify();
@@ -256,28 +309,25 @@
             mfp_modal('#modal');
         }
 
-        $('body').on('click', '.btn-edit', function () {
+        $('body').on('click', '.btn-edit', function() {
             getBookEditModal(this);
         });
 
-        $('.edit-frm-submit-book').on('submit', function (e) {
+        $('.edit-frm-submit-book').on('submit', function(e) {
             e.preventDefault();
-
-
             var formData = new FormData(this);
             // AJAX request
             $.ajax({
                 url: $(this).attr('action'),
                 type: 'POST',
-
                 data: formData,
                 processData: false,
                 contentType: false,
-                beforeSend: function () {
+                beforeSend: function() {
                     $('.edit-frm-submit button[type="submit"]').html('<i class="fas fa-spinner fa-spin"></i> Processing').attr('disabled', true);
                 },
 
-                success: function (response) {
+                success: function(response) {
                     response = JSON.parse(response);
                     console.log("response", response.status);
                     if (response.status === 'success') {
@@ -298,13 +348,13 @@
                         });
                     }
                 },
-                error: function (xhr, status, error) {
+                error: function(xhr, status, error) {
                     swal({
                         title: 'Error!',
                         text: 'An error occurred: ' + error,
                     });
                 },
-                complete: function () {
+                complete: function() {
                     // Reset button state
                     $('.edit-frm-submit button[type="submit"]').html('<i class="fas fa-plus-circle"></i> Update').attr('disabled', false);
                 }

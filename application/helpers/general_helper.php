@@ -727,5 +727,14 @@ if (!function_exists('getSectionDetails')) {
     }
 }
 
+if (!function_exists('month_list')) {
+    function month_list() {
+        $months = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $months[$i] = "Month " . $i;
+        }
+        return $months;
+    }
+}
 
 

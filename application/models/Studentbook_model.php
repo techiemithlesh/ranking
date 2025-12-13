@@ -11,32 +11,30 @@ class Studentbook_model extends MY_Model
     public function __construct()
     {
         parent::__construct();
-
     }
 
-    public function save($data)
+    public function save1($data)
     {
         $arrayData = array(
             'title' => $data['title'],
             'book_url' => $data['book_url'],
-            'book_type' => $data['book_type']
+            'book_type' => $data['book_type'],
+            'month_no' => (int)$data['month_no']
         );
 
         if (isset($data['uploader_id'])) {
             $arrayData['uploader_id'] = $data['uploader_id'];
         } else {
-
             $arrayData['uploader_id'] = get_loggedin_user_id();
         }
 
-        log_message('debug', 'coming data for upload: ' . json_encode($arrayData));
+        // log_message('debug', 'coming data for upload: ' . json_encode($arrayData));
 
         if (!isset($data['img_path'])) {
             $config['upload_path'] = 'uploads/book_images/';
             $config['encrypt_name'] = true;
             $config['allowed_types'] = 'jpg|jpeg|png|gif';
             $this->upload->initialize($config);
-
 
             if ($this->upload->do_upload("img_path")) {
                 $arrayData['book_img'] = $config['upload_path'] . $this->upload->data('file_name');
@@ -54,6 +52,39 @@ class Studentbook_model extends MY_Model
             return false;
         }
     }
+
+    public function save($data)
+    {
+        $arrayData = array(
+            'title'     => $data['title'],
+            'book_url'  => $data['book_url'],
+            'book_type' => $data['book_type'],
+            'month_no'  => (int)$data['month_no'],
+            'uploader_id' => isset($data['uploader_id']) ? $data['uploader_id'] : get_loggedin_user_id(),
+        );
+
+        // Upload Image
+        if (!empty($_FILES['img_path']['name'])) {
+
+            $config['upload_path'] = 'uploads/book_images/';
+            $config['encrypt_name'] = true;
+            $config['allowed_types'] = 'jpg|jpeg|png|gif';
+
+            $this->upload->initialize($config);
+
+            if ($this->upload->do_upload("img_path")) {
+                $arrayData['book_img'] = $config['upload_path'] . $this->upload->data('file_name');
+            } else {
+                return ['error' => $this->upload->display_errors()];
+            }
+        }
+
+        // Insert row (always needed)
+        $this->db->insert('student_books', $arrayData);
+
+        return $this->db->affected_rows() > 0;
+    }
+
 
     public function getBookUploadsList()
     {
@@ -107,7 +138,6 @@ class Studentbook_model extends MY_Model
         return $result;
     }
 
-
     public function getBookUploadsList3()
     {
         $this->db->select('b.*, GROUP_CONCAT(DISTINCT br.name SEPARATOR ", ") as assigned_branches, c.name as class_name');
@@ -153,6 +183,7 @@ class Studentbook_model extends MY_Model
         }
 
         $this->db->group_by('b.id');
+        $this->db->order_by('b.month_no', 'ASC');
         $this->db->order_by('b.id', 'desc');
 
         $query = $this->db->get();
@@ -164,8 +195,6 @@ class Studentbook_model extends MY_Model
 
         return $query->result_array();
     }
-
-
 
     /**
      * Retrieve paginated books with advanced filtering based on user role and branch
@@ -246,7 +275,6 @@ class Studentbook_model extends MY_Model
                     'total_pages' => ceil($total_count / $perPage)
                 ]
             ];
-
         } catch (Exception $e) {
             log_message('error', 'Book retrieval error: ' . $e->getMessage());
             return [
@@ -297,7 +325,6 @@ class Studentbook_model extends MY_Model
         return $query->result_array();
     }
 
-
     public function getAssignedBranches($bookIds)
     {
         $this->db->select('branch.id, branch.name, 
@@ -312,8 +339,6 @@ class Studentbook_model extends MY_Model
 
         return $this->db->query($query)->result_array();
     }
-
-
     public function assignBranchesToBooks($book_ids, $branch_ids)
     {
         foreach ($book_ids as $book_id) {
@@ -352,7 +377,6 @@ class Studentbook_model extends MY_Model
         return json_encode(['status' => 'success', 'message' => 'Branches updated successfully!']);
     }
 
-
     public function get_all_branches_with_assignment($bookIds)
     {
         $this->db->select('branch.id, branch.name, 
@@ -362,7 +386,6 @@ class Studentbook_model extends MY_Model
         $this->db->group_by('branches.id');
         return $this->db->get()->result_array();
     }
-
 
     public function get_unassigned_books_for_class()
     {
@@ -382,7 +405,6 @@ class Studentbook_model extends MY_Model
                 $this->db->where('class_id', NULL);
                 $query = $this->db->get('student_books');
                 return $query->result_array();
-
             } catch (Exception $e) {
                 log_message('error', "Error getting unassigned books: " . $e->getMessage());
                 return array();
@@ -393,8 +415,6 @@ class Studentbook_model extends MY_Model
     public function getBooksForClassAssign()
     {
         $loggedInBranchId = get_loggedin_branch_id();
-
-
         $this->db->select('
                 b.*, 
                 GROUP_CONCAT(DISTINCT br.name SEPARATOR ", ") as assigned_branches, 
@@ -402,27 +422,20 @@ class Studentbook_model extends MY_Model
             ');
         $this->db->from('student_books as b');
 
-        // Join with book_branches to fetch assigned branches
         $this->db->join('book_branches as bb', 'bb.book_id = b.id', 'left');
         $this->db->join('branch as br', 'br.id = bb.branch_id', 'left');
 
-        // Join with class_books and class to fetch assigned classes
-        $this->db->join('class_books as cb', 'cb.book_id = b.id AND cb.branch_id = bb.branch_id', 'left'); // Filter classes by branch
+        $this->db->join('class_books as cb', 'cb.book_id = b.id AND cb.branch_id = bb.branch_id', 'left');
         $this->db->join('class as c', 'c.id = cb.class_id', 'left');
-
-        // Filter by branch based on logged-in user's branch (if applicable)
         $this->db->where('bb.branch_id', $loggedInBranchId);
 
         $this->db->group_by('b.id');
         $query = $this->db->get();
-
-        // Handle potential empty result
         if ($query->num_rows() === 0) {
-            return []; // Return an empty array if no books are found
+            return [];
         } else {
             return $query->result_array();
         }
-
     }
 
 
@@ -499,6 +512,7 @@ class Studentbook_model extends MY_Model
         $arrayData = array(
             'title' => $data['title'],
             'book_type' => $data['book_type'],
+            'month_no' => (int) $data['month_no'],
             'status' => $data['status'],
             'book_url' => $data['book_url']
         );
@@ -507,7 +521,6 @@ class Studentbook_model extends MY_Model
         $existingBook = $this->db->get('student_books')->row();
 
         if ($existingBook) {
-
             if (isset($_FILES['book_img']) && !empty($_FILES['book_img']['name'])) {
                 // Upload new thumbnail
                 $config['upload_path'] = 'uploads/book_images/';
@@ -545,5 +558,4 @@ class Studentbook_model extends MY_Model
             return false;
         }
     }
-
 }

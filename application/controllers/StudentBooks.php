@@ -2,17 +2,17 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * @package : SCHOOL MANAGEMENT
- * @version : 4.0
+ * @package : MULTI SCHOOL MANAGEMENT
+ * @version : 2.0
  * @developed by : MITHLESH KUMAR
- * @support : mithlesh@knaptix.com
+ * @support : techie.mithesh@gmail.com
  * @author url : http://codewithmithlesh.com/
- * @filename : StudentBookUpload.php
- * @copyright : Eduprojects Pvt Ltd.
+ * @filename : StudentBooks.php
+ * @copyright : Team Eduprojects Global Tech LTD.
  */
 
 
-class StudentBookUpload extends Admin_Controller
+class StudentBooks extends Admin_Controller
 {
 
     public function __construct()
@@ -24,9 +24,9 @@ class StudentBookUpload extends Admin_Controller
 
 
     public function index()
-    { 
+    {
         $this->data['branch_id'] = $this->application_model->get_branch_id();
-        $this->data['digitalbooks'] = $this->studentbook_model->getBookUploadsList3(); 
+        $this->data['digitalbooks'] = $this->studentbook_model->getBookUploadsList3();
         $this->data['title'] = translate('student_interactive_book ');
         $this->data['sub_page'] = 'book_upload/index';
         $this->data['main_menu'] = 'BookUpload';
@@ -43,38 +43,52 @@ class StudentBookUpload extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function save()
+
+    public function saveBook()
     {
-        if (!(is_superadmin_loggedin())) {
-            set_alert('error', 'You do not have permission to edit');
-            redirect(base_url('StudentBookUpload'));
+        if (!is_superadmin_loggedin()) {
+            $array = ['status' => 'fail', 'error' => ['other' => 'Access denied']];
+            echo json_encode($array);
+            exit;
         }
 
-        $this->form_validation->set_rules('title', translate('title'), 'trim|required');
-        $this->form_validation->set_rules('book_url', translate('Book Url'), 'trim|valid_url|required');
-        $this->form_validation->set_rules('book_type',translate('book_type'),'required|in_list[interactive,learning]');
-        $this->form_validation->set_rules('img_path', translate('Book Img'));
+        if ($_POST) {
 
-        if ($this->form_validation->run() === TRUE) {
-            $post = $this->input->post();
-            $response = $this->studentbook_model->save($post);
-            if (is_array($response)) {
-                $array = array('status' => 'fail', 'url' => '', 'error' => $response['error']);
-            } else {
-                if ($response) {
-                    $array = array('status' => 'success', 'url' => base_url('StudentBookUpload'), 'error' => '');
+            $this->form_validation->set_rules('title', translate('title'), 'trim|required');
+            $this->form_validation->set_rules('book_url', translate('Book Url'), 'trim|valid_url|required');
+            $this->form_validation->set_rules('book_type', translate('book_type'), 'required|in_list[interactive,learning]');
+            $this->form_validation->set_rules('month_no', 'Month', 'required|integer|greater_than[0]|less_than_equal_to[12]');
+            $this->form_validation->set_rules('img_path', translate('Book Img'));
+
+            if ($this->form_validation->run() === TRUE) {
+
+                $post = $this->input->post();
+                $response = $this->studentbook_model->save($post);
+
+                if (is_array($response)) {
+                    // RESPONSE FROM MODEL SHOULD BE STRING, WRAP IT INTO ARRAY
+                    $array = [
+                        'status' => 'fail',
+                        'url' => '',
+                        'error' => ['other' => $response['error']]
+                    ];
+                } else if ($response) {
+                    $array = ['status' => 'success', 'url' => base_url('StudentBooks/index')];
                 } else {
-                    $array = array('status' => 'fail', 'url' => '', 'error' => 'Failed to save data.');
+                    $array = [
+                        'status' => 'fail',
+                        'url' => '',
+                        'error' => ['other' => 'Failed to save data.']
+                    ];
                 }
+            } else {
+                $error = $this->form_validation->error_array();
+                $array = ['status' => 'fail', 'url' => '', 'error' => $error];
             }
-        } else {
-            $error = $this->form_validation->error_array();
-            $array = array('status' => 'fail', 'url' => '', 'error' => $error);
         }
 
         echo json_encode($array);
     }
-
 
     public function assignBranches()
     {
@@ -83,7 +97,6 @@ class StudentBookUpload extends Admin_Controller
             redirect(base_url('StudentBookUpload'));
         }
 
-        // $this->data['attachmentss'] = $this->studentbook_model->get_unassigned_books();
         $this->data['attachmentss'] = $this->studentbook_model->get_all_books();
         $this->data['branches'] = $this->studentbook_model->getBranches();
         $this->data['title'] = translate('Assign Books to Branch');
@@ -124,17 +137,18 @@ class StudentBookUpload extends Admin_Controller
             'assignedBranchIds' => $assignedBranchIds
         ]);
     }
-   
-    public function assign_branches() {
+
+    public function assign_branches()
+    {
         $book_ids = $this->input->post('book_ids');
         $new_branch_ids = $this->input->post('branch_ids') ?? [];
-    
+
         if (empty($book_ids)) {
             // log_message('error', 'Book assignment failed: No book IDs provided. POST data: ' . json_encode($_POST));
             echo json_encode(['status' => 'error', 'message' => 'Book IDs are required']);
             return;
         }
-    
+
         try {
             $this->db->trans_start();
             foreach ($book_ids as $book_id) {
@@ -148,20 +162,18 @@ class StudentBookUpload extends Admin_Controller
                 //            ' Last Query: ' . $this->db->last_query());
                 throw new Exception('Transaction failed');
             }
-    
-            log_message('info', 'Book branch assignment successful. Books: ' . json_encode($book_ids) . 
-                       ' Branches: ' . json_encode($new_branch_ids));
+
+            log_message('info', 'Book branch assignment successful. Books: ' . json_encode($book_ids) .
+                ' Branches: ' . json_encode($new_branch_ids));
             echo json_encode(['status' => 'success', 'message' => 'Branches updated successfully']);
-    
         } catch (Exception $e) {
-            log_message('error', 'Book branch assignment exception: ' . $e->getMessage() . 
-                       ' Trace: ' . $e->getTraceAsString() . 
-                       ' POST Data: ' . json_encode($_POST) . 
-                       ' Last Query: ' . $this->db->last_query());
+            log_message('error', 'Book branch assignment exception: ' . $e->getMessage() .
+                ' Trace: ' . $e->getTraceAsString() .
+                ' POST Data: ' . json_encode($_POST) .
+                ' Last Query: ' . $this->db->last_query());
             echo json_encode(['status' => 'error', 'message' => 'Failed to update branches']);
         }
     }
-
 
     public function assignClass()
     {
@@ -180,7 +192,6 @@ class StudentBookUpload extends Admin_Controller
         );
 
         $this->load->view('layout/index', $this->data);
-
     }
 
     public function assign_branch_to_books()
@@ -209,42 +220,42 @@ class StudentBookUpload extends Admin_Controller
         header('Content-Type: application/json');
         echo json_encode($response);
     }
-
-   
     public function update()
-     {
-         if ($_POST) {
- 
-             $this->form_validation->set_rules('title', translate('title'), 'trim|required');
-             $this->form_validation->set_rules('status', translate('status'), 'trim|required');
-             $this->form_validation->set_rules('book_url', translate('book url', 'trim|valid_url|required'));
- 
-             if ($this->form_validation->run() === FALSE) {
-                 $this->session->set_flashdata('error', validation_errors());
-                 redirect('StudentBookUpload/index');
-             } else {
-                 $post = $this->input->post();
-                 $post['id'] = $this->input->post('book_id');
-                 $response = $this->studentbook_model->updateBook($post);
-                 if (is_array($response)) {
-                     set_alert('error', $response['error']);
-                 } else {
-                     if ($response) {
-                         // set_alert('success', translate('interactive_book_has_been_update_successfully'));
-                     }
-                 }
- 
-                 $url = base_url('StudentBookUpload/index');
-                 echo json_encode(['status' => 'success', 'url' => $url, 'error' => '']);
-             }
-         }
-     }
+    {
+        if ($_POST) {
+            $this->form_validation->set_rules('title', translate('title'), 'trim|required');
+            $this->form_validation->set_rules(
+                'book_type',
+                translate('book_type'),
+                'required|in_list[interactive,learning]'
+            );
+            $this->form_validation->set_rules('month_no', 'Month', 'required|integer|greater_than[0]|less_than_equal_to[12]');
+            $this->form_validation->set_rules('status', translate('status'), 'trim|required');
+            $this->form_validation->set_rules('book_url', translate('book_url', 'trim|valid_url|required'));
 
+            if ($this->form_validation->run() === FALSE) {
+                $this->session->set_flashdata('error', validation_errors());
+                redirect(base_url('StudentBookUpload/index'));
+            } else {
+                $post = $this->input->post();
+                $post['id'] = $this->input->post('book_id');
+                $response = $this->studentbook_model->updateBook($post);
+                if (is_array($response)) {
+                    set_alert('error', $response['error']);
+                } else {
+                    if ($response) {
+                        // set_alert('success', translate('interactive_book_has_been_update_successfully'));
+                    }
+                }
+
+                $url = base_url('StudentBookUpload/index');
+                echo json_encode(['status' => 'success', 'url' => $url, 'error' => '']);
+            }
+        }
+    }
 
     public function assign_class_to_books()
     {
-        // Enable query debugging
-        $this->db->db_debug = TRUE;
         $class_id = $this->input->post('class_id');
         $book_ids = $this->input->post('book_ids');
         $branch_id = $this->input->post('branch_id');
@@ -260,6 +271,7 @@ class StudentBookUpload extends Admin_Controller
                 'message' => 'Invalid input data. Please provide all required fields.',
                 'debug' => $debug_msg
             );
+
             $this->output
                 ->set_content_type('application/json')
                 ->set_output(json_encode($response));
@@ -267,7 +279,6 @@ class StudentBookUpload extends Admin_Controller
         }
 
         try {
-           
             $this->db->trans_start();
             foreach ($book_ids as $book_id) {
                 $branch_data = array(
@@ -299,11 +310,9 @@ class StudentBookUpload extends Admin_Controller
                 ))->row();
 
                 if ($class_exists) {
-                    
                     $this->db->where('book_id', $book_id);
                     $this->db->where('branch_id', $branch_id);
                     $this->db->update('class_books', $class_data);
-                   
                 } else {
                     $this->db->insert('class_books', $class_data);
                     if ($this->db->affected_rows() == 0) {
@@ -361,80 +370,70 @@ class StudentBookUpload extends Admin_Controller
             ->set_output(json_encode($response));
     }
 
-    public function bookUploadEdit($id)
+    public function deleteClassBook($id = '')
     {
-        if (!get_permission('student_book_upload_edit', 'is_edit')) {
-            access_denied();
+        if (!is_admin_loggedin()) {
+            set_alert('info', 'You are not authorised to perform this');
+            return redirect()->back();
         }
 
-        $student_book_upload_db = $this->db->where('id', $id)->get('book_uploads')->row_array();
 
-        $this->data['branch_id'] = $this->application_model->get_branch_id();
-        $this->data['data'] = $this->db->where('id', $id)->get('book_uploads')->row_array();
+        if (!is_superadmin_loggedin()) {
+            $this->db->where('branch_id', get_loggedin_branch_id());
+        }
 
-        $this->data['title'] = translate('upload_content');
-        $this->data['sub_page'] = 'book_upload/student_book_edit';
-        $this->data['main_menu'] = 'BookUpload';
+        $this->db->where('book_id', $id);
+        $this->db->delete('class_books');
 
-        $this->data['headerelements'] = array(
-            'css' => array(
-                'vendor/dropify/css/dropify.min.css',
-            ),
-            'js' => array(
-                'vendor/dropify/js/dropify.min.js',
-            ),
-        );
-        $this->load->view('layout/index', $this->data);
+        if ($this->db->affected_rows() > 0) {
+            responseMsg(true, 'Book deleted successfully.');
+        } else {
+            responseMsg(false, 'Book not found or already deleted.');
+        }
     }
-
 
     public function deleteBooks($id)
     {
-        if (get_permission('book_uploads', 'is_delete')) {
-
-            // Get book image path
-            $book_img = $this->db->select('book_img')
-                ->where('id', $id)
-                ->get('student_books')
-                ->row()
-                ->book_img;
-
-            if (!$book_img) {
-                return ['error' => 'Book not found.'];
-            }
-
-            // Check for superadmin or branch-specific deletion
-            if (!is_superadmin_loggedin()) {
-                $this->db->where('branch_id', get_loggedin_branch_id());
-                $this->db->where('uploader_id', get_loggedin_user_id());
-            }
-
-            // Delete related records from book_branches
-            $this->db->where('book_id', $id);
-            $this->db->delete('book_branches');
-
-            // Delete related records from class_books (if applicable)
-            $this->db->where('book_id', $id);
-            $this->db->delete('class_books');
-
-            // Delete the record from student_books
-            $this->db->where('id', $id);
-            $this->db->delete('student_books');
-
-            if ($this->db->affected_rows() > 0) {
-                // Delete book image file
-                if (file_exists($book_img)) {
-                    unlink($book_img);
-                }
-                return ['success' => 'Book deleted successfully.'];
-            } else {
-                return ['error' => 'Failed to delete the book.'];
-            }
-        } else {
-            return ['error' => 'You do not have permission to delete books.'];
+        if (!get_permission('book_uploads', 'is_delete')) {
+            responseMsg('fail', 'You do not have permission to delete books.');
         }
+
+        // Fetch book info
+        $book = $this->db->where('id', $id)->get('student_books')->row();
+
+        if (!$book) {
+            responseMsg('fail', 'Book not found.');
+        }
+
+        // Branch restriction (non-superadmin)
+        if (!is_superadmin_loggedin()) {
+            if ($book->uploader_id != get_loggedin_user_id()) {
+                responseMsg('fail', 'Access denied. You cannot delete this book.');
+            }
+        }
+
+        // Delete book_branches mapping
+        $this->db->where('book_id', $id)->delete('book_branches');
+
+        // Delete class_books mapping
+        $this->db->where('book_id', $id)->delete('class_books');
+
+        // Delete main book record
+        $this->db->where('id', $id)->delete('student_books');
+
+        if ($this->db->affected_rows() > 0) {
+
+            // Delete image file if exists
+            if (!empty($book->book_img)) {
+                $filePath = FCPATH . $book->book_img;
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+
+            responseMsg('success', 'Book deleted successfully.');
+        }
+
+        responseMsg('fail', 'Failed to delete the book.');
     }
-
 }
-
-
