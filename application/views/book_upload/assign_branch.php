@@ -216,7 +216,7 @@
             }
 
             $.ajax({
-                url: base_url + 'StudentBookUpload/get_assigned_branches',
+                url: base_url + 'StudentBooks/get_assigned_branches',
                 type: 'POST',
                 data: { book_ids: selectedBooks },
                 success: function (response) {
@@ -274,7 +274,7 @@
             }
 
             $.ajax({
-                url: base_url + 'StudentBookUpload/assign_branches',
+                url: base_url + 'StudentBooks/assign_branches',
                 type: 'POST',
                 data: {
                     book_ids: selectedBooks,
