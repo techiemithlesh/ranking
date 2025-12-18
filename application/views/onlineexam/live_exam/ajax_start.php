@@ -2,9 +2,12 @@
     <?php $totalQuestions = count($questions); ?>
     <div class="row mt-lg">
 
+    
+
         <!-- LEFT PANEL (Participants + Time + Map) -->
         <div class="col-md-5">
             <div id="sessionInfo" class="alert alert-info mt-md"></div>
+
 
             <div class="row">
 

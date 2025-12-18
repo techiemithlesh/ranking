@@ -940,6 +940,38 @@ class Live_exam_model extends MY_Model
         return $this->db->get()->result_array();
     }
 
+
+    public function handleGraceTimeout($session)
+    {
+        if (!$session || $session->status !== 'active') {
+            return $session;
+        }
+
+        if (empty($session->last_ping_at)) {
+            // host just created or refreshed – allow grace
+            return $session;
+        }
+
+        $lastPing = strtotime($session->last_ping_at);
+        $now = time();
+        $diff = $now - $lastPing;
+
+        // ⛔ Grace expired → abort session
+        if ($diff > LIVE_EXAM_HOST_GRACE_SECONDS) {
+
+            $this->db->where('id', $session->id)->update('exam_sessions', [
+                'status'    => 'aborted',
+                'ended_at'  => date('Y-m-d H:i:s'),
+            ]);
+
+            $session->status = 'aborted';
+        }
+
+        return $session;
+    }
+
+
+
     /**
      * Helper to compare arrays for multiple-choice answers
      */

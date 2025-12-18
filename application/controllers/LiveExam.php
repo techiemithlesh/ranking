@@ -112,7 +112,7 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $data);
     }
 
-    public function ajaxGetQuestions()
+    public function ajaxGetQuestions_()
     {
         $examID = $this->input->post('exam_id');
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
@@ -183,6 +183,92 @@ class LiveExam extends Admin_Controller
         }
     }
 
+    public function ajaxGetQuestions()
+    {
+        $examID = $this->input->post('exam_id');
+        $exam = $this->live_exam_model->getExamDetailsForLive($examID);
+
+        if (!$exam) {
+            echo json_encode(['status' => 0, 'message' => 'Exam not found']);
+            return;
+        }
+
+        // 🔹 Find active session
+        $active_session = $this->db
+            ->where([
+                'exam_id' => $examID,
+                'host_id' => get_loggedin_user_id(),
+                'status'  => 'active'
+            ])
+            ->order_by('id', 'DESC')
+            ->get('exam_sessions')
+            ->row();
+
+        // 🔹 Apply GRACE LOGIC HERE (IMPORTANT)
+        if ($active_session) {
+            $active_session = $this->live_exam_model->handleGraceTimeout($active_session);
+
+            if ($active_session->status === 'aborted') {
+                echo json_encode([
+                    'status'  => 0,
+                    'code'    => 'aborted',
+                    'message' => 'Session ended due to host disconnect'
+                ]);
+                return;
+            }
+        }
+
+        $questions = $this->onlineexam_model
+            ->getExamQuestions($exam->id, $exam->question_type);
+
+        $page = $this->load->view(
+            'onlineexam/live_exam/ajax_start',
+            ['exam' => $exam, 'questions' => $questions],
+            true
+        );
+
+        // 🔹 RESUME FLOW
+        if ($active_session) {
+
+            $current_index = 1;
+            foreach ($questions as $idx => $q) {
+                if ($q->question_id == $active_session->current_question_id) {
+                    $current_index = $idx + 1;
+                    break;
+                }
+            }
+
+            echo json_encode([
+                'status' => 1,
+                'resume' => 1,
+                'session_id' => $active_session->id,
+                'session_code' => $active_session->session_code,
+                'join_link' => base_url('liveexam/join/' . $active_session->session_code),
+                'current_question_id' => $active_session->current_question_id,
+                'current_index' => $current_index,
+                'page' => $page
+            ]);
+            return;
+        }
+
+        // 🔹 FRESH START
+        $now = time();
+        if (strtotime($exam->exam_start) <= $now && $now <= strtotime($exam->exam_end)) {
+            echo json_encode([
+                'status' => 1,
+                'resume' => 0,
+                'total_questions' => count($questions),
+                'page' => $page
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 0,
+                'message' => 'Exam expired or inactive'
+            ]);
+        }
+    }
+
+
 
 
     // public function ajaxGetQuestions()
@@ -252,13 +338,15 @@ class LiveExam extends Admin_Controller
         $session_id = $this->input->post('session_id');
 
         $this->db->where('id', $session_id)
+            ->where_in('status', ['waiting', 'active'])
             ->update('exam_sessions', [
                 'status' => 'active',
-                'last_ping_at' => date('Y-m-d H:i:s')
+                'started_at' => date('Y-m-d H:i:s')
             ]);
 
         echo json_encode(['status' => 1]);
     }
+
     public function sessionHeartbeat()
     {
         $session_id = $this->input->post('session_id');
