@@ -119,13 +119,14 @@
 					);
 
 					// Restore question
-					$(".step-pane").removeClass("active");
-					$(".step-pane[data-question-id='" + resp.current_question_id + "']").addClass("active");
+					totalQuestions = $(".step-pane").length;
 
-					$(".que_btn").removeClass("active");
-					$("#question" + resp.current_index).addClass("active");
+					// ✅ Restore current step
+					currentStep = parseInt(resp.current_index);
 
 					currentStep = resp.current_index;
+
+					syncWizardUI(currentStep);
 
 					// Resume timer
 					elapsed_seconds = resumeElapsed;
@@ -136,6 +137,17 @@
 			}, 'json');
 		}
 	});
+
+	function syncWizardUI(step) {
+		$(".step-pane").removeClass("active");
+		$(".step-pane[data-step='" + step + "']").addClass("active");
+
+		$(".que_btn").removeClass("active");
+		$("#question" + step).addClass("active");
+
+		$("#prevbutton").prop("disabled", step === 1);
+		$("#nextbutton").prop("disabled", step === totalQuestions);
+	}
 
 
 
