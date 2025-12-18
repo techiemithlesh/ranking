@@ -40,7 +40,6 @@ class LiveExam extends Admin_Controller
                 'js/online-exam.js',
             ),
         );
-
     }
 
     public function index()
@@ -69,34 +68,52 @@ class LiveExam extends Admin_Controller
             access_denied();
         }
 
-        $this->data['headerelements'] = array(
-            'js' => array(
-                'js/online-exam.js',
-            ),
-        );
-
-        // If non-superadmin, ensure branch is allowed
         if (!is_superadmin_loggedin()) {
-            $isPerm = $this->live_exam_model->isBranchExamAssigned($exam_id);
-            if (!$isPerm) {
+            if (!$this->live_exam_model->isBranchExamAssigned($exam_id)) {
                 set_alert('error', translate('You dont have permission to take this exam'));
                 redirect(base_url('liveexam'));
             }
         }
 
-        $data['title'] = translate('host_live_exam');
-        $data['exam'] = $this->live_exam_model->getExamDetailsForLive($exam_id);
+        $exam = $this->live_exam_model->getExamDetailsForLive($exam_id);
 
-        if (empty($data['exam'])) {
+        if (!$exam) {
             set_alert('error', translate('exam_not_found_or_not_allowed'));
             redirect(base_url('liveExam'));
         }
 
+        // 🔹 ACTIVE SESSION CHECK
+        $active_session = $this->db
+            ->where([
+                'exam_id' => $exam_id,
+                'host_id' => get_loggedin_user_id(),
+                'status'  => 'active'
+            ])
+            ->order_by('id', 'DESC')
+            ->get('exam_sessions')
+            ->row();
+
+        $elapsed_seconds = 0;
+        if ($active_session && $active_session->started_at) {
+            $elapsed_seconds = time() - strtotime($active_session->started_at);
+        }
+
+        $this->data['headerelements'] = [
+            'js' => ['js/online-exam.js'],
+        ];
+
+        $data['exam'] = $exam;
+        $data['active_session'] = $active_session;
+        $data['elapsed_seconds'] = max(0, $elapsed_seconds);
+        $data['title'] = translate('host_live_exam');
         $data['sub_page'] = 'onlineexam/live_exam/host';
         $data['main_menu'] = 'onlineexam';
 
         $this->load->view('layout/index', $data);
     }
+
+
+
     public function ajaxGetQuestions()
     {
         $status = 0;
@@ -113,7 +130,6 @@ class LiveExam extends Admin_Controller
             if (($startTime <= $now && $now <= $endTime) && $exam->publish_status == 1) {
                 $message = "";
                 $status = 1;
-
             } else {
                 $message = "Maybe the test has expired or something wrong.";
             }
@@ -175,7 +191,6 @@ class LiveExam extends Admin_Controller
     public function sessionHeartbeat()
     {
         $session_id = $this->input->post('session_id');
-
         $this->db->where('id', $session_id)
             ->where('status', 'active')
             ->update('exam_sessions', [
@@ -761,8 +776,4 @@ class LiveExam extends Admin_Controller
         echo '<pre>';
         print_r($response);
     }
-
-
-
-
 }

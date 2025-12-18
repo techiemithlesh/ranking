@@ -82,6 +82,51 @@
 
 
 <script type="text/javascript">
+	$(document).ready(function() {
+
+		const hasActiveSession = <?= $active_session ? 'true' : 'false' ?>;
+		const resumeSessionId = <?= $active_session ? (int)$active_session->id : 'null' ?>;
+		const resumeElapsed = <?= (int)$elapsed_seconds ?>;
+
+		if (hasActiveSession) {
+
+			$("#examModal").modal({
+				show: true,
+				backdrop: "static",
+				keyboard: false
+			});
+
+			$.post(base_url + "LiveExam/ajaxGetQuestions", {
+					exam_id: <?= (int)$exam->id ?>
+				},
+				function(data) {
+
+					if (data.status === 1) {
+
+						$("#exam_questions").html(data.page);
+						totalQuestions = $(".step-pane").length;
+
+						window._live_session = {
+							id: resumeSessionId
+						};
+
+						// Resume question
+						if (data.current_question_id) {
+							$(".step-pane").removeClass("active");
+							$(".step-pane[data-question-id='" + data.current_question_id + "']").addClass("active");
+						}
+
+						// Resume timer
+						elapsed_seconds = resumeElapsed;
+						startTimer();
+						startHeartbeat();
+					}
+				}, "json"
+			);
+		}
+	});
+
+
 	var examDuration = "<?= $exam->duration; ?>";
 	var totalQuestions = 0;
 	var currentStep = 1;
@@ -95,20 +140,22 @@
 	// -----------------------------
 	// Start Hosting Exam
 	// -----------------------------
-	$(document).on("click", ".start_btn", function () {
+	$(document).on("click", ".start_btn", function() {
 		var $this = $(this);
 		var examID = $this.attr("data-examid");
 
 		$.ajax({
 			type: "POST",
 			url: base_url + "LiveExam/ajaxGetQuestions",
-			data: { exam_id: examID },
+			data: {
+				exam_id: examID
+			},
 			dataType: "JSON",
-			beforeSend: function () {
+			beforeSend: function() {
 				$this.button("loading");
 				clearInterval(timerInterval);
 			},
-			success: function (data) {
+			success: function(data) {
 				if (data.status === 1 && $("#exam_questions").length) {
 					totalQuestions = parseInt(data.total_questions) || 0;
 					$("#exam_questions").html(data.page);
@@ -133,10 +180,10 @@
 					alertMsg(data.message || "Error loading questions", "error", "Error", "");
 				}
 			},
-			error: function () {
+			error: function() {
 				alert("Error occurred, please try again.");
 			},
-			complete: function () {
+			complete: function() {
 				$this.button("reset");
 			}
 		});
@@ -151,9 +198,12 @@
 		$.ajax({
 			type: "POST",
 			url: base_url + "LiveExam/startSession",
-			data: { exam_id: examID, current_question_id: currentQuestionId },
+			data: {
+				exam_id: examID,
+				current_question_id: currentQuestionId
+			},
 			dataType: "JSON",
-			success: function (resp) {
+			success: function(resp) {
 				if (resp.status === 1) {
 					window._live_session = {
 						id: resp.session_id,
@@ -174,7 +224,7 @@
 					alertMsg(resp.message, "error", "Error", "");
 				}
 			},
-			error: function () {
+			error: function() {
 				alert("Error creating live session");
 			}
 		});
@@ -207,21 +257,19 @@
 		var qid = $(".step-pane[data-step='" + step + "']").attr("data-question-id");
 		if (window._live_session && qid) {
 			setSessionCurrentQuestion(window._live_session.id, qid);
-
-			// refresh answers for this question
 			fetchAnswers();
 		}
 	}
 
-	$(document).on("click", "#prevbutton", function () {
+	$(document).on("click", "#prevbutton", function() {
 		showStep(currentStep - 1);
 	});
 
-	$(document).on("click", "#nextbutton", function () {
+	$(document).on("click", "#nextbutton", function() {
 		showStep(currentStep + 1);
 	});
 
-	$(document).on("click", ".que_btn", function () {
+	$(document).on("click", ".que_btn", function() {
 		var step = parseInt(this.id.replace("question", ""));
 		showStep(step);
 	});
@@ -231,7 +279,7 @@
 	// -----------------------------
 	function startTimer() {
 		elapsed_seconds = 0;
-		timerInterval = setInterval(function () {
+		timerInterval = setInterval(function() {
 			$(".remain_duration").text(durationUpdate());
 		}, 1000);
 	}
@@ -266,9 +314,10 @@
 	// Update Session Current Question
 	// -----------------------------
 	function setSessionCurrentQuestion(sessionId, qid) {
-		$.post(base_url + "LiveExam/setCurrentQuestion",
-			{ session_id: sessionId, question_id: qid }
-		);
+		$.post(base_url + "LiveExam/setCurrentQuestion", {
+			session_id: sessionId,
+			question_id: qid
+		});
 	}
 
 	// -----------------------------
@@ -277,20 +326,25 @@
 	function fetchParticipants() {
 		if (!window._live_session?.id) return;
 
-		$.getJSON(base_url + "LiveExam/getParticipants", { session_id: window._live_session.id }, function (resp) {
+		$.getJSON(base_url + "LiveExam/getParticipants", {
+			session_id: window._live_session.id
+		}, function(resp) {
 			if (resp.status === 1) {
 				let listHtml = "";
 				if (resp.participants.length > 0) {
-					resp.participants.forEach(function (p) {
+					resp.participants.forEach(function(p) {
 						let badgeClass = "badge-secondary";
 						let statusLabel = p.live_status;
 
 						if (p.live_status === "active") {
-							badgeClass = "badge-success"; statusLabel = "Active"
+							badgeClass = "badge-success";
+							statusLabel = "Active"
 						} else if (p.live_status === "left") {
-							badgeClass = "badge-danger"; statusLabel = "Left";
+							badgeClass = "badge-danger";
+							statusLabel = "Left";
 						} else if (p.live_status === "completed") {
-							badgeClass = "badge-info"; statusLabel = "Completed";
+							badgeClass = "badge-info";
+							statusLabel = "Completed";
 						}
 
 						listHtml += `
@@ -317,13 +371,14 @@
 	// -----------------------------
 	function fetchAnswers() {
 		if (!window._live_session?.id) return;
-
 		var qid = $(".step-pane[data-step='" + currentStep + "']").attr("data-question-id");
 		if (!qid) return;
 
-		$.getJSON(base_url + "LiveExam/getSessionAnswers",
-			{ session_id: window._live_session.id, question_id: qid },
-			function (resp) {
+		$.getJSON(base_url + "LiveExam/getSessionAnswers", {
+				session_id: window._live_session.id,
+				question_id: qid
+			},
+			function(resp) {
 				if (resp.status === 1) {
 					let answers = resp.data || resp.answers || [];
 					let answersHtml = "";
@@ -354,32 +409,34 @@
 	function startHeartbeat() {
 		if (heartbeatTimer) clearInterval(heartbeatTimer);
 
-		heartbeatTimer = setInterval(function () {
+		heartbeatTimer = setInterval(function() {
 			if (!window._live_session?.id) return;
 
 			fetchParticipants();
 			fetchAnswers();
 
 			// simple ping (keeps session alive)
-			$.post(base_url + "LiveExam/sessionHeartbeat",
-				{ session_id: window._live_session.id }
-			);
+			$.post(base_url + "LiveExam/sessionHeartbeat", {
+				session_id: window._live_session.id
+			});
 		}, 5000);
 	}
 
 	// -----------------------------
 	// Activate Session Once (modal fully shown)
 	// -----------------------------
-	$("#examModal").on("shown.bs.modal", function () {
+	$("#examModal").on("shown.bs.modal", function() {
 		if (window._live_session?.id) {
-			$.post(base_url + "LiveExam/activateSession", { session_id: window._live_session.id });
+			$.post(base_url + "LiveExam/activateSession", {
+				session_id: window._live_session.id
+			});
 		}
 	});
 
 	// -----------------------------
 	// End Session
 	// -----------------------------
-	$(document).on("click", "#end_session_btn", function () {
+	$(document).on("click", "#end_session_btn", function() {
 		if (!confirm("Are you sure you want to end this live exam session?")) return;
 		sessionEndedManually = true; // mark as manual end
 		endLiveSession();
@@ -387,7 +444,7 @@
 
 
 	// If host closes modal without ending → auto abort
-	$("#examModal").on("hidden.bs.modal", function () {
+	$("#examModal").on("hidden.bs.modal", function() {
 		if (window._live_session?.id && !sessionEndedManually) {
 			endLiveSession(true); // mark aborted
 		}
@@ -406,8 +463,12 @@
 		$.ajax({
 			type: "POST",
 			url: base_url + "LiveExam/endSession",
-			data: { session_id: window._live_session.id, aborted: aborted ? 1 : 0, publish: publish },
-			success: function (res) {
+			data: {
+				session_id: window._live_session.id,
+				aborted: aborted ? 1 : 0,
+				publish: publish
+			},
+			success: function(res) {
 				try {
 					var data = JSON.parse(res);
 					if (data.status === 1) {
@@ -415,7 +476,7 @@
 						$("#examModal").modal("hide");
 						clearInterval(heartbeatTimer);
 
-						if(data.redirect_url){
+						if (data.redirect_url) {
 							setTimeout(() => {
 								window.location.href = data.redirect_url;
 							}, 5000);
@@ -428,7 +489,7 @@
 					console.error("Invalid response", res);
 				}
 			},
-			error: function () {
+			error: function() {
 				alert("Error occurred while ending session.");
 			}
 		});
