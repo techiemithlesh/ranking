@@ -387,7 +387,6 @@ class Liveexam_student extends Public_Controller
         $this->load->view('userrole/student/pdf_viewer', $data);
     }
 
-
     /**
      * Direct PDF Stream (used by pdfjs(mozilla))
      */
@@ -656,7 +655,5 @@ class Liveexam_student extends Public_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
-
 
 }

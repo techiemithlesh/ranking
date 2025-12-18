@@ -61,42 +61,6 @@ $this->data['is_new_design'] = $new_design;
 		</div>
 	</section>
 
-
-	<!-- Floating Support Button -->
-	<?php
-	if (!is_superadmin_loggedin()) {
-		?>
-		<div id="support-button" onclick="openSupportModal()">
-			<i class="fas fa-life-ring"></i>
-		</div>
-
-		<!-- Support Modal -->
-		<div id="support-modal" class="support-modal">
-			<div class="support-modal-content">
-				<span class="close" onclick="closeSupportModal()">&times;</span>
-				<h3>Need Help? Contact Support</h3>
-
-				<!-- Support Contact Details -->
-				<div class="support-info">
-					<p><strong>Email:</strong> <a href="mailto:support@example.com">support@example.com</a></p>
-					<p><strong>Phone:</strong> <a href="tel:+1234567890">+1 (234) 567-890</a></p>
-				</div>
-
-				<hr>
-
-				<!-- Support Form -->
-				<input type="text" id="support-name" name="name" placeholder="Your Name" required>
-				<input type="email" id="support-email" name="email" placeholder="Your Email" required>
-				<input type="tel" id="support-phone" name="phone" placeholder="Your Phone Number" required>
-				<textarea id="support-message" name="message" placeholder="Describe your issue..." required></textarea>
-
-				<button onclick="submitSupportRequest()">Submit</button>
-			</div>
-		</div>
-		<?php
-	}
-	?>
-
 	<!-- JS Script -->
 	<?php $this->load->view('layout/script.php'); ?>
 
