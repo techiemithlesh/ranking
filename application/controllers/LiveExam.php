@@ -112,38 +112,109 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $data);
     }
 
-
-
     public function ajaxGetQuestions()
     {
-        $status = 0;
-        $totalQuestions = 0;
-        $message = "";
         $examID = $this->input->post('exam_id');
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
 
-        $totalQuestions = $exam->questions_qty;
-        if (!empty($exam)) {
-            $startTime = strtotime($exam->exam_start);
-            $endTime = strtotime($exam->exam_end);
-            $now = strtotime("now");
-            if (($startTime <= $now && $now <= $endTime) && $exam->publish_status == 1) {
-                $message = "";
-                $status = 1;
-            } else {
-                $message = "Maybe the test has expired or something wrong.";
-            }
+        if (!$exam) {
+            echo json_encode(['status' => 0, 'message' => 'Exam not found']);
+            return;
         }
-        $data['exam'] = $exam;
-        $data['questions'] = $this->onlineexam_model->getExamQuestions($exam->id, $exam->question_type);
-        $pag_content = $this->load->view('onlineexam/live_exam/ajax_start', $data, true);
-        echo json_encode(array(
-            'status' => $status,
-            'total_questions' => $totalQuestions,
-            'message' => $message,
-            'page' => $pag_content
-        ));
+
+        // 🔹 ACTIVE SESSION CHECK
+        $active_session = $this->db
+            ->where([
+                'exam_id' => $examID,
+                'host_id' => get_loggedin_user_id(),
+                'status'  => 'active'
+            ])
+            ->order_by('id', 'DESC')
+            ->get('exam_sessions')
+            ->row();
+
+        $questions = $this->onlineexam_model
+            ->getExamQuestions($exam->id, $exam->question_type);
+
+        $page = $this->load->view(
+            'onlineexam/live_exam/ajax_start',
+            ['exam' => $exam, 'questions' => $questions],
+            true
+        );
+
+        // 🔹 Resume response
+        if ($active_session) {
+
+            $current_index = 1;
+            foreach ($questions as $idx => $q) {
+                if ($q->question_id == $active_session->current_question_id) {
+                    $current_index = $idx + 1;
+                    break;
+                }
+            }
+
+            echo json_encode([
+                'status' => 1,
+                'resume' => 1,
+                'session_id' => $active_session->id,
+                'session_code' => $active_session->session_code,
+                'join_link' => base_url('liveexam/join/' . $active_session->session_code),
+                'current_question_id' => $active_session->current_question_id,
+                'current_index' => $current_index,
+                'page' => $page
+            ]);
+            return;
+        }
+
+        // 🔹 Fresh start allowed?
+        $now = time();
+        if (strtotime($exam->exam_start) <= $now && $now <= strtotime($exam->exam_end)) {
+            echo json_encode([
+                'status' => 1,
+                'resume' => 0,
+                'total_questions' => count($questions),
+                'page' => $page
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 0,
+                'message' => 'Exam expired or inactive'
+            ]);
+        }
     }
+
+
+
+    // public function ajaxGetQuestions()
+    // {
+    //     $status = 0;
+    //     $totalQuestions = 0;
+    //     $message = "";
+    //     $examID = $this->input->post('exam_id');
+    //     $exam = $this->live_exam_model->getExamDetailsForLive($examID);
+
+    //     $totalQuestions = $exam->questions_qty;
+    //     if (!empty($exam)) {
+    //         $startTime = strtotime($exam->exam_start);
+    //         $endTime = strtotime($exam->exam_end);
+    //         $now = strtotime("now");
+    //         if (($startTime <= $now && $now <= $endTime) && $exam->publish_status == 1) {
+    //             $message = "";
+    //             $status = 1;
+    //         } else {
+    //             $message = "Maybe the test has expired or something wrong.";
+    //         }
+    //     }
+    //     $data['exam'] = $exam;
+    //     $data['questions'] = $this->onlineexam_model->getExamQuestions($exam->id, $exam->question_type);
+    //     $pag_content = $this->load->view('onlineexam/live_exam/ajax_start', $data, true);
+    //     echo json_encode(array(
+    //         'status' => $status,
+    //         'total_questions' => $totalQuestions,
+    //         'message' => $message,
+    //         'page' => $pag_content
+    //     ));
+    // }
 
     public function startSession()
     {

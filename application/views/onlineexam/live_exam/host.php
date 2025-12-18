@@ -97,34 +97,46 @@
 			});
 
 			$.post(base_url + "LiveExam/ajaxGetQuestions", {
-					exam_id: <?= (int)$exam->id ?>
-				},
-				function(data) {
+				exam_id: <?= (int)$exam->id ?>
+			}, function(resp) {
 
-					if (data.status === 1) {
+				if (resp.status === 1 && resp.resume === 1) {
 
-						$("#exam_questions").html(data.page);
-						totalQuestions = $(".step-pane").length;
+					$("#exam_questions").html(resp.page);
 
-						window._live_session = {
-							id: resumeSessionId
-						};
+					// Restore session
+					window._live_session = {
+						id: resp.session_id,
+						session_code: resp.session_code,
+						join_link: resp.join_link
+					};
 
-						// Resume question
-						if (data.current_question_id) {
-							$(".step-pane").removeClass("active");
-							$(".step-pane[data-question-id='" + data.current_question_id + "']").addClass("active");
-						}
+					// Show session info again
+					$("#sessionInfo").html(
+						`<p><strong>Session Code:</strong> ${resp.session_code}</p>
+                     <p><strong>Join Link:</strong>
+                     <input type="text" value="${resp.join_link}" readonly style="width:80%;"></p>`
+					);
 
-						// Resume timer
-						elapsed_seconds = resumeElapsed;
-						startTimer();
-						startHeartbeat();
-					}
-				}, "json"
-			);
+					// Restore question
+					$(".step-pane").removeClass("active");
+					$(".step-pane[data-question-id='" + resp.current_question_id + "']").addClass("active");
+
+					$(".que_btn").removeClass("active");
+					$("#question" + resp.current_index).addClass("active");
+
+					currentStep = resp.current_index;
+
+					// Resume timer
+					elapsed_seconds = resumeElapsed;
+					startTimer();
+					startHeartbeat();
+					fetchAnswers();
+				}
+			}, 'json');
 		}
 	});
+
 
 
 	var examDuration = "<?= $exam->duration; ?>";
