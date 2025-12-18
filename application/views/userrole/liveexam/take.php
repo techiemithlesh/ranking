@@ -166,6 +166,9 @@
     var pollInterval = null;
     var elapsed_seconds = 0;
     var heartbeatTimer = null;
+    var lastVersion = 0;
+    var pollInProgress = false;
+
 
     /* Leave session */
     window.addEventListener("beforeunload", function() {
@@ -179,70 +182,100 @@
 
     /* Poll current question (HOST CONTROLLED) */
     function pollCurrentQuestion() {
+
+        if (pollInProgress) return; // 🚫 block overlap
+        pollInProgress = true;
+
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", {
-            session_id: session_id
+            session_id: session_id,
+            last_version: lastVersion
         }, function(resp) {
 
+            /* ---------- STATUS 1 ---------- */
             if (resp.status === 1) {
 
-                // Load only when host changes question
-                if ($("#question_area").data("qid") !== resp.current_step) {
+                // 🔹 No change → stop immediately
+                if (resp.changed === false) {
+                    pollInProgress = false;
+                    return;
+                }
+
+                // 🔹 Update version FIRST
+                if (typeof resp.current_step_version !== "undefined") {
+                    lastVersion = resp.current_step_version;
+                }
+
+                // 🔹 Render only if question actually changed
+                if ($("#question_area").data("qid") !== resp.current_step && resp.html) {
                     $("#question_area").fadeOut(150, function() {
                         $(this)
                             .html(resp.html)
                             .data("qid", resp.current_step)
-                            .fadeIn(150, function() {
-                                normalizeYouTubeEmbeds(); // 👈 important
-                            });
+                            .fadeIn(150, normalizeYouTubeEmbeds);
                     });
 
                     $("#submitBtn").prop("disabled", true);
                 }
 
-
+                // 🔹 Update question counter
                 if (resp.current_index) {
                     $("#current_q").text(resp.current_index);
                 }
 
-            } else {
-
-                if (resp.code === "completed") {
-                    clearInterval(pollInterval);
-                    clearInterval(heartbeatTimer);
-
-                    window.open(
-                        base_url + "Liveexam_student/leaderboard/" + resp.session_code,
-                        "_blank"
-                    );
-
-                    setTimeout(() => {
-                        window.location.href = base_url + "liveexam_student";
-                    }, 8000);
-
-                } else if (resp.code === "aborted") {
-
-                    clearInterval(pollInterval);
-                    clearInterval(heartbeatTimer);
-
-                    swal({
-                        text: "The exam was aborted by the host.",
-                        type: "warning",
-                        confirmButtonText: "OK",
-                        allowOutsideClick: false
-                    }).then(() => {
-                        window.location.href = base_url + "liveexam_student";
-                    });
-
-                } else {
-                    $("#question_area").html(
-                        '<div class="alert alert-info text-center">' +
-                        resp.message +
-                        '</div>'
-                    );
-                }
+                pollInProgress = false; // ✅ FIX
+                return;
             }
+
+            /* ---------- STATUS 0 (END STATES) ---------- */
+            if (resp.code === "completed") {
+                clearInterval(pollInterval);
+                clearInterval(heartbeatTimer);
+                pollInProgress = false;
+
+                window.open(
+                    base_url + "Liveexam_student/leaderboard/" + resp.session_code,
+                    "_blank"
+                );
+
+                setTimeout(() => {
+                    window.location.href = base_url + "liveexam_student";
+                }, 8000);
+
+                return;
+            }
+
+            if (resp.code === "aborted") {
+                clearInterval(pollInterval);
+                clearInterval(heartbeatTimer);
+                pollInProgress = false;
+
+                swal({
+                    text: "The exam was aborted by the host.",
+                    type: "warning",
+                    confirmButtonText: "OK",
+                    allowOutsideClick: false
+                }).then(() => {
+                    window.location.href = base_url + "liveexam_student";
+                });
+
+                return;
+            }
+
+            // 🔹 Fallback
+            $("#question_area").html(
+                '<div class="alert alert-info text-center">' +
+                (resp.message || "Waiting for host...") +
+                '</div>'
+            );
+
+            pollInProgress = false;
+
+        }).fail(function() {
+            pollInProgress = false;
         });
     }
+
+
 
     /* Timer */
     function startTimer() {

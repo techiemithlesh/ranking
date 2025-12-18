@@ -33,8 +33,6 @@ class Liveexam_student extends Public_Controller
         $this->load->model('leaderboard_model');
         $this->load->library('pdf');
         $this->load->library('ciqrcode');
-
-
     }
 
     public function index()
@@ -63,7 +61,6 @@ class Liveexam_student extends Public_Controller
             $postData = $this->input->post();
             $currencySymbol = $this->data['global_config']['currency_symbol'];
             echo $this->live_exam_model->liveExamListForStudentDT($postData, $currencySymbol);
-
         }
     }
 
@@ -128,6 +125,7 @@ class Liveexam_student extends Public_Controller
     public function getCurrentQuestion()
     {
         $session_id = $this->input->get('session_id');
+        $last_version = (int) $this->input->get('last_version');
         $session = $this->live_exam_model->getSessionWithStatus($session_id);
 
         if (!$session) {
@@ -187,6 +185,18 @@ class Liveexam_student extends Public_Controller
             return;
         }
 
+        $currentVersion = (int) $session->current_step_version;
+        $lastVersion    = (int) $last_version;
+        // 🔹 No change since last poll → return lightweight response
+        if ($currentVersion === $lastVersion) {
+            echo json_encode([
+                'status' => 1,
+                'code' => 'no_change',
+                'changed' => false
+            ]);
+            return;
+        }
+
         // 🔹 Fetch current question
         $question = $this->live_exam_model->getQuestionById(
             $session->current_question_id,
@@ -237,6 +247,8 @@ class Liveexam_student extends Public_Controller
         echo json_encode([
             'status' => 1,
             'code' => 'active',
+            'changed' => true,
+            'current_step_version' => (int) $session->current_step_version,
             'current_step' => $session->current_question_id,
             'current_index' => $question->question_index,
             'is_published' => (int) $session->is_published,
@@ -334,9 +346,9 @@ class Liveexam_student extends Public_Controller
             'session_id' => $session_id,
             'student_id' => $student_id
         ])->update('exam_session_students', [
-                    'last_ping_at' => date('Y-m-d H:i:s'),
-                    'status' => 'active'
-                ]);
+            'last_ping_at' => date('Y-m-d H:i:s'),
+            'status' => 'active'
+        ]);
 
         echo json_encode(['status' => 1]);
     }
@@ -359,9 +371,9 @@ class Liveexam_student extends Public_Controller
             'session_id' => $session_id,
             'student_id' => $student_id
         ])->update('exam_session_students', [
-                    'status' => 'left',
-                    'last_ping_at' => date('Y-m-d H:i:s')
-                ]);
+            'status' => 'left',
+            'last_ping_at' => date('Y-m-d H:i:s')
+        ]);
 
         echo json_encode(['status' => 1]);
     }
@@ -386,6 +398,7 @@ class Liveexam_student extends Public_Controller
 
         $this->load->view('userrole/student/pdf_viewer', $data);
     }
+
 
     /**
      * Direct PDF Stream (used by pdfjs(mozilla))
@@ -655,5 +668,4 @@ class Liveexam_student extends Public_Controller
 
         $this->load->view('layout/index', $this->data);
     }
-
 }

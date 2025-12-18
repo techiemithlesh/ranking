@@ -283,15 +283,25 @@ class Live_exam_model extends MY_Model
         return false;
     }
 
+    // public function setCurrentQuestion($session_id, $question_id)
+    // {
+    //     $this->db->where('id', intval($session_id));
+    //     $this->db->update('exam_sessions', [
+    //         'current_question_id' => intval($question_id),
+    //     ]);
+
+    //     return $this->db->affected_rows() > 0;
+    // }
+
     public function setCurrentQuestion($session_id, $question_id)
     {
-        $this->db->where('id', intval($session_id));
-        $this->db->update('exam_sessions', [
-            'current_question_id' => intval($question_id),
-        ]);
-
+        $this->db->set('current_question_id', (int) $question_id);
+        $this->db->set('current_step_version', 'current_step_version + 1', false);
+        $this->db->where('id', (int) $session_id);
+        $this->db->update('exam_sessions');
         return $this->db->affected_rows() > 0;
     }
+
 
     public function getSession($session_id)
     {
@@ -305,7 +315,7 @@ class Live_exam_model extends MY_Model
     public function getSessionWithStatus($session_id)
     {
         return $this->db
-            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, ended_at, current_question_id, is_published')
+            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, ended_at, current_question_id, current_step_version, is_published')
             ->from('exam_sessions')
             ->where('id', intval($session_id))
             ->get()

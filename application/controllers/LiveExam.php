@@ -256,7 +256,7 @@ class LiveExam extends Admin_Controller
                     'rank' => (int) $entry['rank_position'],
                 ];
 
-                log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
+                // log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
 
                 // ✅ Call reward library (handles basis detection & duplicate prevention)
                 $granted = $this->reward_lib->processExamReward(
@@ -273,7 +273,7 @@ class LiveExam extends Admin_Controller
                 }
             }
 
-            log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
+            // log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
         }
 
         // Response
