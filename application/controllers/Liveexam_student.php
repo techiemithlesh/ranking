@@ -124,29 +124,23 @@ class Liveexam_student extends Public_Controller
 
     public function getCurrentQuestion()
     {
-        $session_id = $this->input->get('session_id');
-        $last_version = (int) $this->input->get('last_version');
+        $session_id   = $this->input->get('session_id');
+        $last_version = (int)$this->input->get('last_version');
+
         $session = $this->live_exam_model->getSessionWithStatus($session_id);
 
         if (!$session) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'invalid',
-                'message' => 'Invalid session',
-                'is_published' => 0,
-                'session_code' => null
-            ]);
+            echo json_encode(['status' => 0, 'code' => 'invalid']);
             return;
         }
 
-        // 🔹 End states
+        /* ---------- END STATES ---------- */
         if ($session->status === 'completed') {
             echo json_encode([
                 'status' => 0,
                 'code' => 'completed',
-                'message' => 'Thank you for attending the exam. Your result will be processed soon.',
-                'is_published' => (int) $session->is_published,
-                'session_code' => $session->session_code
+                'session_code' => $session->session_code,
+                'is_published' => (int)$session->is_published
             ]);
             return;
         }
@@ -155,85 +149,67 @@ class Liveexam_student extends Public_Controller
             echo json_encode([
                 'status' => 0,
                 'code' => 'aborted',
-                'message' => 'The exam was aborted by the host.',
-                'is_published' => (int) $session->is_published,
-                'session_code' => $session->session_code
+                'session_code' => $session->session_code,
+                'is_published' => (int)$session->is_published
             ]);
             return;
         }
 
         if ($session->status !== 'active') {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'inactive',
-                'message' => 'Session ended or inactive',
-                'is_published' => (int) $session->is_published,
-                'session_code' => $session->session_code
-            ]);
+            echo json_encode(['status' => 0, 'code' => 'inactive']);
             return;
         }
 
-        // 🔹 Waiting for host
+        /* ---------- WAITING ---------- */
         if (empty($session->current_question_id)) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'waiting',
-                'message' => 'Waiting for host to start...',
-                'is_published' => (int) $session->is_published,
-                'session_code' => $session->session_code
-            ]);
+            echo json_encode(['status' => 0, 'code' => 'waiting']);
             return;
         }
 
-        $currentVersion = (int) $session->current_step_version;
-        $lastVersion    = (int) $last_version;
-        // 🔹 No change since last poll → return lightweight response
-        if ($currentVersion === $lastVersion) {
+        $currentVersion = (int)$session->current_step_version;
+        $isFirstLoad    = ($last_version === 0);
+
+        /* ---------- NO CHANGE ---------- */
+        if (!$isFirstLoad && $currentVersion === $last_version) {
             echo json_encode([
                 'status' => 1,
-                'code' => 'no_change',
                 'changed' => false
             ]);
             return;
         }
 
-        // 🔹 Fetch current question
+        /* ---------- FETCH QUESTION ---------- */
         $question = $this->live_exam_model->getQuestionById(
             $session->current_question_id,
             $session->exam_id
         );
 
         if (!$question) {
-            echo json_encode([
-                'status' => 0,
-                'code' => 'no_question',
-                'message' => 'No question available',
-                'is_published' => (int) $session->is_published,
-                'session_code' => $session->session_code
-            ]);
+            echo json_encode(['status' => 0, 'code' => 'no_question']);
             return;
         }
 
-        // 🔹 Fetch student's answer
-        $student_id = get_loggedin_user_id();
-        $answerRow = $this->db
-            ->where([
-                'session_id' => $session->id,
-                'question_id' => $question->id,
-                'student_id' => $student_id
-            ])
-            ->get('exam_session_answers')
-            ->row_array();
-
-        $student_answer = null;
-        if ($answerRow) {
-            if ($question->type == 2) { // multi-select
-                $student_answer = json_decode($answerRow['answer'], true);
-            } else {
-                $student_answer = $answerRow['answer'];
+        /* ---------- CALCULATE INDEX (NO DB COLUMN) ---------- */
+        $questions = $this->live_exam_model->getExamQuestions($session->exam_id);
+        $current_index = 1;
+        foreach ($questions as $i => $q) {
+            if ($q->id == $question->id) {
+                $current_index = $i + 1;
+                break;
             }
         }
 
+        /* ---------- STUDENT ANSWER ---------- */
+        $student_id = get_loggedin_user_id();
+        $answerRow = $this->db->where([
+            'session_id'  => $session->id,
+            'question_id' => $question->id,
+            'student_id'  => $student_id
+        ])->get('exam_session_answers')->row_array();
+
+        $student_answer = $answerRow ? $answerRow['answer'] : null;
+
+        /* ---------- RENDER ---------- */
         $data = [
             'question' => $question,
             'exam_id' => $session->exam_id,
@@ -246,16 +222,17 @@ class Liveexam_student extends Public_Controller
 
         echo json_encode([
             'status' => 1,
-            'code' => 'active',
-            'changed' => true,
-            'current_step_version' => (int) $session->current_step_version,
-            'current_step' => $session->current_question_id,
-            'current_index' => $question->question_index,
-            'is_published' => (int) $session->is_published,
+            'changed' => true, // 🔥 ALWAYS true when we send html
+            'current_step_version' => $currentVersion,
+            'current_step' => $question->id,
+            'current_index' => $current_index,
             'session_code' => $session->session_code,
             'html' => $html
         ]);
     }
+
+
+
 
     /**
      * LIVE EXAM QUESTION ANSER SUBMIT

@@ -162,28 +162,15 @@
 
 <script>
     var session_id = "<?= $session->id ?>";
-    var exam_id = "<?= $exam->id ?>";
     var pollInterval = null;
-    var elapsed_seconds = 0;
-    var heartbeatTimer = null;
     var lastVersion = 0;
     var pollInProgress = false;
+    var heartbeatTimer = null;
 
-
-    /* Leave session */
-    window.addEventListener("beforeunload", function() {
-        navigator.sendBeacon(
-            base_url + "Liveexam_student/leaveSession",
-            new URLSearchParams({
-                session_id: session_id
-            })
-        );
-    });
-
-    /* Poll current question (HOST CONTROLLED) */
+    /* ---------- POLL ---------- */
     function pollCurrentQuestion() {
 
-        if (pollInProgress) return; // 🚫 block overlap
+        if (pollInProgress) return;
         pollInProgress = true;
 
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", {
@@ -191,121 +178,61 @@
             last_version: lastVersion
         }, function(resp) {
 
-            /* ---------- STATUS 1 ---------- */
+            /* ---------- ACTIVE ---------- */
             if (resp.status === 1) {
 
-                // 🔹 No change → stop immediately
-                if (resp.changed === false) {
-                    pollInProgress = false;
-                    return;
-                }
-
-                // 🔹 Update version FIRST
-                if (typeof resp.current_step_version !== "undefined") {
+                // 🔹 Always update version if provided
+                if (resp.current_step_version !== undefined) {
                     lastVersion = resp.current_step_version;
                 }
 
-                // 🔹 Render only if question actually changed
-                if ($("#question_area").data("qid") !== resp.current_step && resp.html) {
-                    $("#question_area").fadeOut(150, function() {
-                        $(this)
-                            .html(resp.html)
-                            .data("qid", resp.current_step)
-                            .fadeIn(150, normalizeYouTubeEmbeds);
-                    });
+                // 🔹 Render question if html present
+                if (resp.html) {
+                    $("#question_area")
+                        .html(resp.html)
+                        .data("qid", resp.current_step);
 
-                    $("#submitBtn").prop("disabled", true);
+                    normalizeYouTubeEmbeds();
                 }
 
-                // 🔹 Update question counter
-                if (resp.current_index) {
+                // 🔹 ALWAYS update counter
+                if (resp.current_index !== undefined) {
                     $("#current_q").text(resp.current_index);
                 }
 
-                pollInProgress = false; // ✅ FIX
+                pollInProgress = false;
                 return;
             }
 
-            /* ---------- STATUS 0 (END STATES) ---------- */
+            /* ---------- COMPLETED ---------- */
             if (resp.code === "completed") {
                 clearInterval(pollInterval);
                 clearInterval(heartbeatTimer);
-                pollInProgress = false;
-
-                window.open(
-                    base_url + "Liveexam_student/leaderboard/" + resp.session_code,
-                    "_blank"
-                );
-
-                setTimeout(() => {
-                    window.location.href = base_url + "liveexam_student";
-                }, 8000);
-
+                window.location.href = base_url + "liveexam_student";
                 return;
             }
 
+            /* ---------- ABORTED ---------- */
             if (resp.code === "aborted") {
                 clearInterval(pollInterval);
                 clearInterval(heartbeatTimer);
-                pollInProgress = false;
-
-                swal({
-                    text: "The exam was aborted by the host.",
-                    type: "warning",
-                    confirmButtonText: "OK",
-                    allowOutsideClick: false
-                }).then(() => {
-                    window.location.href = base_url + "liveexam_student";
-                });
-
+                alert("Exam aborted by host");
+                window.location.href = base_url + "liveexam_student";
                 return;
             }
 
-            // 🔹 Fallback
+            /* ---------- WAITING ---------- */
             $("#question_area").html(
-                '<div class="alert alert-info text-center">' +
-                (resp.message || "Waiting for host...") +
-                '</div>'
+                '<div class="alert alert-info text-center">Waiting for host...</div>'
             );
 
             pollInProgress = false;
-
         }).fail(function() {
             pollInProgress = false;
         });
     }
 
-
-
-    /* Timer */
-    function startTimer() {
-        var duration = "<?= $exam->duration ?>";
-        var parts = duration.split(":");
-        var totalSeconds =
-            (+parts[0] * 3600) + (+parts[1] * 60) + (+parts[2]);
-
-        setInterval(function() {
-            elapsed_seconds++;
-            var remaining = totalSeconds - elapsed_seconds;
-
-            if (remaining <= 0) {
-                $("#remain_time").text("00:00:00");
-                return;
-            }
-
-            var h = Math.floor(remaining / 3600);
-            var m = Math.floor((remaining % 3600) / 60);
-            var s = remaining % 60;
-
-            $("#remain_time").text(
-                String(h).padStart(2, "0") + ":" +
-                String(m).padStart(2, "0") + ":" +
-                String(s).padStart(2, "0")
-            );
-        }, 1000);
-    }
-
-    /* Heartbeat */
+    /* ---------- HEARTBEAT ---------- */
     function startHeartbeat() {
         heartbeatTimer = setInterval(function() {
             $.post(base_url + "Liveexam_student/studentHeartbeat", {
@@ -314,66 +241,20 @@
         }, 10000);
     }
 
-    /* Option select */
-    $(document).on("click", ".option-card", function() {
-        $(".option-card").removeClass("active");
-        $(this).addClass("active");
-        $(this).find("input").prop("checked", true).trigger("change");
-    });
-
-    $(document).on("change", "input[name='answer']", function() {
-        $("#submitBtn").prop("disabled", false);
-    });
-
-    /* Submit answer */
-    $(document).on("submit", "#answerForm", function(e) {
-        e.preventDefault();
-        var form = $(this);
-
-        $.post(
-            base_url + "Liveexam_student/submitAnswer",
-            form.serialize(),
-            function(resp) {
-                try {
-                    var data = JSON.parse(resp);
-                    if (data.status == 1) {
-                        form.find("input, button").prop("disabled", true);
-                        $("#submitBtn").prop("disabled", true);
-                    }
-                } catch (e) {
-                    alert("Invalid response from server");
-                }
-            }
-        );
-    });
-
+    /* ---------- YOUTUBE FIX ---------- */
     function normalizeYouTubeEmbeds() {
         $("#question_area iframe").each(function() {
             let src = $(this).attr("src");
             if (!src) return;
-
-            // Only apply to YouTube
-            if (src.includes("youtube.com") || src.includes("youtu.be")) {
-
-                // Remove existing params
-                src = src.split("?")[0];
-
-                // Add clean params
-                src += "?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1";
-
-                $(this).attr("src", src);
-                $(this).attr("allow", "autoplay; encrypted-media");
-            }
+            src = src.split("?")[0] + "?autoplay=1&controls=0&rel=0";
+            $(this).attr("src", src);
         });
     }
 
-
-    /* Init */
+    /* ---------- INIT ---------- */
     $(document).ready(function() {
-        pollCurrentQuestion();
-        normalizeYouTubeEmbeds();
+        pollCurrentQuestion(); // 🔥 FIRST LOAD GUARANTEED
         pollInterval = setInterval(pollCurrentQuestion, 5000);
-        startTimer();
         startHeartbeat();
     });
 </script>

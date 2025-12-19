@@ -577,7 +577,7 @@ class Live_exam_model extends MY_Model
 
     public function getExamQuestions($exam_id)
     {
-        return $this->db->select('qm.id as qm_id, qm.question_id, q.question, q.question_type')
+        return $this->db->select('qm.id as qm_id, qm.question_id, q.question, q.type AS question_type')
             ->from('questions_manage qm')
             ->join('questions q', 'q.id = qm.question_id')
             ->where('qm.onlineexam_id', $exam_id)

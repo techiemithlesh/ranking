@@ -101,7 +101,7 @@
 	var graceInterval = null;
 
 	var lastHeartbeatAt = Date.now();
-	var graceSeconds = 15; // HARD CODED grace (seconds)
+	var graceSeconds = <?= (int) $grace_seconds ?>;
 
 	let sessionEndedManually = false;
 	window._live_session = null;
@@ -403,7 +403,6 @@
 	}
 
 
-
 	/* =========================
 	   NAVIGATION
 	========================= */
@@ -461,5 +460,58 @@
 			$(".remain_duration").text(`${h}:${m}:${s}`);
 
 		}, 1000);
+	}
+
+	// -----------------------------
+	// End Session
+	// -----------------------------
+	$(document).on("click", "#end_session_btn", function() {
+		if (!confirm("Are you sure you want to end this live exam session?")) return;
+		sessionEndedManually = true; // mark as manual end
+		endLiveSession();
+	});
+
+	$("#examModal").on("hidden.bs.modal", function() {
+		if (window._live_session?.id && !sessionEndedManually) {
+			endLiveSession(true); // mark aborted
+		}
+	});
+
+	function endLiveSession(aborted = false) {
+		if (!window._live_session?.id) return;
+
+		let publish = 0;
+		if (!aborted) {
+			if (confirm("Do you want to publish the results now?")) {
+				publish = 1;
+			}
+		}
+
+		$.ajax({
+			url: base_url + "LiveExam/endSession",
+			type: "POST",
+			data: {
+				session_id: window._live_session.id,
+				aborted: aborted ? 1 : 0,
+				publish: publish
+			},
+			success: function(res) {
+				try {
+					var data = JSON.parse(res);
+					if (data.status === 1) {
+						alertMsg("Session ended successfully!", "success", "Done", "");
+						$("#examModal").modal("hide");
+						clearInterval(heartbeatTimer);
+						if (data.redirect_url) {
+							setTimeout(() => {
+								window.location.href = data.redirect_url;
+							}, 5000);
+						}
+					}
+				} catch (error) {
+					console.error("Invalid response", res);
+				}
+			}
+		});
 	}
 </script>
