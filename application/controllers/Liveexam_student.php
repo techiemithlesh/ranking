@@ -231,9 +231,6 @@ class Liveexam_student extends Public_Controller
         ]);
     }
 
-
-
-
     /**
      * LIVE EXAM QUESTION ANSER SUBMIT
      */

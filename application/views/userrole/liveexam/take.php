@@ -202,23 +202,59 @@
 
                 pollInProgress = false;
                 return;
-            }
+            } else {
+                if (resp.code === "completed") {
+                    clearInterval(pollInterval);
+                    clearInterval(heartbeatTimer);
 
-            /* ---------- COMPLETED ---------- */
-            if (resp.code === "completed") {
-                clearInterval(pollInterval);
-                clearInterval(heartbeatTimer);
-                window.location.href = base_url + "liveexam_student";
-                return;
-            }
+                    if (resp.is_published == 1) {
+                        // swal({
+                        //     title: "Exam Completed!",
+                        //     text: "Congratulations! Your result is ready.",
+                        //     type: "success",
+                        //     confirmButtonText: "Download Report",
+                        //     allowOutsideClick: false
+                        // }).then(() => {
+                        //     window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
 
-            /* ---------- ABORTED ---------- */
-            if (resp.code === "aborted") {
-                clearInterval(pollInterval);
-                clearInterval(heartbeatTimer);
-                alert("Exam aborted by host");
-                window.location.href = base_url + "liveexam_student";
-                return;
+                        //     // Redirect to dashboard after short delay
+                        //     setTimeout(() => {
+                        //         window.location.href = base_url + "liveexam_student";
+                        //     }, 10000);
+                        // });
+                        // window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code);
+                        window.open(base_url + "Liveexam_student/leaderboard/" + resp.session_code);
+
+                        setTimeout(() => {
+                            window.location.href = base_url + "liveexam_student";
+                        }, 10000);
+
+                    } else {
+                        swal({
+                            title: "Thank You!",
+                            text: "You have successfully completed the exam. Results will be published soon.",
+                            type: "success",
+                            confirmButtonText: "OK",
+                            allowOutsideClick: false
+                        }).then(() => {
+                            window.location.href = base_url + "liveexam_student";
+                        });
+                    }
+                } else if (resp.code === "aborted") {
+                    clearInterval(pollInterval);
+                    clearInterval(heartbeatTimer);
+                    swal({
+                        text: "The exam was aborted by the host.",
+                        type: "warning",
+                        confirmButtonText: "OK",
+                        allowOutsideClick: false
+                    }).then(() => {
+                        window.location.href = base_url + "liveexam_student";
+                    });
+                } else {
+                    $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+                }
+
             }
 
             /* ---------- WAITING ---------- */
@@ -231,6 +267,36 @@
             pollInProgress = false;
         });
     }
+
+    function startTimer() {
+        elapsed_seconds = 0;
+        var duration = "<?= $exam->duration ?>"; // HH:MM:SS
+        var parts = duration.split(":");
+        var totalSeconds = (+parts[0] * 3600) + (+parts[1] * 60) + (+parts[2]);
+
+        var timerInterval = setInterval(function() {
+            elapsed_seconds++;
+            var remaining = totalSeconds - elapsed_seconds;
+
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                $("#remain_time").text("00:00:00");
+                $("#answerForm").submit(); // auto-submit
+                return;
+            }
+
+            var rh = Math.floor(remaining / 3600);
+            var rm = Math.floor((remaining % 3600) / 60);
+            var rs = remaining % 60;
+
+            $("#remain_time").text(
+                String(rh).padStart(2, "0") + ":" +
+                String(rm).padStart(2, "0") + ":" +
+                String(rs).padStart(2, "0")
+            );
+        }, 1000);
+    }
+
 
     /* ---------- HEARTBEAT ---------- */
     function startHeartbeat() {
@@ -251,10 +317,37 @@
         });
     }
 
+    $(document).on('submit', '#answerForm', function(e) {
+        e.preventDefault();
+        var form = $(this);
+
+        // ✅ Prevent poll overwrite during submission
+        clearInterval(pollInterval);
+
+        $.post(base_url + "Liveexam_student/submitAnswer", form.serialize(), function(resp) {
+            try {
+                var data = JSON.parse(resp);
+                if (data.status == 1) {
+                    alertMsg("Answer saved", "success", "Success", "");
+                    // ✅ Lock the form once submitted
+                    form.find("input, button").prop("disabled", true);
+                } else {
+                    alertMsg(data.message, "error", "Error", "");
+                }
+            } catch (e) {
+                alert("Invalid response from server");
+            }
+        }).always(function() {
+            // ✅ Resume polling after submit
+            pollInterval = setInterval(pollCurrentQuestion, 5000);
+        });
+    });
+
     /* ---------- INIT ---------- */
     $(document).ready(function() {
         pollCurrentQuestion(); // 🔥 FIRST LOAD GUARANTEED
         pollInterval = setInterval(pollCurrentQuestion, 5000);
+        startTimer();
         startHeartbeat();
     });
 </script>
