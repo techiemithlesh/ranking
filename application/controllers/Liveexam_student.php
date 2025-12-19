@@ -156,7 +156,13 @@ class Liveexam_student extends Public_Controller
         }
 
         if ($session->status !== 'active') {
-            echo json_encode(['status' => 0, 'code' => 'inactive']);
+            echo json_encode([
+                'status' => 0,
+                'code' => 'inactive',
+                'message' => 'Session ended or inactive',
+                'is_published' => (int) $session->is_published,
+                'session_code' => $session->session_code
+            ]);
             return;
         }
 
@@ -227,6 +233,7 @@ class Liveexam_student extends Public_Controller
             'current_step' => $question->id,
             'current_index' => $current_index,
             'session_code' => $session->session_code,
+            'is_published' => (int) $session->is_published,
             'html' => $html
         ]);
     }

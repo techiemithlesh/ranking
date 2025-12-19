@@ -178,8 +178,12 @@
             last_version: lastVersion
         }, function(resp) {
 
+            console.log("Poll response:", resp);
+
             /* ---------- ACTIVE ---------- */
             if (resp.status === 1) {
+
+                console.log("Active question received.");
 
                 // 🔹 Always update version if provided
                 if (resp.current_step_version !== undefined) {
@@ -204,10 +208,12 @@
                 return;
             } else {
                 if (resp.code === "completed") {
+                    console.log("Exam completed.");
                     clearInterval(pollInterval);
                     clearInterval(heartbeatTimer);
 
                     if (resp.is_published == 1) {
+                        console.log("Exam completed and published.");
                         // swal({
                         //     title: "Exam Completed!",
                         //     text: "Congratulations! Your result is ready.",
