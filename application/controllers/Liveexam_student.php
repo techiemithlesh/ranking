@@ -193,7 +193,7 @@ class Liveexam_student extends Public_Controller
         $questions = $this->live_exam_model->getExamQuestions($session->exam_id);
         $current_index = 1;
         foreach ($questions as $i => $q) {
-            if ($q->id == $question->id) {
+            if ((int)$q->question_id === (int)$question->id) {
                 $current_index = $i + 1;
                 break;
             }

@@ -70,175 +70,158 @@
 </script>
 
 
-<?php if (is_new_design()): ?>
-	<script>
-		const menu = <?= json_encode(get_menu_by_role()) ?>,
-		baseURL = '<?= base_url() ?>';
-		let currentMenu = menu;
-		const breadcrumbNav = document.getElementById('breadcrumbTrail');
+<?php if (is_new_design() && !is_superadmin_loggedin()): ?>
 
-		//–– storage helpers now store {label,url} objects
+	<script>
+		const menu = <?= json_encode(get_menu_by_role()) ?>;
+		const baseURL = '<?= base_url() ?>';
+		let currentMenu = menu;
+
+		const breadcrumbNav = document.getElementById('breadcrumbTrail');
+		const menuGrid = document.getElementById('menuGrid');
+
+		// Storage helpers
 		function getTrail() {
 			return JSON.parse(sessionStorage.getItem('breadcrumbTrail') || '[]');
 		}
+
 		function setTrail(trail) {
 			sessionStorage.setItem('breadcrumbTrail', JSON.stringify(trail));
 		}
+
 		function pushCrumb(item) {
 			const trail = getTrail();
 			const existing = trail.find(t => t.url === item.url);
-			if (!existing) {
-				// brand-new URL → push full object
-				trail.push(item);
-			}
-			else if (existing.label !== item.label) {
-				// same URL but label changed → update just the label
-				// existing.label = item.label;
-				trail.push({ label: item.label });
-			}
-			setTrail(trail);
 
+			if (!existing) {
+				trail.push(item);
+			} else if (existing.label !== item.label) {
+				existing.label = item.label;
+			}
+
+			setTrail(trail);
 		}
 
-		//–– build the grid of cards
+		// Build menu grid
 		function renderMenu(list) {
-			const grid = document.getElementById('menuGrid');
-			grid.innerHTML = '';
+			if (!menuGrid) return;
+
+			menuGrid.innerHTML = '';
+
 			list.forEach((item, idx) => {
-				const hasKids = Array.isArray(item.children) && item.children.length,
-					icon = item.icon || 'icon-folder',
-					label = item.label.replace(/'/g, "\\'"),
-					url = item.url ? baseURL + item.url : '';
+				const hasKids = Array.isArray(item.children) && item.children.length;
+				const icon = item.icon || 'icon-folder';
+				const label = item.label.replace(/'/g, "\\'");
+				const url = item.url ? baseURL + item.url : '';
 
 				if (hasKids) {
-					grid.innerHTML += `
-		  <div class="dashboard-card common-card MenuDive"
-			   onclick="onParentClick(${idx})">
-			<div class="card-icon"><i class="icons ${icon}"></i></div>
-			<h4>${item.label}</h4>
-		  </div>`;
+					menuGrid.innerHTML += `
+                    <div class="dashboard-card common-card MenuDive"
+                         onclick="onParentClick(${idx})">
+                        <div class="card-icon"><i class="icons ${icon}"></i></div>
+                        <h4>${item.label}</h4>
+                    </div>`;
 				} else if (item.url) {
-					grid.innerHTML += `
-		  <div class="dashboard-card common-card MenuDive">
-			<div class="card-icon"><i class="icons ${icon}"></i></div>
-			<h4>${item.label}</h4>
-			<a class="card-link" href="${url}"
-			   onclick="onLeafClick(event,'${label}','${url}')"></a>
-		  </div>`;
+					menuGrid.innerHTML += `
+                    <div class="dashboard-card common-card MenuDive">
+                        <div class="card-icon"><i class="icons ${icon}"></i></div>
+                        <h4>${item.label}</h4>
+                        <a class="card-link" href="${url}"
+                           onclick="onLeafClick(event,'${label}','${url}')"></a>
+                    </div>`;
 				}
 			});
 		}
 
-		//–– find the path to the current URL
-		function findPath(items, target = window.location.pathname) {
-			const clean = s => s.replace(/^\/|\/$/g, '');
-			const current = clean(target);
-			for (let itm of items) {
-				const p = clean(itm.url || '');
-				if (p === current) return [itm];
-				if (itm.children) {
-					const sub = findPath(itm.children, target);
-					if (sub.length) return [itm, ...sub];
-				}
-			}
-			return [];
-		}
-
-		//–– render the breadcrumb trail
+		// Breadcrumb renderer
 		function renderBreadcrumb() {
-			if (!breadcrumbNav) {
-				return;
-			}
+			if (!breadcrumbNav) return;
+
 			const trail = getTrail();
+
 			breadcrumbNav.innerHTML = `
-			<a href="${baseURL}dashboard" class="breadcrumb-home">
-				<i class="fas fa-home"></i>
-			</a>`;
-			trail.forEach(({ label, url }) => {
-				console.log("label", label);
+            <a href="${baseURL}dashboard" class="breadcrumb-home">
+                <i class="fas fa-home"></i>
+            </a>`;
+
+			trail.forEach(({
+				label,
+				url
+			}) => {
 				breadcrumbNav.insertAdjacentHTML('beforeend', `
-					<span class="breadcrumb-sep">›</span>			
-				`);
+                <span class="breadcrumb-sep">›</span>
+            `);
+
 				if (url) {
 					breadcrumbNav.insertAdjacentHTML('beforeend', `
-						<a href="${url}" class="breadcrumb-item">
-						${label}
-						</a>
-					`);
-				}
-				// otherwise (the “current” page) → just plain text
-				else {
+                    <a href="${url}" class="breadcrumb-item">${label}</a>
+                `);
+				} else {
 					breadcrumbNav.insertAdjacentHTML('beforeend', `
-				<span class="breadcrumb-item">
-				${label}
-				</span>
-			`);
+                    <span class="breadcrumb-item">${label}</span>
+                `);
 				}
 			});
 		}
 
-		//–– navigate into a submenu
+		// Parent click
 		function onParentClick(idx) {
 			const sel = currentMenu[idx];
 			const url = sel.url ? baseURL + sel.url : window.location.href;
-			pushCrumb({ label: sel.label, url });
+
+			pushCrumb({
+				label: sel.label,
+				url
+			});
+
 			currentMenu = sel.children || [];
 			renderMenu(currentMenu);
 			renderBreadcrumb();
-
 		}
 
-		//–– handle a leaf link click
+		// Leaf click
 		function onLeafClick(evt, label, url) {
 			evt.preventDefault();
-			pushCrumb({ label, url });
+			pushCrumb({
+				label,
+				url
+			});
 			renderBreadcrumb();
 			window.location.href = url;
 		}
 
-		//–– clear trail and show top‐level menu
-		function showMainMenu() {
-			sessionStorage.removeItem('breadcrumbTrail');
-			currentMenu = menu;
-			renderMenu(menu);
-			renderBreadcrumb();
-		}
-
-		//–– initialize on page load
+		// Initialize ON PAGES WHERE menuGrid exists
 		document.addEventListener('DOMContentLoaded', () => {
-			renderMenu(menu);
-			renderBreadcrumb();
+
+			if (menuGrid) {
+				renderMenu(menu);
+			}
+
+			if (breadcrumbNav) {
+				renderBreadcrumb();
+			}
 		});
 
-		//–– truncate & navigate when a breadcrumb is clicked
-		breadcrumbNav.addEventListener('click', function (evt) {
-			if (!evt.target.classList.contains('breadcrumb-item')) return;
-			if(evt.target.getAttribute('href')){
+		// Breadcrumb click
+		if (breadcrumbNav) {
+			breadcrumbNav.addEventListener('click', function(evt) {
+				if (!evt.target.classList.contains('breadcrumb-item')) return;
+
+				const href = evt.target.getAttribute('href');
+				if (!href) return;
+
 				evt.preventDefault();
 				const allCrumbs = Array.from(breadcrumbNav.querySelectorAll('.breadcrumb-item'));
 				const clickedIndex = allCrumbs.indexOf(evt.target);
+
 				const oldTrail = getTrail();
 				const newTrail = oldTrail.slice(0, clickedIndex + 1);
+
 				setTrail(newTrail);
 				renderBreadcrumb();
-				window.location.href = evt.target.getAttribute('href');
-			}
-		});
-
-		//–– keep trail in sync on back/forward navigation
-		document.addEventListener('DOMContentLoaded', () => {
-
-			const nodes = findPath(menu, window.location.pathname);
-			const newTrail = nodes.map(n => ({
-				label: n.label,
-				url: n.url ? baseURL + n.url : window.location.href
-			}));
-			if (window.location.href == baseURL || window.location.href==baseURL+"dashboard") {
-				setTrail(newTrail);
-			}
-			renderBreadcrumb();
-			// setTrail(newTrail);
-		});
-		
+				window.location.href = href;
+			});
+		}
 	</script>
+
 <?php endif; ?>
