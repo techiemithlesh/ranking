@@ -174,67 +174,48 @@
         pollInProgress = true;
 
         $.getJSON(base_url + "Liveexam_student/getCurrentQuestion", {
-            session_id: session_id,
-            last_version: lastVersion
-        }, function(resp) {
+                session_id: session_id,
+                last_version: lastVersion
+            })
+            .done(function(resp) {
 
-            console.log("Poll response:", resp);
+                console.log("Poll response:", resp);
 
-            /* ---------- ACTIVE ---------- */
-            if (resp.status === 1) {
+                /* ================= ACTIVE ================= */
+                if (resp.status === 1) {
 
-                console.log("Active question received.");
+                    if (resp.current_step_version !== undefined) {
+                        lastVersion = resp.current_step_version;
+                    }
 
-                // 🔹 Always update version if provided
-                if (resp.current_step_version !== undefined) {
-                    lastVersion = resp.current_step_version;
+                    if (resp.html) {
+                        $("#question_area")
+                            .html(resp.html)
+                            .data("qid", resp.current_step);
+
+                        normalizeYouTubeEmbeds();
+                    }
+
+                    if (resp.current_index !== undefined) {
+                        $("#current_q").text(resp.current_index);
+                    }
+
+                    pollInProgress = false;
+                    return;
                 }
 
-                // 🔹 Render question if html present
-                if (resp.html) {
-                    $("#question_area")
-                        .html(resp.html)
-                        .data("qid", resp.current_step);
-
-                    normalizeYouTubeEmbeds();
-                }
-
-                // 🔹 ALWAYS update counter
-                if (resp.current_index !== undefined) {
-                    $("#current_q").text(resp.current_index);
-                }
-
-                pollInProgress = false;
-                return;
-            } else {
+                /* ================= COMPLETED ================= */
                 if (resp.code === "completed") {
-                    console.log("Exam completed.");
+
                     clearInterval(pollInterval);
                     clearInterval(heartbeatTimer);
 
                     if (resp.is_published == 1) {
-                        console.log("Exam completed and published.");
-                        // swal({
-                        //     title: "Exam Completed!",
-                        //     text: "Congratulations! Your result is ready.",
-                        //     type: "success",
-                        //     confirmButtonText: "Download Report",
-                        //     allowOutsideClick: false
-                        // }).then(() => {
-                        //     window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code, "_blank");
-
-                        //     // Redirect to dashboard after short delay
-                        //     setTimeout(() => {
-                        //         window.location.href = base_url + "liveexam_student";
-                        //     }, 10000);
-                        // });
-                        // window.open(base_url + "Liveexam_student/studentReport/" + resp.session_code);
                         window.open(base_url + "Liveexam_student/leaderboard/" + resp.session_code);
 
                         setTimeout(() => {
                             window.location.href = base_url + "liveexam_student";
                         }, 10000);
-
                     } else {
                         swal({
                             title: "Thank You!",
@@ -246,9 +227,17 @@
                             window.location.href = base_url + "liveexam_student";
                         });
                     }
-                } else if (resp.code === "aborted") {
+
+                    pollInProgress = false;
+                    return;
+                }
+
+                /* ================= ABORTED ================= */
+                if (resp.code === "aborted") {
+
                     clearInterval(pollInterval);
                     clearInterval(heartbeatTimer);
+
                     swal({
                         text: "The exam was aborted by the host.",
                         type: "warning",
@@ -257,22 +246,29 @@
                     }).then(() => {
                         window.location.href = base_url + "liveexam_student";
                     });
-                } else {
-                    $("#question_area").html('<div class="alert alert-info text-center">' + resp.message + '</div>');
+
+                    pollInProgress = false;
+                    return;
                 }
 
-            }
+                /* ================= WAITING ================= */
+                if (resp.code === "waiting") {
+                    $("#question_area").html(
+                        '<div class="alert alert-info text-center">Waiting for host...</div>'
+                    );
+                    pollInProgress = false;
+                    return;
+                }
 
-            /* ---------- WAITING ---------- */
-            $("#question_area").html(
-                '<div class="alert alert-info text-center">Waiting for host...</div>'
-            );
+                /* ================= FALLBACK (DO NOTHING) ================= */
+                pollInProgress = false;
 
-            pollInProgress = false;
-        }).fail(function() {
-            pollInProgress = false;
-        });
+            })
+            .fail(function() {
+                pollInProgress = false;
+            });
     }
+
 
     function startTimer() {
         elapsed_seconds = 0;
@@ -351,7 +347,7 @@
 
     /* ---------- INIT ---------- */
     $(document).ready(function() {
-        pollCurrentQuestion(); // 🔥 FIRST LOAD GUARANTEED
+        pollCurrentQuestion();
         pollInterval = setInterval(pollCurrentQuestion, 5000);
         startTimer();
         startHeartbeat();
