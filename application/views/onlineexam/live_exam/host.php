@@ -90,7 +90,7 @@
 <script type="text/javascript">
 	/* =========================
    GLOBAL STATE
-	========================= */
+========================= */
 
 	var examDuration = "<?= $exam->duration ?>";
 	var totalQuestions = 0;
@@ -105,7 +105,7 @@
 	var graceSeconds = <?= (int) $grace_seconds ?>;
 
 	let sessionEndedManually = false;
-	let examLive = false; // WAITING → LIVE
+	let examLive = false;
 	window._live_session = null;
 
 
@@ -132,8 +132,9 @@
 		$("#goLiveBtn").hide();
 		$("#waitingLabel").hide();
 
-		$("#prevbutton").show();
-		$("#nextbutton").show();
+		// ✅ FIX: explicitly enable buttons
+		$("#prevbutton").show().prop("disabled", false);
+		$("#nextbutton").show().prop("disabled", false);
 		$("#end_session_btn").show();
 
 		$(".que_btn").removeClass("disabled").css("pointer-events", "auto");
@@ -162,7 +163,6 @@
 		$.post(base_url + "LiveExam/ajaxGetQuestions", {
 			exam_id: <?= (int)$exam->id ?>
 		}, function(resp) {
-			console.log("poll response",resp);
 
 			if (resp.status !== 1 || resp.resume !== 1) return;
 
@@ -189,7 +189,6 @@
 			activateSessionAndStartPolling();
 
 			if (resp.is_live == 1) {
-				console.log("Resuming live exam...");
 				examLive = true;
 				setLiveUI();
 				startTimer();
@@ -317,13 +316,14 @@
 			session_id: window._live_session.id,
 			first_question_id: firstQid
 		}, function(resp) {
-			
 
 			if (resp.status !== 1) return;
 
 			examLive = true;
 
 			setLiveUI();
+			syncWizardUI(currentStep); // extra safety
+
 			startTimer();
 			startHeartbeat();
 			fetchAnswers();
@@ -331,7 +331,6 @@
 			alertMsg("Exam is now LIVE!", "success", "Live", "");
 		}, 'json');
 	});
-
 
 
 	/* =========================
