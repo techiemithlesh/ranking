@@ -155,18 +155,20 @@ class Liveexam_student extends Public_Controller
             return;
         }
 
-        /* ---------- WAITING ---------- */
-        // if (empty($session->current_question_id)) {
-        //     echo json_encode(['status' => 0, 'code' => 'waiting']);
-        //     return;
-        // }
-
-        if ($session->status == 'waiting') {
+        if ($session->status !== 'active') {
             echo json_encode([
                 'status' => 0,
-                'code' => 'waiting',
-                'message' => 'Host is yet to start the exam ....',
+                'code' => 'inactive',
+                'message' => 'Session ended or inactive',
+                'is_published' => (int) $session->is_published,
+                'session_code' => $session->session_code
             ]);
+            return;
+        }
+
+        /* ---------- WAITING ---------- */
+        if (empty($session->current_question_id)) {
+            echo json_encode(['status' => 0, 'code' => 'waiting']);
             return;
         }
 

@@ -268,9 +268,9 @@ class Live_exam_model extends MY_Model
             'host_role' => $hostRole,
             'session_code' => $sessionCode,
             'session_token' => $sessionToken,
-            'current_question_id' => null,
+            'current_question_id' => $question_id,
             'status' => 'waiting',
-            'started_at' => null
+            'started_at' => date('Y-m-d H:i:s')
         ];
 
         $this->db->insert('exam_sessions', $data);
@@ -282,6 +282,16 @@ class Live_exam_model extends MY_Model
 
         return false;
     }
+
+    // public function setCurrentQuestion($session_id, $question_id)
+    // {
+    //     $this->db->where('id', intval($session_id));
+    //     $this->db->update('exam_sessions', [
+    //         'current_question_id' => intval($question_id),
+    //     ]);
+
+    //     return $this->db->affected_rows() > 0;
+    // }
 
     public function setCurrentQuestion($session_id, $question_id)
     {
@@ -328,7 +338,7 @@ class Live_exam_model extends MY_Model
     public function getSessionByCode($session_code)
     {
         return $this->db->where('session_code', $session_code)
-            ->where_in('status', ['active', 'waiting'])
+            ->where('status', 'active')
             ->get('exam_sessions')
             ->row();
     }
@@ -460,7 +470,7 @@ class Live_exam_model extends MY_Model
         $this->db->from('online_exam as oe');
         $this->db->join('class', 'class.id = oe.class_id', 'left');
         $this->db->join('subject as subj', 'subj.id = oe.subject_id', 'left');
-        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status IN ("active", "waiting")', 'left');
+        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status="active"', 'left');
 
         $this->db->where('oe.session_id', $sessionID);
         $this->db->where('oe.publish_status', 1);
@@ -515,12 +525,6 @@ class Live_exam_model extends MY_Model
             $action = '';
             if ($record->session_status === 'active') {
                 $status = '<span class="label label-success">' . translate('active') . '</span>';
-                $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
-                          class="btn btn-circle btn-success btn-sm" 
-                          title="' . translate('join_exam') . '">
-                          <i class="fas fa-sign-in-alt"></i></a>';
-            } elseif ($record->session_status === 'waiting') {
-                $status = '<span class="label label-info">' . translate('host_is_waiting_in_exam') . '</span>';
                 $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">

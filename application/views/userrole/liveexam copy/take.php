@@ -195,7 +195,6 @@
 
                         normalizeYouTubeEmbeds();
                     }
-                    
 
                     if (resp.current_index !== undefined) {
                         $("#current_q").text(resp.current_index);
@@ -254,9 +253,8 @@
 
                 /* ================= WAITING ================= */
                 if (resp.code === "waiting") {
-
                     $("#question_area").html(
-                        '<div class="alert alert-info text-center">' + resp.message + '</div>'
+                        '<div class="alert alert-info text-center">Waiting for host...</div>'
                     );
                     pollInProgress = false;
                     return;

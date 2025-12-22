@@ -137,10 +137,9 @@
                         <button class="btn btn-danger mr-xs mt-sm" type="button" id="end_session_btn">
                             <i class="fas fa-stop-circle"></i> <?= translate('end_session') ?>
                         </button>
-                        <button id="goLiveBtn" class="btn btn-success btn-block mt-md" style="display:none;">
+                        <button id="go_live_btn" class="btn btn-success btn-block mt-md" style="display:none;">
                             <i class="fas fa-play"></i> GO LIVE NOW
                         </button>
-
                     </div>
 
                     <!-- 🔹 Student Answers Panel -->

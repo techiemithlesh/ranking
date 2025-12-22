@@ -103,7 +103,6 @@ class LiveExam extends Admin_Controller
         ];
 
         $data['exam'] = $exam;
-        $data['total_students'] = 20;
         $data['active_session'] = $active_session;
         $data['elapsed_seconds'] = max(0, $elapsed_seconds);
         $data['grace_seconds'] = LIVE_EXAM_HOST_GRACE_SECONDS;
@@ -114,28 +113,7 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $data);
     }
 
-    public function goLive()
-    {
-        $session_id = $this->input->post('session_id');
-        $first_qid  = $this->input->post('first_question_id');
-
-        if (!$session_id || !$first_qid) {
-            echo json_encode(['status' => 0]);
-            return;
-        }
-
-        $this->db->where('id', $session_id)
-            ->where('status', 'waiting')
-            ->update('exam_sessions', [
-                'status' => 'active',
-                'started_at' => date('Y-m-d H:i:s'),
-                'current_question_id' => $first_qid,
-                'current_step_version' => 1
-            ]);
-
-        echo json_encode(['status' => 1]);
-    }
-
+   
 
     public function ajaxGetQuestions()
     {
@@ -147,13 +125,13 @@ class LiveExam extends Admin_Controller
             return;
         }
 
-        // 🔹 Find active session OR WAITING
+        // 🔹 Find active session
         $active_session = $this->db
             ->where([
                 'exam_id' => $examID,
-                'host_id' => get_loggedin_user_id()
+                'host_id' => get_loggedin_user_id(),
+                'status'  => 'active'
             ])
-            ->where_in('status', ['active', 'waiting'])
             ->order_by('id', 'DESC')
             ->get('exam_sessions')
             ->row();
@@ -197,7 +175,6 @@ class LiveExam extends Admin_Controller
                 'resume' => 1,
                 'session_id' => $active_session->id,
                 'session_code' => $active_session->session_code,
-                'session_status' => $active_session->status,
                 'join_link' => base_url('liveexam/join/' . $active_session->session_code),
                 'current_question_id' => $active_session->current_question_id,
                 'current_index' => $current_index,
@@ -223,6 +200,39 @@ class LiveExam extends Admin_Controller
         }
     }
 
+
+
+
+    // public function ajaxGetQuestions()
+    // {
+    //     $status = 0;
+    //     $totalQuestions = 0;
+    //     $message = "";
+    //     $examID = $this->input->post('exam_id');
+    //     $exam = $this->live_exam_model->getExamDetailsForLive($examID);
+
+    //     $totalQuestions = $exam->questions_qty;
+    //     if (!empty($exam)) {
+    //         $startTime = strtotime($exam->exam_start);
+    //         $endTime = strtotime($exam->exam_end);
+    //         $now = strtotime("now");
+    //         if (($startTime <= $now && $now <= $endTime) && $exam->publish_status == 1) {
+    //             $message = "";
+    //             $status = 1;
+    //         } else {
+    //             $message = "Maybe the test has expired or something wrong.";
+    //         }
+    //     }
+    //     $data['exam'] = $exam;
+    //     $data['questions'] = $this->onlineexam_model->getExamQuestions($exam->id, $exam->question_type);
+    //     $pag_content = $this->load->view('onlineexam/live_exam/ajax_start', $data, true);
+    //     echo json_encode(array(
+    //         'status' => $status,
+    //         'total_questions' => $totalQuestions,
+    //         'message' => $message,
+    //         'page' => $pag_content
+    //     ));
+    // }
 
     public function startSession()
     {
@@ -255,13 +265,12 @@ class LiveExam extends Admin_Controller
             echo json_encode(['status' => 0, 'message' => 'Failed to start session']);
         }
     }
-
     public function activateSession()
     {
         $session_id = $this->input->post('session_id');
 
         $this->db->where('id', $session_id)
-            ->where('status', ['waiting'])
+            ->where_in('status', ['waiting', 'active'])
             ->update('exam_sessions', [
                 'status' => 'active',
                 'started_at' => date('Y-m-d H:i:s')
@@ -281,7 +290,6 @@ class LiveExam extends Admin_Controller
 
         echo json_encode(['status' => 1]);
     }
-
     public function setCurrentQuestion()
     {
         if (!get_permission('live_exam', 'is_add')) {
@@ -304,6 +312,82 @@ class LiveExam extends Admin_Controller
         } else {
             echo json_encode(['status' => 0, 'message' => 'Failed to update']);
         }
+    }
+
+    public function endSession1()
+    {
+        $session_id = $this->input->post('session_id');
+        $aborted = (int) $this->input->post('aborted');
+        $publish = (int) $this->input->post('publish');
+
+        if (empty($session_id)) {
+            echo json_encode(['status' => 0, 'message' => 'Missing session id']);
+            return;
+        }
+
+        // End session
+        $ok = $this->live_exam_model->endSession($session_id, get_loggedin_user_id(), $aborted, $publish);
+        if (!$ok) {
+            echo json_encode(['status' => 0, 'message' => 'Failed to end session']);
+            return;
+        }
+
+        // Get session details
+        $session = $this->live_exam_model->getSession($session_id);
+        if (empty($session)) {
+            echo json_encode(['status' => 0, 'message' => 'Session not found']);
+            return;
+        }
+
+        $session_code = $session->session_code;
+        $exam_id = $session->exam_id;
+        $exam_type = 'live_exam';
+
+        // Only compute and reward if published & not aborted
+        if ($publish && !$aborted && $session_code) {
+
+            // Compute leaderboard
+            $this->leaderboard_model->computeLeaderboard($session_code);
+
+            $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
+
+            $rewardCount = 0;
+
+            foreach ($leaderboard as $entry) {
+
+                $student_id = $entry['student_id'];
+                $performance = [
+                    'percentage' => (float) $entry['percentage'],
+                    'percentile' => (float) $entry['percentile'],
+                    'rank' => (int) $entry['rank_position'],
+                ];
+
+                // log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
+
+                // ✅ Call reward library (handles basis detection & duplicate prevention)
+                $granted = $this->reward_lib->processExamReward(
+                    $student_id,
+                    $exam_id,
+                    $exam_type,
+                    $performance,    // Now passing all values
+                    'percentage',    // fallback basis (not actually used)
+                    $session_code     // Required for session-scope rewards
+                );
+
+                if ($granted) {
+                    $rewardCount++;
+                }
+            }
+
+            // log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
+        }
+
+        // Response
+        echo json_encode([
+            'status' => 1,
+            'message' => 'Session ended successfully',
+            'redirect_url' => base_url("LiveExam/leaderboard/" . $session_code)
+        ]);
     }
 
     public function endSession()
@@ -430,12 +514,9 @@ class LiveExam extends Admin_Controller
 
         echo json_encode([
             'status' => 1,
-            'participants' => $participants,
-            'total' => count($participants)
+            'participants' => $participants
         ]);
     }
-
-
     public function getSessionAnswers()
     {
         $session_id = $this->input->get('session_id');
