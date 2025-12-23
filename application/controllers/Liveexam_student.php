@@ -155,12 +155,6 @@ class Liveexam_student extends Public_Controller
             return;
         }
 
-        /* ---------- WAITING ---------- */
-        // if (empty($session->current_question_id)) {
-        //     echo json_encode(['status' => 0, 'code' => 'waiting']);
-        //     return;
-        // }
-
         if ($session->status == 'waiting') {
             echo json_encode([
                 'status' => 0,

@@ -2,10 +2,14 @@
 	.radio-custom p {
 		margin: 0;
 	}
+	#participantCount{
+		font-weight: bold;
+		margin-left: 15px;
+	}
 </style>
 <section class="panel">
 	<header class="panel-heading">
-		<h4 class="panel-title"><i class="fas fa-list-ul"></i> <?= translate('online_exam') . " " . translate('list') ?>
+		<h4 class="panel-title"><i class="fas fa-list-ul"></i> <?= translate('live_exam') . " " . translate('list') ?>
 		</h4>
 	</header>
 	<div class="panel-body">
@@ -416,10 +420,10 @@
 			} else {
 				resp.participants.forEach(p => {
 					html += `<li><strong>${p.student_name}</strong>
-				<span class="badge badge-success ml-2">${p.live_status}</span></li>`;
+					<span class="badge badge-success ml-2">${p.live_status}</span></li>`;
 				});
 			}
-
+			$('#participantCount').text(resp.total + ' / ' + <?= (int)$student_count ?>);
 			$("#host_participants_list").html(html);
 		});
 	}

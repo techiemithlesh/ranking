@@ -77,6 +77,8 @@ class LiveExam extends Admin_Controller
 
         $exam = $this->live_exam_model->getExamDetailsForLive($exam_id);
 
+        $totalStudents = $this->live_exam_model->countTotalStudentsInClass($exam_id);
+
         if (!$exam) {
             set_alert('error', translate('exam_not_found_or_not_allowed'));
             redirect(base_url('liveExam'));
@@ -103,7 +105,7 @@ class LiveExam extends Admin_Controller
         ];
 
         $data['exam'] = $exam;
-        $data['total_students'] = 20;
+        $data['student_count'] = $totalStudents ?? 0;
         $data['active_session'] = $active_session;
         $data['elapsed_seconds'] = max(0, $elapsed_seconds);
         $data['grace_seconds'] = LIVE_EXAM_HOST_GRACE_SECONDS;

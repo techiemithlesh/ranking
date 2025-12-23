@@ -174,11 +174,9 @@ class Live_exam_model extends MY_Model
 
     public function getExamDetailsForLive($onlineexamID)
     {
-        // We expect $onlineexamID as integer (from controller). Validate.
         $onlineexamID = intval($onlineexamID);
         $sessionID = get_session_id();
 
-        // If superadmin, we will allow host only if exam is global or has assignments/branch.
         $isSuper = is_superadmin_loggedin();
         $branchID = get_loggedin_branch_id();
 
@@ -255,6 +253,19 @@ class Live_exam_model extends MY_Model
             ->get()
             ->result();
     }
+
+    public function countTotalStudentsInClass($exam_id)
+    {
+        return $this->db
+            ->from('online_exam o')
+            ->join('enroll e', 'e.class_id = o.class_id')
+            ->join('student s', 's.id = e.student_id')
+            ->where('o.id', $exam_id)
+            ->where('e.session_id', get_session_id())
+            ->where('s.active', 1)
+            ->count_all_results();
+    }
+
 
     public function createSession($examID, $hostID, $hostRole, $question_id)
     {

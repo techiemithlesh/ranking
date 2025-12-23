@@ -10,7 +10,8 @@
                     <section class="panel pg-fw">
                         <div class="panel-body">
                             <h5 class="chart-title mb-xs">
-                                <i class="fas fa-user-friends"></i> <?= translate('participants') ?><span class="pull-right text-muted">
+                                <i class="fas fa-user-friends"></i> <?= translate('participants') ?>
+                                <span class="pull-right text-muted">
                                     <span id="participantCount">0 / <?= $student_count ?></span>
                                 </span>
                             </h5>
