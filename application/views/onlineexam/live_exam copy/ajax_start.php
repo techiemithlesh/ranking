@@ -1,16 +1,17 @@
 <?php if (!empty($questions)): ?>
     <?php $totalQuestions = count($questions); ?>
-    <div class="row mt-lg">
+    <div id="hostQuestionWrapper" class="row mt-lg">
         <!-- LEFT PANEL (Participants + Time + Map) -->
         <div class="col-md-5">
-            <div id="sessionInfo" class="alert alert-info mt-md"></div>
+            
             <div class="row">
                 <!-- Participants -->
                 <div class="col-sm-12">
                     <section class="panel pg-fw">
                         <div class="panel-body">
                             <h5 class="chart-title mb-xs">
-                                <i class="fas fa-user-friends"></i> <?= translate('participants') ?><span class="pull-right text-muted">
+                                <i class="fas fa-user-friends"></i> <?= translate('participants') ?>
+                                <span class="pull-right text-muted">
                                     <span id="participantCount">0 / <?= $student_count ?></span>
                                 </span>
                             </h5>
@@ -137,9 +138,10 @@
                         <button class="btn btn-danger mr-xs mt-sm" type="button" id="end_session_btn">
                             <i class="fas fa-stop-circle"></i> <?= translate('end_session') ?>
                         </button>
-                        <button id="go_live_btn" class="btn btn-success btn-block mt-md" style="display:none;">
+                        <button id="goLiveBtn" class="btn btn-success btn-block mt-md" style="display:none;">
                             <i class="fas fa-play"></i> GO LIVE NOW
                         </button>
+
                     </div>
 
                     <!-- 🔹 Student Answers Panel -->

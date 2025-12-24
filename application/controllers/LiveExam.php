@@ -126,7 +126,7 @@ class LiveExam extends Admin_Controller
             return;
         }
 
-        $goLiveAt = date('Y-m-d H:i:s', time() + 25);
+        $goLiveAt = date('Y-m-d H:i:s', time() + 10);
 
         $this->db->where('id', $session_id)
             ->where('status', 'waiting')
@@ -143,60 +143,48 @@ class LiveExam extends Admin_Controller
 
     public function ajaxGetQuestions()
     {
-        log_message('error', '========== ajaxGetQuestions START ==========');
 
         $examID = (int) $this->input->post('exam_id');
         $hostID = (int) get_loggedin_user_id();
 
-        log_message('error', "[INPUT] exam_id={$examID}, host_id={$hostID}");
-
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
         if (!$exam) {
-            log_message('error', '[ERROR] Exam not found');
             echo json_encode(['status' => 0, 'message' => 'Exam not found']);
             return;
         }
 
-        // ✅ ALWAYS pick latest session
+        // IMPORTANT: reset builder
         $this->db->reset_query();
+
+        // ONLY valid states
         $active_session = $this->db
             ->where('exam_id', $examID)
             ->where('host_id', $hostID)
+            ->where_in('status', ['active', 'starting', 'waiting'])
             ->order_by('id', 'DESC')
             ->limit(1)
             ->get('exam_sessions')
             ->row();
 
-        log_message('error', '[SQL][LATEST] ' . $this->db->last_query());
-        log_message('error', '[RESULT][LATEST] ' . json_encode($active_session));
 
         if (!$active_session) {
-            log_message('error', '[LiveExam] ❌ NO SESSION FOUND');
-            echo json_encode(['status' => 0, 'message' => 'No session found']);
+            echo json_encode(['status' => 0, 'message' => 'Session not found']);
             return;
         }
 
-        // 🔁 AUTO ACTIVATE
+        // AUTO-ACTIVATE
         if ($active_session->status === 'starting') {
-            log_message('error', "[AUTO] Checking auto-activate for session {$active_session->id}");
             $this->live_exam_model->autoActivateSession($active_session->id);
-
-            // re-fetch
-            $this->db->reset_query();
-            $active_session = $this->db
-                ->where('id', $active_session->id)
-                ->get('exam_sessions')
-                ->row();
-
-            log_message('error', '[AUTO][AFTER] ' . json_encode($active_session));
+            $active_session = $this->live_exam_model->getSession($active_session->id);
         }
 
-        // Grace handling
+        // GRACE
         $active_session = $this->live_exam_model->handleGraceTimeout($active_session);
         if ($active_session->status === 'aborted') {
             echo json_encode([
                 'status' => 0,
-                'code' => 'aborted',
+                'status_code' => 'aborted',
+                'session_status' => 'aborted',
                 'message' => 'Session aborted'
             ]);
             return;
@@ -211,20 +199,47 @@ class LiveExam extends Admin_Controller
             true
         );
 
-        echo json_encode([
-            'status' => 1,
-            'resume' => 1,
-            'session_id' => $active_session->id,
-            'session_code' => $active_session->session_code,
-            'session_status' => $active_session->status,
-            'go_live_at' => $active_session->go_live_at,
-            'join_link' => base_url('liveexam/join/' . $active_session->session_code),
-            'current_question_id' => $active_session->current_question_id,
-            'current_index' => 1,
-            'page' => $page
-        ]);
+        if ($active_session) {
+            $current_index = 1;
+            foreach ($questions as $i => $q) {
+                if ($q->question_id == $active_session->current_question_id) {
+                    $current_index = $i + 1;
+                    break;
+                }
+            }
 
-        log_message('error', '========== ajaxGetQuestions END ==========');
+            echo json_encode([
+                'status' => 1,
+                'resume' => 1,
+                'session_id' => $active_session->id,
+                'session_code' => $active_session->session_code,
+                'session_status' => $active_session->status,
+                'go_live_at' => $active_session->go_live_at,
+                'join_link' => base_url('liveexam/join/' . $active_session->session_code),
+                'current_question_id' => $active_session->current_question_id,
+                'current_index' => $current_index,
+                'page' => $page
+            ]);
+            return;
+        }
+
+
+
+        // 🔹 FRESH START
+        $now = time();
+        if (strtotime($exam->exam_start) <= $now && $now <= strtotime($exam->exam_end)) {
+            echo json_encode([
+                'status' => 1,
+                'resume' => 0,
+                'total_questions' => count($questions),
+                'page' => $page
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 0,
+                'message' => 'Exam expired or inactive'
+            ]);
+        }
     }
 
 

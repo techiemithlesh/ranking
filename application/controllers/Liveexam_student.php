@@ -95,7 +95,7 @@ class Liveexam_student extends Public_Controller
 
         // 🔹 Find the live session
         $session = $this->live_exam_model->getSessionByCode($session_code);
-        if (empty($session) || !in_array($session->status, ['active', 'waiting'])) {
+        if (empty($session) || !in_array($session->status, ['active', 'waiting', 'starting'])) {
             set_alert('error', translate('invalid_or_expired_session'));
             redirect(base_url('liveexam_student'));
         }
@@ -160,6 +160,16 @@ class Liveexam_student extends Public_Controller
                 'status' => 0,
                 'code' => 'waiting',
                 'message' => 'Host is yet to start the exam ....',
+            ]);
+            return;
+        }
+
+        if($session->status === 'starting'){
+            echo json_encode([
+                'status' => 0,
+                'code' => 'starting',
+                'go_live_at' => $session->go_live_at,
+                'message' => 'Exam is starting soon. Please wait...',
             ]);
             return;
         }

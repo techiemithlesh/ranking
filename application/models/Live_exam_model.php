@@ -306,7 +306,7 @@ class Live_exam_model extends MY_Model
     public function autoActivateSession($session_id)
     {
         log_message('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
-
+        $this->db->reset_query();
         $this->db->where('id', $session_id);
         $this->db->where('status', 'starting');
         $this->db->where('go_live_at <=', date('Y-m-d H:i:s'));
@@ -332,7 +332,7 @@ class Live_exam_model extends MY_Model
     public function getSessionWithStatus($session_id)
     {
         return $this->db
-            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, ended_at, current_question_id, current_step_version, is_published')
+            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, go_live_at, ended_at, current_question_id, current_step_version, is_published')
             ->from('exam_sessions')
             ->where('id', intval($session_id))
             ->get()
@@ -355,7 +355,7 @@ class Live_exam_model extends MY_Model
     public function getSessionByCode($session_code)
     {
         return $this->db->where('session_code', $session_code)
-            ->where_in('status', ['active', 'waiting'])
+            ->where_in('status', ['active', 'waiting', 'starting'])
             ->get('exam_sessions')
             ->row();
     }
@@ -550,7 +550,7 @@ class Live_exam_model extends MY_Model
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
                           <i class="fas fa-sign-in-alt"></i></a>';
-            }elseif($record->session_status === 'starting'){
+            } elseif ($record->session_status === 'starting') {
                 $status = '<span class="label label-warning">' . translate('starting_soon') . '</span>';
                 $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 

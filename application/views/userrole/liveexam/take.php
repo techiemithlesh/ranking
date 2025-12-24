@@ -166,6 +166,7 @@
     var lastVersion = 0;
     var pollInProgress = false;
     var heartbeatTimer = null;
+    var startingCountdownInterval = null;
 
     /* ---------- POLL ---------- */
     function pollCurrentQuestion() {
@@ -195,7 +196,7 @@
 
                         normalizeYouTubeEmbeds();
                     }
-                    
+
 
                     if (resp.current_index !== undefined) {
                         $("#current_q").text(resp.current_index);
@@ -262,6 +263,23 @@
                     return;
                 }
 
+                if (resp.code === "starting") {
+
+                    if (resp.go_live_at) {
+                        startStartingCountdown(resp.go_live_at);
+                    } else {
+                        $("#question_area").html(
+                            '<div class="alert alert-info text-center">' + resp.message + '</div>'
+                        );
+                    }
+
+                    $("#question_area").html(
+                        '<div class="alert alert-info text-center">' + resp.message + '</div>'
+                    );
+                    pollInProgress = false;
+                    return;
+                }
+
                 /* ================= FALLBACK (DO NOTHING) ================= */
                 pollInProgress = false;
 
@@ -271,6 +289,34 @@
             });
     }
 
+    function startStartingCountdown(goLiveAt) {
+        // Prevent multiple intervals from running
+        if (startingCountdownInterval) return;
+
+        const target = new Date(goLiveAt.replace(" ", "T")).getTime();
+
+        startingCountdownInterval = setInterval(function() {
+            const now = new Date().getTime();
+            const diff = Math.ceil((target - now) / 1000);
+
+            if (diff <= 0) {
+                clearInterval(startingCountdownInterval);
+                startingCountdownInterval = null;
+                $("#question_area").html(
+                    '<div class="alert alert-success text-center">🚀 Exam is starting now! Loading...</div>'
+                );
+                // Force an immediate poll to get the first question
+                pollCurrentQuestion();
+            } else {
+                $("#question_area").html(`
+                <div class="text-center" style="padding: 40px;">
+                    <h2 style="color: #d32f2f; font-weight: 800; font-size: 48px;">${diff}</h2>
+                    <p class="text-muted">The Host is preparing the first question. Get ready!</p>
+                </div>
+            `);
+            }
+        }, 1000);
+    }
 
     function startTimer() {
         elapsed_seconds = 0;
