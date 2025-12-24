@@ -171,6 +171,7 @@
 
 		$("#prevbutton, #nextbutton, #end_session_btn").hide();
 		$(".que_btn").addClass("disabled").css("pointer-events", "none");
+		$('#sessionInfo').show();
 
 		// ✅ START WAITING PARTICIPANT POLL
 		if (waitingPoller) clearInterval(waitingPoller);
@@ -188,6 +189,7 @@
 		$("#countdownBox").show();
 
 		$("#prevbutton, #nextbutton, #end_session_btn").hide();
+		$('#sessionInfo').hide();
 
 		if (waitingPoller) clearInterval(waitingPoller);
 	}
@@ -202,6 +204,7 @@
 
 		$("#prevbutton, #nextbutton, #end_session_btn").show();
 		$(".que_btn").removeClass("disabled").css("pointer-events", "auto");
+		$('#sessionInfo').show();
 
 		if (waitingPoller) clearInterval(waitingPoller);
 	}
@@ -383,6 +386,16 @@
 		currentStep = parseInt(resp.current_index || 1);
 		elapsed_seconds = <?= (int)$elapsed_seconds ?>;
 
+		if (!window._live_session && resp.session_id) {
+			window._live_session = {
+				id: resp.session_id,
+				session_code: resp.session_code,
+				join_link: resp.join_link
+			};
+			renderSessionInfo(resp); // make session visible on refresh
+		}
+
+
 		syncWizardUI(currentStep);
 
 		if (resp.session_status === "active") {
@@ -450,12 +463,10 @@
 		}
 	}
 
-	$(document).on("click", "#prevbutton", function() {
-		showStep(currentStep - 1);
-	});
-
-	$(document).on("click", "#nextbutton", function() {
-		showStep(currentStep + 1);
+	$(document).on("click", "#prevbutton", () => showStep(currentStep - 1));
+	$(document).on("click", "#nextbutton", () => showStep(currentStep + 1));
+	$(document).on("click", ".que_btn", function() {
+		showStep(parseInt(this.id.replace("question", "")));
 	});
 
 	/* =====================================================
@@ -539,7 +550,7 @@
 
 	function fetchAnswers() {
 
-		if (!examLive) return;
+		if (!examLive || !window._live_session?.id) return;
 
 		const qid = $(".step-pane[data-step='" + currentStep + "']").data("question-id");
 		if (!qid) return;
@@ -570,7 +581,7 @@
 	===================================================== */
 
 	$(document).on("click", "#end_session_btn", function() {
-		if (!confirm("End this live exam?")) return;
+		if (!confirm("Are you sure you want to end this live exam session?")) return;
 		sessionEndedManually = true;
 		endLiveSession();
 	});
@@ -583,8 +594,12 @@
 
 	function endLiveSession(aborted = false) {
 
+		if (!window._live_session?.id) return;
+
 		let publish = 0;
-		if (!aborted && confirm("Publish results now?")) publish = 1;
+		if (!aborted && confirm("Do you want to publish the results now?")) {
+			publish = 1;
+		}
 
 		$.post(base_url + "LiveExam/endSession", {
 			session_id: window._live_session.id,
@@ -592,25 +607,29 @@
 			publish: publish
 		}, function(resp) {
 
+			let data = {};
+			try {
+				data = typeof resp === "string" ? JSON.parse(resp) : resp;
+			} catch (e) {}
+
 			$("#examModal").modal("hide");
-			clearInterval(heartbeatTimer);
+			clearAllTimers();
 
-			if (publish && resp.redirect_url) {
-				window.location.href = resp.redirect_url;
+			if (publish === 1 && data.redirect_url) {
+				setTimeout(() => window.location.href = data.redirect_url, 500);
 			}
-
 		}, "json");
 	}
 
 	function clearAllWaitingTimers() {
-		clearInterval(waitingTimer);
-		waitingTimer = null;
+		clearInterval(waitingPoller);
+		waitingPoller = null;
 	}
 
 	function clearAllTimers() {
 		clearInterval(timerInterval);
 		clearInterval(heartbeatTimer);
 		clearInterval(participantTimer);
-		clearInterval(waitingTimer);
+		clearInterval(waitingPoller);
 	}
 </script>
