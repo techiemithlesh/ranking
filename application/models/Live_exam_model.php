@@ -294,7 +294,7 @@ class Live_exam_model extends MY_Model
         return false;
     }
 
-    public function setCurrentQuestion($session_id, $question_id)
+    public function setCurrentQuestionHost($session_id, $question_id)
     {
         $this->db->set('current_question_id', (int) $question_id);
         $this->db->set('current_step_version', 'current_step_version + 1', false);
@@ -303,6 +303,22 @@ class Live_exam_model extends MY_Model
         return $this->db->affected_rows() > 0;
     }
 
+    public function autoActivateSession($session_id)
+    {
+        log_message('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
+
+        $this->db->where('id', $session_id);
+        $this->db->where('status', 'starting');
+        $this->db->where('go_live_at <=', date('Y-m-d H:i:s'));
+        $this->db->update('exam_sessions', [
+            'status'     => 'active',
+            'started_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $affected = $this->db->affected_rows();
+        log_message('debug', "[AutoActivate] Rows affected: " . $affected);
+        return $affected > 0;
+    }
 
     public function getSession($session_id)
     {
@@ -471,7 +487,7 @@ class Live_exam_model extends MY_Model
         $this->db->from('online_exam as oe');
         $this->db->join('class', 'class.id = oe.class_id', 'left');
         $this->db->join('subject as subj', 'subj.id = oe.subject_id', 'left');
-        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status IN ("active", "waiting")', 'left');
+        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status IN ("active", "waiting", "starting")', 'left');
 
         $this->db->where('oe.session_id', $sessionID);
         $this->db->where('oe.publish_status', 1);
@@ -505,8 +521,6 @@ class Live_exam_model extends MY_Model
         $query = $this->db->get();
         $records = $query->result();
 
-        // log_message('debug', 'the query is: '. $this->db->last_query());
-
         // Count total
         $totalRecords = $totalRecordwithFilter;
 
@@ -532,6 +546,12 @@ class Live_exam_model extends MY_Model
                           <i class="fas fa-sign-in-alt"></i></a>';
             } elseif ($record->session_status === 'waiting') {
                 $status = '<span class="label label-info">' . translate('host_is_waiting_in_exam') . '</span>';
+                $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
+                          class="btn btn-circle btn-success btn-sm" 
+                          title="' . translate('join_exam') . '">
+                          <i class="fas fa-sign-in-alt"></i></a>';
+            }elseif($record->session_status === 'starting'){
+                $status = '<span class="label label-warning">' . translate('starting_soon') . '</span>';
                 $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
