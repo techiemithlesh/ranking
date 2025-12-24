@@ -129,7 +129,7 @@
 
                     <!-- Host Controls -->
                     <div class="question-answer-button text-center">
-                        <button class="btn btn-default btn-prev mr-xs mt-sm" type="button" id="prevbutton" disabled>
+                        <button class="btn btn-default btn-prev mr-xs mt-sm" type="button" id="prevbutton">
                             <i class="fa fa-angle-left"></i> <?= translate('previous') ?>
                         </button>
                         <button class="btn btn-default btn-next mr-xs mt-sm" type="button" id="nextbutton">

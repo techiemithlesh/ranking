@@ -418,7 +418,7 @@
 			$("#exam_questions").hide();
 			startHostCountdown(resp.go_live_at);
 
-		} else if (resp.code === "aborted") {
+		} else if (resp.status_code === "aborted") {
 
 			examLive = false;
 			setWaitingUI();
@@ -442,7 +442,18 @@
 
 		$(".que_btn").removeClass("active");
 		$("#question" + step).addClass("active");
+
+		updateNavButtons();
 	}
+
+	function updateNavButtons() {
+		if (currentStep <= 1) $("#prevbutton").addClass("disabled").css("pointer-events", "none");
+		else $("#prevbutton").removeClass("disabled").css("pointer-events", "auto");
+
+		if (currentStep >= totalQuestions) $("#nextbutton").addClass("disabled").css("pointer-events", "none");
+		else $("#nextbutton").removeClass("disabled").css("pointer-events", "auto");
+	}
+
 
 	function showStep(step) {
 
@@ -450,6 +461,8 @@
 
 		currentStep = step;
 		syncWizardUI(step);
+
+		updateNavButtons();
 
 		if (examLive) {
 			const qid = $(".step-pane[data-step='" + step + "']").data("question-id");
