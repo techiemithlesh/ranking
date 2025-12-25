@@ -356,7 +356,9 @@
 
 	function startCountdown(goLiveAt) {
 
-		const target = new Date(goLiveAt.replace(" ", "T")).getTime();
+		// const target = new Date(goLiveAt.replace(" ", "T")).getTime();
+		const target = new Date(goLiveAt.replace(/-/g, "/")).getTime();
+		
 		$("#countdownBox").show();
 
 		const interval = setInterval(function() {
