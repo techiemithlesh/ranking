@@ -116,6 +116,32 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $data);
     }
 
+    // public function goLive()
+    // {
+    //     $session_id = $this->input->post('session_id');
+    //     $first_qid  = $this->input->post('first_question_id');
+
+    //     if (!$session_id || !$first_qid) {
+    //         echo json_encode(['status' => 0]);
+    //         return;
+    //     }
+
+    //     $goLiveAt = date('Y-m-d H:i:s', time() + 10);
+
+    //     $this->db->where('id', $session_id)
+    //         ->where('status', 'waiting')
+    //         ->update('exam_sessions', [
+    //             'status' => 'starting',
+    //             'go_live_at' => $goLiveAt,
+    //             'current_question_id' => $first_qid,
+    //             'current_step_version' => 1
+    //         ]);
+
+    //     live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
+
+    //     echo json_encode(['status' => 1, 'go_live_at' => $goLiveAt]);
+    // }
+
     public function goLive()
     {
         $session_id = $this->input->post('session_id');
@@ -126,16 +152,24 @@ class LiveExam extends Admin_Controller
             return;
         }
 
-        $goLiveAt = date('Y-m-d H:i:s', time() + 10);
+        // 1. Update the database using MySQL's internal clock
+        // This ensures go_live_at is exactly 10 seconds from "Now" in the DB
+        $this->db->set('status', 'starting');
+        $this->db->set('go_live_at', 'DATE_ADD(NOW(), INTERVAL 10 SECOND)', FALSE); // FALSE prevents CI from escaping the MySQL function
+        $this->db->set('current_question_id', $first_qid);
+        $this->db->set('current_step_version', 1);
 
-        $this->db->where('id', $session_id)
-            ->where('status', 'waiting')
-            ->update('exam_sessions', [
-                'status' => 'starting',
-                'go_live_at' => $goLiveAt,
-                'current_question_id' => $first_qid,
-                'current_step_version' => 1
-            ]);
+        $this->db->where('id', $session_id);
+        $this->db->where('status', 'waiting');
+        $this->db->update('exam_sessions');
+
+        // 2. Fetch the newly created time back from the DB to send to JavaScript
+        $session = $this->db->select('go_live_at')
+            ->where('id', $session_id)
+            ->get('exam_sessions')
+            ->row();
+
+        $goLiveAt = $session->go_live_at;
 
         live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
 
