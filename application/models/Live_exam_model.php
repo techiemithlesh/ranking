@@ -271,7 +271,7 @@ class Live_exam_model extends MY_Model
 
     public function createSession($examID, $hostID, $hostRole, $question_id)
     {
-        log_message('debug', "[LiveExam] Creating new exam session for examID={$examID}, hostID={$hostID}, hostRole={$hostRole}");
+        live_exam_log('debug', "[LiveExam] Creating new exam session for examID={$examID}, hostID={$hostID}, hostRole={$hostRole}");
         // generate codes
         $sessionCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
         $sessionToken = bin2hex(random_bytes(16)); // 32 chars  
@@ -308,7 +308,7 @@ class Live_exam_model extends MY_Model
 
     public function autoActivateSession($session_id)
     {
-        log_message('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
+        live_exam_log('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
         $this->db->reset_query();
         $this->db->where('id', $session_id);
         $this->db->where('status', 'starting');
@@ -319,12 +319,13 @@ class Live_exam_model extends MY_Model
         ]);
 
         $affected = $this->db->affected_rows();
-        log_message('debug', "[AutoActivate] Rows affected: " . $affected);
+        live_exam_log('debug', "[AutoActivate] Rows affected: " . $affected);
         return $affected > 0;
     }
 
     public function getSession($session_id)
     {
+        live_exam_log("[GetSession] Fetching session ID: {$session_id}");
         return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
     }
 

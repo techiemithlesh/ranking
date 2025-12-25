@@ -137,20 +137,24 @@ class LiveExam extends Admin_Controller
                 'current_step_version' => 1
             ]);
 
+        live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
+
         echo json_encode(['status' => 1, 'go_live_at' => $goLiveAt]);
     }
 
 
     public function ajaxGetQuestions()
     {
-        log_message('debug', '[LiveExam] Host requesting exam questions via AJAX');
+        live_exam_log('debug', '[LiveExam] Host requesting exam questions via AJAX');
 
         $examID = (int) $this->input->post('exam_id');
         $hostID = (int) get_loggedin_user_id();
 
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
-        log_message('debug', '[LiveExam] Fetched exam details: ' . json_encode($exam));
+        live_exam_log('debug', '[LiveExam] Fetched exam details: ' . json_encode($exam));
+
         if (!$exam) {
+            live_exam_log('debug', '[LiveExam] Exam not found for ID: ' . $examID);
             echo json_encode(['status' => 0, 'message' => 'Exam not found']);
             return;
         }
@@ -168,18 +172,22 @@ class LiveExam extends Admin_Controller
             ->get('exam_sessions')
             ->row();
 
-            log_message('debug', '[LiveExam] Fetched active session: ' . json_encode($active_session));
-            log_message('debug', '[LiveExam] Active session query: ' . $this->db->last_query());
+            live_exam_log('debug', '[LiveExam] Fetched active session: ' . json_encode($active_session));
+            live_exam_log('debug', '[LiveExam] Active session query: ' . $this->db->last_query());
             
         if (!$active_session) {
+            live_exam_log('debug', '[LiveExam] No active session found for exam ID: ' . $examID);
             echo json_encode(['status' => 0, 'message' => 'Session not found']);
             return;
         }
 
         // AUTO-ACTIVATE
         if ($active_session->status === 'starting') {
+            live_exam_log('debug', "[LiveExam] Auto-activating session ID: {$active_session->id}");
             $this->live_exam_model->autoActivateSession($active_session->id);
+            live_exam_log('debug', "[LiveExam] Auto-activated session ID: {$active_session->id}");
             $active_session = $this->live_exam_model->getSession($active_session->id);
+            live_exam_log('debug', '[LiveExam] Updated active session after auto-activate: ' . json_encode($active_session));
         }
 
         // GRACE
