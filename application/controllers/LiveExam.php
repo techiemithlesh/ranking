@@ -255,7 +255,7 @@ class LiveExam extends Admin_Controller
 
     public function startSession()
     {
-        log_message('debug', '[LiveExam] Starting new session via host request');
+        live_exam_log('debug', '[LiveExam] Starting new session via host request');
         if (!get_permission('live_exam', 'is_add')) {
             echo json_encode(['status' => 0, 'message' => 'Permission denied']);
             return;
@@ -273,7 +273,7 @@ class LiveExam extends Admin_Controller
         $currentQuestionId = $this->input->post('current_question_id');
 
         $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole, $currentQuestionId);
-        log_message('debug', '[LiveExam] New session created: ' . json_encode($session));
+        live_exam_log('debug', '[LiveExam] New session created: ' . json_encode($session));
 
         if ($session) {
             echo json_encode([
