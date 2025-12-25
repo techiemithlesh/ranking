@@ -100,12 +100,14 @@ class Live_exam_model extends MY_Model
 
             $action .= '<a href="' . base_url('onlineexam/question_list/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . " " . translate('question') . '"> <i class="fa fa-list"></i></a>';
 
-            if ($record->publish_status == 0) {
+            if ($record->publish_status == 0 ) {
                 $action .= '<a href="' . base_url('onlineexam/manage_question/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('add_questions') . '"> <i class="fas fa-question"></i></a>';
                 /**
                  * Branch Assignment.
                  */
-                $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
+                if( is_superadmin_loggedin() ) {
+                    $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
+                }
             }
 
             if ($record->publish_status == 1) {
@@ -552,7 +554,7 @@ class Live_exam_model extends MY_Model
                           <i class="fas fa-sign-in-alt"></i></a>';
             } elseif ($record->session_status === 'starting') {
                 $status = '<span class="label label-warning">' . translate('starting_soon') . '</span>';
-                $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
+                $action = '<a href="' . base_url('Liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
                           <i class="fas fa-sign-in-alt"></i></a>';
@@ -583,6 +585,8 @@ class Live_exam_model extends MY_Model
 
         return json_encode($response);
     }
+
+    
 
     public function getQuestionById($question_id, $exam_id)
     {
