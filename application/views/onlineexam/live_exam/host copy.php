@@ -19,69 +19,7 @@
 		font-weight: bold;
 		animation: pulse 1s infinite;
 	}
-
-	/* Participants Grid Styling */
-	.participants-grid {
-		list-style: none;
-		padding: 0;
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 10px;
-		max-height: 250px;
-		overflow-y: auto;
-	}
-
-	.participants-grid li {
-		background: #f8f9fa;
-		border: 1px solid #e9ecef;
-		border-radius: 6px;
-		padding: 8px;
-		font-size: 12px;
-	}
-
-	.participants-grid li strong {
-		display: block;
-		color: #333;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	/* Question Map Active State */
-	.on_answer_box li a.active {
-		background-color: #47a447 !important;
-		color: #fff !important;
-		border-color: #398439 !important;
-		transform: scale(1.1);
-		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-	}
-
-	/* Smooth Table Transitions */
-	#host_answers_table tbody tr {
-		transition: background-color 0.3s ease;
-	}
-
-	.animated {
-		animation-duration: 0.5s;
-		animation-fill-mode: both;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(5px);
-		}
-
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.fadeIn {
-		animation-name: fadeIn;
-	}
-
+	
 
 	@keyframes pulse {
 		0% {
@@ -394,13 +332,9 @@
 
 	$(document).on("click", "#goLiveBtn", function() {
 
-		const $btn = $(this);
-		$btn.button('loading');
-		
 		if (!confirm("⚠️ Are you sure you want to GO LIVE?\n\nThis will start the exam for all students.")) {
 			return;
 		}
-		
 
 		const firstQid = $(".step-pane[data-step='1']").data("question-id");
 
@@ -652,14 +586,9 @@
                     <td>${a.submitted_at}</td>
                  </tr>`
 				).join("") :
-				`<tr><td colspan="3" class="text-center text-muted">Waiting for students to respond...</td></tr>`;
+				`<tr><td colspan="3" class="text-center text-muted">No answers yet</td></tr>`;
 
-			// $("#host_answers_table tbody").html(html);
-
-			const $tbody = $("#host_answers_table tbody");
-			if ($tbody.html() !== html) {
-				$tbody.html(html);
-			}
+			$("#host_answers_table tbody").html(html);
 		});
 	}
 
