@@ -122,6 +122,26 @@
         border-radius: 10px;
     }
 
+    #question_area {
+        transition: all 0.4s ease-in-out;
+    }
+
+    .fade-in-active {
+        animation: fadeInScale 0.6s ease-out forwards;
+    }
+
+    @keyframes fadeInScale {
+        0% {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
     @media (min-width: 992px) {
         #question_area {
             padding: 14px;
@@ -189,13 +209,15 @@
                         lastVersion = resp.current_step_version;
                     }
 
-                    if (resp.html) {
-                        $("#question_area")
-                            .html(resp.html)
-                            .data("qid", resp.current_step);
+                    $("#question_area").fadeOut(200, function() {
+                        $(this).html(resp.html)
+                            .addClass("fade-in-active")
+                            .data("qid", resp.current_step)
+                            .fadeIn(300);
+                        setTimeout(() => $("#question_area").removeClass("fade-in-active"), 700);
 
                         normalizeYouTubeEmbeds();
-                    }
+                    });
 
 
                     if (resp.current_index !== undefined) {
@@ -302,11 +324,13 @@
             if (diff <= 0) {
                 clearInterval(startingCountdownInterval);
                 startingCountdownInterval = null;
-                $("#question_area").html(
-                    '<div class="alert alert-success text-center">🚀 Exam is starting now! Loading...</div>'
-                );
-                // Force an immediate poll to get the first question
-                pollCurrentQuestion();
+                $("#question_area").html(`
+                    <div class="text-center" style="padding: 40px;">
+                        <h2 style="color: #4caf50; font-weight: 800;">🚀 GO!</h2>
+                    </div>
+                `).fadeOut(1000, function() {
+                    pollCurrentQuestion(); // Fetch the real first question
+                });
             } else {
                 $("#question_area").html(`
                 <div class="text-center" style="padding: 40px;">
@@ -378,9 +402,19 @@
             try {
                 var data = JSON.parse(resp);
                 if (data.status == 1) {
-                    alertMsg("Answer saved", "success", "Success", "");
-                    // ✅ Lock the form once submitted
+                    // alertMsg("Answer saved", "success", "Success", "");
+                    // // ✅ Lock the form once submitted
+                    // form.find("input, button").prop("disabled", true);
+                    swal({
+                        title: "Saved!",
+                        text: "Your answer has been recorded.",
+                        type: "success",
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                     form.find("input, button").prop("disabled", true);
+                    // Optional: add a visual 'submitted' state to the card
+                    form.find(".option-card.active").css("background", "#c8e6c9");
                 } else {
                     alertMsg(data.message, "error", "Error", "");
                 }

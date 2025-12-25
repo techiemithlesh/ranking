@@ -543,7 +543,7 @@ class Live_exam_model extends MY_Model
             $status = '<span class="label label-danger">' . translate('inactive') . '</span>';
             $action = '';
             if ($record->session_status === 'active') {
-                $status = '<span class="label label-success">' . translate('active') . '</span>';
+                $status = '<span class="label label-success">' . translate('Live') . '</span>';
                 $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
@@ -555,7 +555,7 @@ class Live_exam_model extends MY_Model
                           title="' . translate('join_exam') . '">
                           <i class="fas fa-sign-in-alt"></i></a>';
             } elseif ($record->session_status === 'starting') {
-                $status = '<span class="label label-warning">' . translate('starting_soon') . '</span>';
+                $status = '<span class="label label-warning">' . translate('Host is starting exam') . '</span>';
                 $action = '<a href="' . base_url('Liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
