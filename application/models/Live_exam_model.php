@@ -271,6 +271,7 @@ class Live_exam_model extends MY_Model
 
     public function createSession($examID, $hostID, $hostRole, $question_id)
     {
+        log_message('debug', "[LiveExam] Creating new exam session for examID={$examID}, hostID={$hostID}, hostRole={$hostRole}");
         // generate codes
         $sessionCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
         $sessionToken = bin2hex(random_bytes(16)); // 32 chars  
@@ -571,7 +572,6 @@ class Live_exam_model extends MY_Model
             $row[] = $record->duration;
             $row[] = $status;
             $row[] = $action;
-
             $data[] = $row;
         }
 

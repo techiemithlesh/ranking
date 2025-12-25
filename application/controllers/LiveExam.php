@@ -143,11 +143,13 @@ class LiveExam extends Admin_Controller
 
     public function ajaxGetQuestions()
     {
+        log_message('debug', '[LiveExam] Host requesting exam questions via AJAX');
 
         $examID = (int) $this->input->post('exam_id');
         $hostID = (int) get_loggedin_user_id();
 
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
+        log_message('debug', '[LiveExam] Fetched exam details: ' . json_encode($exam));
         if (!$exam) {
             echo json_encode(['status' => 0, 'message' => 'Exam not found']);
             return;
@@ -166,7 +168,9 @@ class LiveExam extends Admin_Controller
             ->get('exam_sessions')
             ->row();
 
-
+            log_message('debug', '[LiveExam] Fetched active session: ' . json_encode($active_session));
+            log_message('debug', '[LiveExam] Active session query: ' . $this->db->last_query());
+            
         if (!$active_session) {
             echo json_encode(['status' => 0, 'message' => 'Session not found']);
             return;
@@ -223,8 +227,6 @@ class LiveExam extends Admin_Controller
             return;
         }
 
-
-
         // 🔹 FRESH START
         $now = time();
         if (strtotime($exam->exam_start) <= $now && $now <= strtotime($exam->exam_end)) {
@@ -245,6 +247,7 @@ class LiveExam extends Admin_Controller
 
     public function startSession()
     {
+        log_message('debug', '[LiveExam] Starting new session via host request');
         if (!get_permission('live_exam', 'is_add')) {
             echo json_encode(['status' => 0, 'message' => 'Permission denied']);
             return;
@@ -262,6 +265,7 @@ class LiveExam extends Admin_Controller
         $currentQuestionId = $this->input->post('current_question_id');
 
         $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole, $currentQuestionId);
+        log_message('debug', '[LiveExam] New session created: ' . json_encode($session));
 
         if ($session) {
             echo json_encode([
