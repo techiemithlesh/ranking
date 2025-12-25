@@ -89,7 +89,7 @@ $autoload['drivers'] = array();
 |
 |	$autoload['helper'] = array('url', 'file');
 */
-$autoload['helper'] = array('url', 'file', 'form', 'security', 'directory', 'general', 'menu');
+$autoload['helper'] = array('url', 'file', 'form', 'security', 'directory', 'general', 'menu', 'liveexam_log');
 
 /*
 | -------------------------------------------------------------------
