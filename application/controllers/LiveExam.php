@@ -116,32 +116,6 @@ class LiveExam extends Admin_Controller
         $this->load->view('layout/index', $data);
     }
 
-    // public function goLive()
-    // {
-    //     $session_id = $this->input->post('session_id');
-    //     $first_qid  = $this->input->post('first_question_id');
-
-    //     if (!$session_id || !$first_qid) {
-    //         echo json_encode(['status' => 0]);
-    //         return;
-    //     }
-
-    //     $goLiveAt = date('Y-m-d H:i:s', time() + 10);
-
-    //     $this->db->where('id', $session_id)
-    //         ->where('status', 'waiting')
-    //         ->update('exam_sessions', [
-    //             'status' => 'starting',
-    //             'go_live_at' => $goLiveAt,
-    //             'current_question_id' => $first_qid,
-    //             'current_step_version' => 1
-    //         ]);
-
-    //     live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
-
-    //     echo json_encode(['status' => 1, 'go_live_at' => $goLiveAt]);
-    // }
-
     public function goLive()
     {
         $session_id = $this->input->post('session_id');
@@ -171,7 +145,7 @@ class LiveExam extends Admin_Controller
 
         $goLiveAt = $session->go_live_at;
 
-        live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
+        // live_exam_log('debug', "[LiveExam] Session {$session_id} set to 'starting' with go_live_at={$goLiveAt}");
 
         echo json_encode(['status' => 1, 'go_live_at' => $goLiveAt]);
     }
@@ -179,16 +153,16 @@ class LiveExam extends Admin_Controller
 
     public function ajaxGetQuestions()
     {
-        live_exam_log('debug', '[LiveExam] Host requesting exam questions via AJAX');
+        // live_exam_log('debug', '[LiveExam] Host requesting exam questions via AJAX');
 
         $examID = (int) $this->input->post('exam_id');
         $hostID = (int) get_loggedin_user_id();
 
         $exam = $this->live_exam_model->getExamDetailsForLive($examID);
-        live_exam_log('debug', '[LiveExam] Fetched exam details: ' . json_encode($exam));
+        // live_exam_log('debug', '[LiveExam] Fetched exam details: ' . json_encode($exam));
 
         if (!$exam) {
-            live_exam_log('debug', '[LiveExam] Exam not found for ID: ' . $examID);
+            // live_exam_log('debug', '[LiveExam] Exam not found for ID: ' . $examID);
             echo json_encode(['status' => 0, 'message' => 'Exam not found']);
             return;
         }
@@ -206,11 +180,11 @@ class LiveExam extends Admin_Controller
             ->get('exam_sessions')
             ->row();
 
-        live_exam_log('debug', '[LiveExam] Fetched active session: ' . json_encode($active_session));
-        live_exam_log('debug', '[LiveExam] Active session query: ' . $this->db->last_query());
+        // live_exam_log('debug', '[LiveExam] Fetched active session: ' . json_encode($active_session));
+        // live_exam_log('debug', '[LiveExam] Active session query: ' . $this->db->last_query());
 
         if (!$active_session) {
-            live_exam_log('debug', '[LiveExam] No active session found for exam ID: ' . $examID);
+            // live_exam_log('debug', '[LiveExam] No active session found for exam ID: ' . $examID);
             echo json_encode(['status' => 0, 'message' => 'Session not found']);
             return;
         }
@@ -225,11 +199,10 @@ class LiveExam extends Admin_Controller
         // }
 
         if ($active_session->status === 'starting' && (!empty($active_session->go_live_at) && strtotime($active_session->go_live_at) <= time())) {
-
-            live_exam_log('debug', "[LiveExam] Auto-activating session ID: {$active_session->id}");
+            // live_exam_log('debug', "[LiveExam] Auto-activating session ID: {$active_session->id}");
             $this->live_exam_model->autoActivateSession($active_session->id);
             $active_session = $this->live_exam_model->getSession($active_session->id);
-            live_exam_log('debug', '[LiveExam] Session after auto activate: ' . json_encode($active_session));
+            // live_exam_log('debug', '[LiveExam] Session after auto activate: ' . json_encode($active_session));
         }
 
 
@@ -298,7 +271,7 @@ class LiveExam extends Admin_Controller
 
     public function startSession()
     {
-        live_exam_log('debug', '[LiveExam] Starting new session via host request');
+        // live_exam_log('debug', '[LiveExam] Starting new session via host request');
         if (!get_permission('live_exam', 'is_add')) {
             echo json_encode(['status' => 0, 'message' => 'Permission denied']);
             return;
@@ -316,7 +289,7 @@ class LiveExam extends Admin_Controller
         $currentQuestionId = $this->input->post('current_question_id');
 
         $session = $this->live_exam_model->createSession($examID, $hostID, $hostRole, $currentQuestionId);
-        live_exam_log('debug', '[LiveExam] New session created: ' . json_encode($session));
+        // live_exam_log('debug', '[LiveExam] New session created: ' . json_encode($session));
 
         if ($session) {
             echo json_encode([
@@ -333,7 +306,7 @@ class LiveExam extends Admin_Controller
 
     public function activateSession()
     {
-        log_message('debug', '[LiveExam] Activating session via host request');
+        // log_message('debug', '[LiveExam] Activating session via host request');
         $session_id = $this->input->post('session_id');
 
         $this->db->where('id', $session_id)
@@ -502,7 +475,7 @@ class LiveExam extends Admin_Controller
         $this->live_exam_model->cleanupInactiveStudents($session_id);
 
         $participants = $this->live_exam_model->getParticipantsBySession($session_id);
-
+        
         echo json_encode([
             'status' => 1,
             'participants' => $participants,

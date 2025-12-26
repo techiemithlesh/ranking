@@ -100,12 +100,12 @@ class Live_exam_model extends MY_Model
 
             $action .= '<a href="' . base_url('onlineexam/question_list/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('view') . " " . translate('question') . '"> <i class="fa fa-list"></i></a>';
 
-            if ($record->publish_status == 0 ) {
+            if ($record->publish_status == 0) {
                 $action .= '<a href="' . base_url('onlineexam/manage_question/' . $record->id) . '" class="btn btn-circle btn-default icon" data-toggle="tooltip" data-original-title="' . translate('add_questions') . '"> <i class="fas fa-question"></i></a>';
                 /**
                  * Branch Assignment.
                  */
-                if( is_superadmin_loggedin() ) {
+                if (is_superadmin_loggedin()) {
                     $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
                 }
             }
@@ -258,14 +258,33 @@ class Live_exam_model extends MY_Model
 
     public function countTotalStudentsInClass($exam_id)
     {
-        return $this->db
-            ->from('online_exam o')
-            ->join('enroll e', 'e.class_id = o.class_id')
-            ->join('student s', 's.id = e.student_id')
-            ->where('o.id', $exam_id)
-            ->where('e.session_id', get_session_id())
-            ->where('s.active', 1)
-            ->count_all_results();
+        // 1. Get the exam details to find the assigned sections
+        $exam = $this->db->select('class_id, section_id')
+            ->where('id', $exam_id)
+            ->get('online_exam')
+            ->row();
+
+        if (!$exam) {
+            return 0;
+        }
+
+        $this->db->from('enroll e');
+        $this->db->join('student s', 's.id = e.student_id');
+        $this->db->where('e.class_id', $exam->class_id);
+        $this->db->where('e.session_id', get_session_id());
+        $this->db->where('s.active', 1);
+
+        // 2. Apply Section Filter
+        $sections = json_decode($exam->section_id, true);
+        if (is_array($sections)) {
+            // If it's a JSON array, use where_in
+            $this->db->where_in('e.section_id', $sections);
+        } else {
+            // If it's a single ID
+            $this->db->where('e.section_id', $exam->section_id);
+        }
+
+        return $this->db->count_all_results();
     }
 
 
@@ -587,7 +606,7 @@ class Live_exam_model extends MY_Model
         return json_encode($response);
     }
 
-    
+
 
     public function getQuestionById($question_id, $exam_id)
     {
