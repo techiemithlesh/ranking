@@ -475,14 +475,13 @@ class LiveExam extends Admin_Controller
         $this->live_exam_model->cleanupInactiveStudents($session_id);
 
         $participants = $this->live_exam_model->getParticipantsBySession($session_id);
-        
+
         echo json_encode([
             'status' => 1,
             'participants' => $participants,
             'total' => count($participants)
         ]);
     }
-
 
     public function getSessionAnswers()
     {

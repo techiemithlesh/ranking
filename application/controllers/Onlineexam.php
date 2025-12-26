@@ -85,7 +85,6 @@ class Onlineexam extends Admin_Controller
         }
         $onlineexam = $this->app_lib->getTableHybrid('online_exam', array('t.id' => $id), true);
         
-
         if (empty($onlineexam)) {
             set_alert('error', 'Exam not found.');
             redirect($_SERVER['HTTP_REFERER']);

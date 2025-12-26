@@ -209,7 +209,7 @@
 							<span class="error"></span>
 						</div>
 					</div>
-					<div class="form-group">
+					<div class="form-group" id="questionType">
 						<label class="col-md-3 control-label"><?= translate('question') . " " . translate('type') ?> <span
 								class="required">*</span></label>
 						<div class="col-md-6">
@@ -472,7 +472,7 @@
 
 	// BRANCH ASSIGN START HERE
 	function openAssignBranchModal($id) {
-		console.log("assign branch called", $id);
+		// console.log("assign branch called", $id);
 
 		if ($id) {
 			$.ajax({
