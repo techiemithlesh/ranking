@@ -920,8 +920,6 @@ class Report extends Admin_Controller
         $this->data['sessionCode'] = $sessionCode;
 
         $this->data['report_rows'] = $reportRows;
-
-
         $this->data['title'] = translate('subject_wise_report');
         $this->data['sub_page'] = 'report/subject_wise_report';
         $this->data['main_menu'] = 'onlineexam';

@@ -12,7 +12,6 @@
             <?php echo form_open($this->uri->uri_string(), array('class' => 'validate', 'id' => 'myFormId', 'method' => 'post')); ?>
             <div class="panel-body">
                 <div class="row mb-sm">
-
                     <?php if (is_superadmin_loggedin()): ?>
                         <div class="col-md-3">
                             <div class="form-group">
@@ -27,7 +26,6 @@
                     <?php else: ?>
                         <input type="hidden" id="branch_id" name="branch_id" value="<?= get_loggedin_branch_id(); ?>">
                     <?php endif; ?>
-
 
                     <div class="col-md-3 mb-sm">
                         <label class="control-label"><?= translate('class') ?> <span class="required">*</span></label>
@@ -54,7 +52,6 @@
                         <select class='form-control' name="exam_type" data-plugin-selectTwo data-width="100%"
                             id="exam_type">
                             <option value="">Select Exam Type</option>
-                            <!-- <option value="online" <?= ($exam_type == 'online' ? 'selected' : '') ?>>ONLINE</option> -->
                             <option value="live_exam" <?= ($exam_type == 'live_exam' ? 'selected' : '') ?>>
                                 <?= translate('live_exam') ?>
                             </option>
