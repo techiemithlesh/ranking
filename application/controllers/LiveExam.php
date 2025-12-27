@@ -405,7 +405,7 @@ class LiveExam extends Admin_Controller
                     'rank' => (int) $entry['rank_position'],
                 ];
 
-                log_message('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
+                live_exam_log('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
 
                 // ✅ Process reward
                 $granted = $this->reward_lib->processExamReward(
@@ -453,11 +453,11 @@ class LiveExam extends Admin_Controller
                         log_message('debug', "[WhatsApp] Sent report card to {$student['student_phone']} => " . json_encode($response));
                     }
                 } catch (Exception $e) {
-                    log_message('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
+                    live_exam_log('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
                 }
             }
 
-            log_message('debug', "[LiveExam] ✅ {$rewardCount} rewards granted, {$sentCount} WhatsApp messages sent for session {$session_code}");
+            live_exam_log('debug', "[LiveExam] ✅ {$rewardCount} rewards granted, {$sentCount} WhatsApp messages sent for session {$session_code}");
         }
 
         // Final response

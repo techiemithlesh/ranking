@@ -288,7 +288,7 @@ class Reward_model extends MY_Model
         $configs = $this->db->get()->result_array();
 
         if (empty($configs)) {
-            log_message('debug', "[Reward] No reward configs found for student={$student_id}");
+            live_exam_log('debug', "[Reward] No reward configs found for student={$student_id}");
             return null;
         }
 
@@ -334,7 +334,7 @@ class Reward_model extends MY_Model
                 // No default needed as all bases are handled
             }
 
-            log_message('debug', "[RewardCheck] {$basis} -> value={$value}, qual={$qual}, eligible=" . ($eligible ? "YES" : "NO"));
+            live_exam_log('debug', "[RewardCheck] {$basis} -> value={$value}, qual={$qual}, eligible=" . ($eligible ? "YES" : "NO"));
 
             if ($eligible && $priority[$basis] < $bestPriority) {
                 $bestPriority = $priority[$basis];
@@ -344,11 +344,11 @@ class Reward_model extends MY_Model
         }
 
         if ($bestRule) {
-            log_message('debug', "[Reward] 🎯 Best Reward Selected: " . json_encode($bestRule));
+            live_exam_log('debug', "[Reward] 🎯 Best Reward Selected: " . json_encode($bestRule));
             return $bestRule;
         }
 
-        log_message('debug', "[Reward] ❌ No eligible reward after evaluation");
+        live_exam_log('debug', "[Reward] ❌ No eligible reward after evaluation");
         return null;
     }
 
@@ -370,7 +370,7 @@ class Reward_model extends MY_Model
 
         $already = $this->db->get_where('student_rewards', $check)->row_array();
         if ($already) {
-            log_message('debug', "[Reward] Already rewarded for student {$student_id}, exam {$exam_id}, scope {$reward_scope}");
+            live_exam_log('debug', "[Reward] Already rewarded for student {$student_id}, exam {$exam_id}, scope {$reward_scope}");
             return false;
         }
 
@@ -420,7 +420,7 @@ class Reward_model extends MY_Model
             return $this->db->trans_status();
 
         } catch (Exception $e) {
-            log_message('error', '[Reward] Transaction failed: ' . $e->getMessage());
+            live_exam_log('error', '[Reward] Transaction failed: ' . $e->getMessage());
             return false;
         }
     }

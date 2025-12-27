@@ -12,26 +12,6 @@ class Reward_lib
         $this->CI->load->model('student_model');
     }
 
-    /**
-     * Process and reward coins to a student for an exam.
-     */
-    //  public function processExamReward($student_id, $exam_id, $exam_type, $percentage)
-    // {
-    //     $rewardRule = $this->CI->reward_model->getApplicableReward($student_id, $exam_id, $exam_type, $percentage);
-
-    //     if (!$rewardRule || $percentage < $rewardRule['min_percentage']) {
-    //         log_message('debug', "No applicable reward for student_id={$student_id}, exam_id={$exam_id}, percentage={$percentage}");
-    //         return false;
-    //     }
-
-    //     $coins = (int)$rewardRule['coin_reward'];
-    //     $remarks = "Rewarded for scoring $percentage% in $exam_type exam";
-
-    //     return $this->CI->reward_model->logRewardTransaction($student_id, $exam_id, $exam_type, $coins, $remarks);
-    // }
-
-
-
 
     /**
      * 21-10-2025 (LIVE EXAM INTEGRATION) 
@@ -59,10 +39,10 @@ class Reward_lib
             $session_code
         );
 
-        // log_message('debug', "APPLICABLE REWARD". json_encode($rewardRule));
+        live_exam_log('debug', "APPLICABLE REWARD". json_encode($rewardRule));
 
         if (!$rewardRule) {
-            // log_message('debug', "[RewardLib] No applicable reward rule.");
+            live_exam_log('debug', "[RewardLib] No applicable reward rule.");
             return false;
         }
 
@@ -86,7 +66,7 @@ class Reward_lib
         $checkSession = ($scope === 'session') ? $session_code : null;
 
         if ($this->CI->reward_model->isAlreadyRewarded($student_id, $exam_id, $exam_type, $checkSession)) {
-            // log_message('debug', "[RewardLib] Skipped (duplicate) | Scope={$scope}");
+            live_exam_log('debug', "[RewardLib] Skipped (duplicate) | Scope={$scope}");
             return false;
         }
 
