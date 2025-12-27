@@ -660,17 +660,21 @@ class Ajax extends MY_Controller
     {
         $html = "<option value=''>" . translate("select_exam") . "</option>";
 
-        // Get input parameters
-        $branchID = $this->input->post('branch_id');
-        $class_id = $this->input->post('class_id');
+        // Inputs
+        $branchID   = $this->input->post('branch_id');
+        $class_id   = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
-        $exam_type = $this->input->post('exam_type');
+        $exam_type  = $this->input->post('exam_type');
+
         if (empty($branchID)) {
             $branchID = get_loggedin_branch_id();
         }
 
         if (!empty($branchID)) {
+
+            /* ===================== OFFLINE EXAM ===================== */
             if ($exam_type == 'offline') {
+
                 $this->db->select('id, name, term_id');
                 $this->db->where('branch_id', $branchID);
                 $this->db->where('session_id', get_session_id());
@@ -679,7 +683,8 @@ class Ajax extends MY_Controller
                 if (count($result)) {
                     foreach ($result as $row) {
                         if ($row['term_id'] != 0) {
-                            $term = $this->db->select('name')->where('id', $row['term_id'])->get('exam_term')->row()->name;
+                            $term = $this->db->select('name')->where('id', $row['term_id'])
+                                ->get('exam_term')->row()->name;
                             $name = $row['name'] . ' (' . $term . ')';
                         } else {
                             $name = $row['name'];
@@ -689,13 +694,19 @@ class Ajax extends MY_Controller
                 } else {
                     $html = "<option value=''>" . translate("no_information_available") . "</option>";
                 }
+
+
+                /* ===================== ONLINE EXAM ===================== */
             } elseif ($exam_type == 'online') {
-                
+
+                $this->db->select('*');
+                $this->db->from('online_exam');
                 $this->db->where('class_id', $class_id);
                 $this->db->where('session_id', get_session_id());
                 $this->db->where('publish_status', 1);
                 $this->db->where('is_live', 0);
                 $this->db->where('publish_result', 1);
+                $result = $this->db->get()->result();
 
                 if (count($result) > 0) {
                     foreach ($result as $row) {
@@ -704,7 +715,11 @@ class Ajax extends MY_Controller
                 } else {
                     $html = "<option value=''>" . translate("no_information_available") . "</option>";
                 }
+
+
+                /* ===================== LIVE EXAM (FILTERED BY BRANCH) ===================== */
             } elseif ($exam_type == 'live_exam') {
+
                 $this->db->select('online_exam.*');
                 $this->db->from('online_exam');
                 $this->db->where('class_id', $class_id);
@@ -712,15 +727,17 @@ class Ajax extends MY_Controller
                 $this->db->where('publish_status', 1);
                 $this->db->where('is_live', 1);
                 $this->db->where('publish_result', 1);
-                $this->db->group_start()
-                    ->where('online_exam.created_by_branch', $branchID)
-                    ->or_where("online_exam.id IN (SELECT exam_id FROM exam_assignment WHERE branch_id = {$branchID})", null, false)
-                    ->group_end();
+
+                // 🔥 Show exam IF created by branch OR assigned to branch
+                $this->db->group_start();
+                $this->db->where('online_exam.created_by_branch', $branchID);
+                $this->db->or_where("online_exam.id IN (SELECT exam_id FROM exam_assignment WHERE branch_id={$branchID})", null, false);
+                $this->db->group_end();
 
                 $result = $this->db->get()->result();
 
                 log_message("debug", "Fetched " . count($result) . " live exams for branch_id: $branchID, class_id: $class_id");
-                log_message("debug", "Executed Query: " . $this->db->last_query());
+                log_message("debug", "Executed Live Exam Query: " . $this->db->last_query());
 
                 if (count($result) > 0) {
                     foreach ($result as $row) {
@@ -736,6 +753,7 @@ class Ajax extends MY_Controller
 
         echo $html;
     }
+
 
     public function getSubjectByBranch()
     {
