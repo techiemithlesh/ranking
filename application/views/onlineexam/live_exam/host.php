@@ -480,13 +480,7 @@
 		totalQuestions = $(".step-pane").length;
 		currentStep = parseInt(resp.current_index || 1);
 		elapsed_seconds = parseInt(resp.elapsed_seconds || 0);
-
-
-		// 🔥  RE-SYNC TIMER HERE always when elapsed_seconds given
-		if (resp.elapsed_seconds !== undefined) {
-			startTimer(parseInt(resp.elapsed_seconds || 0));
-		}
-
+		
 		if (!window._live_session && resp.session_id) {
 			window._live_session = {
 				id: resp.session_id,
