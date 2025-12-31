@@ -134,6 +134,13 @@ class Liveexam_student extends Public_Controller
             return;
         }
 
+        /* ---------- 1. CALCULATE ELAPSED TIME ---------- */
+        // This is the "Anchor" that keeps the student timer synced with the host
+        $elapsed_seconds = 0;
+        if ($session->status === 'active' && !empty($session->started_at)) {
+            $elapsed_seconds = time() - strtotime($session->started_at);
+        }
+
         /* ---------- END STATES ---------- */
         if ($session->status === 'completed') {
             echo json_encode([
@@ -164,7 +171,7 @@ class Liveexam_student extends Public_Controller
             return;
         }
 
-        if($session->status === 'starting'){
+        if ($session->status === 'starting') {
             echo json_encode([
                 'status' => 0,
                 'code' => 'starting',
@@ -181,7 +188,8 @@ class Liveexam_student extends Public_Controller
         if (!$isFirstLoad && $currentVersion === $last_version) {
             echo json_encode([
                 'status' => 1,
-                'changed' => false
+                'changed' => false,
+                'elapsed_seconds' => max(0, $elapsed_seconds)
             ]);
             return;
         }
@@ -234,6 +242,7 @@ class Liveexam_student extends Public_Controller
             'current_step_version' => $currentVersion,
             'current_step' => $question->id,
             'current_index' => $current_index,
+            'elapsed_seconds' => max(0, $elapsed_seconds),
             'session_code' => $session->session_code,
             'is_published' => (int) $session->is_published,
             'html' => $html

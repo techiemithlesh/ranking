@@ -129,7 +129,7 @@ class LiveExam extends Admin_Controller
         // 1. Update the database using MySQL's internal clock
         // This ensures go_live_at is exactly 10 seconds from "Now" in the DB
         $this->db->set('status', 'starting');
-        $this->db->set('go_live_at', 'DATE_ADD(NOW(), INTERVAL 10 SECOND)', FALSE);
+        $this->db->set('go_live_at', 'DATE_ADD(NOW(), INTERVAL 10 SECOND)', FALSE); // FALSE prevents CI from escaping the MySQL function
         $this->db->set('current_question_id', $first_qid);
         $this->db->set('current_step_version', 1);
 
@@ -197,13 +197,6 @@ class LiveExam extends Admin_Controller
         }
 
 
-        // --- NEW: TIME SYNC LOGIC ---
-        $elapsed_seconds = 0;
-        if ($active_session->status === 'active' && !empty($active_session->started_at)) {
-            // Calculate exactly how many seconds have passed since the exam started
-            $elapsed_seconds = time() - strtotime($active_session->started_at);
-        }
-
         // GRACE
         $active_session = $this->live_exam_model->handleGraceTimeout($active_session);
         if ($active_session->status === 'aborted') {
@@ -241,7 +234,6 @@ class LiveExam extends Admin_Controller
                 'session_code' => $active_session->session_code,
                 'session_status' => $active_session->status,
                 'go_live_at' => $active_session->go_live_at,
-                'elapsed_seconds' => max(0, $elapsed_seconds),
                 'join_link' => base_url('liveexam/join/' . $active_session->session_code),
                 'current_question_id' => $active_session->current_question_id,
                 'current_index' => $current_index,

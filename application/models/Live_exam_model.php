@@ -325,17 +325,39 @@ class Live_exam_model extends MY_Model
         return $this->db->affected_rows() > 0;
     }
 
+    // public function autoActivateSession($session_id)
+    // {
+    //     live_exam_log('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
+    //     $this->db->reset_query();
+    //     $this->db->where('id', $session_id);
+    //     $this->db->where('status', 'starting');
+    //     $this->db->where('go_live_at <=', date('Y-m-d H:i:s'));
+    //     $this->db->update('exam_sessions', [
+    //         'status'     => 'active',
+    //         'started_at' => date('Y-m-d H:i:s')
+    //     ]);
+
+
+
+    //     $affected = $this->db->affected_rows();
+    //     live_exam_log('debug', "[AutoActivate] Rows affected: " . $affected);
+    //     return $affected > 0;
+    // }
+
     public function autoActivateSession($session_id)
     {
         live_exam_log('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
-        $this->db->reset_query();
+
         $this->db->where('id', $session_id);
         $this->db->where('status', 'starting');
         $this->db->where('go_live_at <=', date('Y-m-d H:i:s'));
-        $this->db->update('exam_sessions', [
-            'status'     => 'active',
-            'started_at' => date('Y-m-d H:i:s')
-        ]);
+
+        $this->db->set('status', 'active');
+        // We use FALSE so CI doesn't wrap 'go_live_at' in quotes, 
+        // allowing MySQL to copy the value from one column to the other.
+        $this->db->set('started_at', 'go_live_at', FALSE);
+
+        $this->db->update('exam_sessions');
 
         $affected = $this->db->affected_rows();
         live_exam_log('debug', "[AutoActivate] Rows affected: " . $affected);
@@ -620,8 +642,7 @@ class Live_exam_model extends MY_Model
             WHERE qm.onlineexam_id = ?
         ) ranked ON ranked.question_id = qm.question_id
         WHERE qm.onlineexam_id = ? AND qm.question_id = ?
-        LIMIT 1
-    ";
+        LIMIT 1";
 
         return $this->db->query($sql, [$exam_id, $exam_id, $question_id])->row();
     }
@@ -712,8 +733,7 @@ class Live_exam_model extends MY_Model
            AND esa.question_id = q.id 
            AND esa.student_id = " . $this->db->escape($studentID) . "
         WHERE es.session_code = " . $this->db->escape($session_code) . "
-        ORDER BY qm.id ASC
-    ";
+        ORDER BY qm.id ASC";
 
         $result = $this->db->query($sql)->result();
 
@@ -864,8 +884,7 @@ class Live_exam_model extends MY_Model
            AND esa.question_id = q.id
         WHERE es.session_code = " . $this->db->escape($session_code) . "
         GROUP BY ess.student_id
-        ORDER BY obtain_marks DESC, wrong_ans ASC, total_skipped ASC, time_taken ASC
-        ";
+        ORDER BY obtain_marks DESC, wrong_ans ASC, total_skipped ASC, time_taken ASC";
 
         $students = $this->db->query($sql)->result_array();
 
@@ -1020,7 +1039,6 @@ class Live_exam_model extends MY_Model
 
         return $session;
     }
-
 
 
     /**

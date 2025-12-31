@@ -66,15 +66,6 @@
 		animation-fill-mode: both;
 	}
 
-	#live_status.ok {
-		color: #28a745;
-	}
-
-	#live_status.bad {
-		color: #e74c3c;
-	}
-
-
 	@keyframes fadeIn {
 		from {
 			opacity: 0;
@@ -185,21 +176,11 @@
 						<br>
 						<strong>Time left:</strong> <span id="graceTimer"></span> sec
 					</div>
-					<div class="row align-items-center mb-md" style="display:flex;justify-content:space-between;">
-
-						<!-- Left Side Session Info -->
-						<div class="col-md-7">
+					<div class="row">
+						<div class="col-md-5">
 							<div id="sessionInfo" class="alert alert-info mt-md"></div>
 						</div>
-
-						<!-- Right Side Live Status -->
-						<div class="col-md-5 text-right" style="font-size:17px;font-weight:bold;">
-							<span id="live_status" class="ok">● Connected</span>
-							<span style="color:#e74c3c">• LIVE EXAM</span>
-						</div>
-
 					</div>
-
 
 					<div id="countdownBox" class="text-center" style="display:none;">
 						<h2 class="text-success">
@@ -237,11 +218,6 @@
 
 	let waitingPoller = null;
 	var participantTimer = null;
-
-	var hostDisconnected = false;
-	var reconnectCheck;
-	var disconnectPopupTimeoutHost = null;
-
 
 
 	/* =====================================================
@@ -398,10 +374,7 @@
 				startCountdown(resp.go_live_at);
 			} else if (resp.session_status === "active") {
 				setLiveUI();
-				let serverElapsed = parseInt(resp.elapsed_seconds || 0);
-				if (!timerInterval || Math.abs(elapsed_seconds - serverElapsed) > 3) {
-					startTimer(serverElapsed);
-				}
+				startTimer();
 				startHeartbeat();
 			} else if (resp.session_status === "ended") {
 				alert("This live exam session has ended.");
@@ -423,11 +396,11 @@
 
 		const $btn = $(this);
 		$btn.button('loading');
-
+		
 		if (!confirm("⚠️ Are you sure you want to GO LIVE?\n\nThis will start the exam for all students.")) {
 			return;
 		}
-
+		
 
 		const firstQid = $(".step-pane[data-step='1']").data("question-id");
 
@@ -479,13 +452,7 @@
 
 		totalQuestions = $(".step-pane").length;
 		currentStep = parseInt(resp.current_index || 1);
-		elapsed_seconds = parseInt(resp.elapsed_seconds || 0);
-
-
-		// 🔥  RE-SYNC TIMER HERE always when elapsed_seconds given
-		if (resp.elapsed_seconds !== undefined) {
-			startTimer(parseInt(resp.elapsed_seconds || 0));
-		}
+		elapsed_seconds = <?= (int)$elapsed_seconds ?>;
 
 		if (!window._live_session && resp.session_id) {
 			window._live_session = {
@@ -508,7 +475,7 @@
 			$("#exam_questions").show();
 
 			setLiveUI();
-			startTimer(parseInt(resp.elapsed_seconds || 0))
+			startTimer();
 			startHeartbeat();
 			fetchAnswers();
 
@@ -587,23 +554,19 @@
 	   TIMER
 	===================================================== */
 
-	function startTimer(serverOffset = 0) {
-		elapsed_seconds = serverOffset;
-
-		// If timer already running AND difference is small → continue without reset
-		if (timerInterval && Math.abs(elapsed_seconds - serverOffset) < 3) return;
+	function startTimer() {
 
 		if (timerInterval) clearInterval(timerInterval);
-
-		const parts = examDuration.split(":").map(Number);
-		const totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
 
 		timerInterval = setInterval(function() {
 
 			if (!examLive) return;
 
 			elapsed_seconds++;
-			const remain = totalSeconds - elapsed_seconds;
+
+			const parts = examDuration.split(":").map(Number);
+			const total = parts[0] * 3600 + parts[1] * 60 + parts[2];
+			const remain = total - elapsed_seconds;
 
 			if (remain <= 0) {
 				clearInterval(timerInterval);
@@ -616,33 +579,13 @@
 			const s = String(remain % 60).padStart(2, "0");
 
 			$(".remain_duration").text(`${h}:${m}:${s}`);
+
 		}, 1000);
 	}
-
 
 	/* =====================================================
 	   HEARTBEAT + ANSWER + PARTICIPANTS (ONLY WHEN ACTIVE BUT FETCH PARTICIPANTS ALWAYS)
 	===================================================== */
-
-	function showHostDisconnectWarning() {
-		if (disconnectPopupTimeoutHost) return;
-		disconnectPopupTimeoutHost = setTimeout(() => {
-			Swal.fire({
-				icon: "warning",
-				title: "Connection Lost",
-				text: "Trying to reconnect...",
-				showConfirmButton: false,
-				allowOutsideClick: false
-			});
-		}, 8000); // wait 8s before alarming host
-	}
-
-	function hideHostDisconnectWarning() {
-		clearTimeout(disconnectPopupTimeoutHost);
-		disconnectPopupTimeoutHost = null;
-		Swal.close();
-	}
-
 
 	function startHeartbeat() {
 
@@ -653,19 +596,13 @@
 			if (!examLive) return;
 
 			$.post(base_url + "LiveExam/sessionHeartbeat", {
-					session_id: window._live_session.id
-				})
-				.done(function() {
-					$("#live_status").text("● Connected").removeClass("bad").addClass("ok");
-					hideHostDisconnectWarning();
-				})
-				.fail(function() {
-					$("#live_status").text("● Reconnecting...").removeClass("ok").addClass("bad");
-					showHostDisconnectWarning();
-				});
+				session_id: window._live_session.id
+			});
 
 			fetchParticipants();
-			if (examLive) fetchAnswers();
+			if (examLive) {
+				fetchAnswers();
+			}
 
 		}, 5000);
 	}

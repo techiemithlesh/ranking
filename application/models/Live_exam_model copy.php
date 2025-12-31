@@ -105,7 +105,9 @@ class Live_exam_model extends MY_Model
                 /**
                  * Branch Assignment.
                  */
-                $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
+                if (is_superadmin_loggedin()) {
+                    $action .= '<button class="btn btn-circle btn-info icon" data-toggle="tooltip" title="Assign Branch" onclick="openAssignBranchModal(' . $record->id . ')"><i class="fas fa-code-branch"></i></button>';
+                }
             }
 
             if ($record->publish_status == 1) {
@@ -174,11 +176,9 @@ class Live_exam_model extends MY_Model
 
     public function getExamDetailsForLive($onlineexamID)
     {
-        // We expect $onlineexamID as integer (from controller). Validate.
         $onlineexamID = intval($onlineexamID);
         $sessionID = get_session_id();
 
-        // If superadmin, we will allow host only if exam is global or has assignments/branch.
         $isSuper = is_superadmin_loggedin();
         $branchID = get_loggedin_branch_id();
 
@@ -256,8 +256,41 @@ class Live_exam_model extends MY_Model
             ->result();
     }
 
+    public function countTotalStudentsInClass($exam_id)
+    {
+        // 1. Get the exam details to find the assigned sections
+        $exam = $this->db->select('class_id, section_id')
+            ->where('id', $exam_id)
+            ->get('online_exam')
+            ->row();
+
+        if (!$exam) {
+            return 0;
+        }
+
+        $this->db->from('enroll e');
+        $this->db->join('student s', 's.id = e.student_id');
+        $this->db->where('e.class_id', $exam->class_id);
+        $this->db->where('e.session_id', get_session_id());
+        $this->db->where('s.active', 1);
+
+        // 2. Apply Section Filter
+        $sections = json_decode($exam->section_id, true);
+        if (is_array($sections)) {
+            // If it's a JSON array, use where_in
+            $this->db->where_in('e.section_id', $sections);
+        } else {
+            // If it's a single ID
+            $this->db->where('e.section_id', $exam->section_id);
+        }
+
+        return $this->db->count_all_results();
+    }
+
+
     public function createSession($examID, $hostID, $hostRole, $question_id)
     {
+        live_exam_log('debug', "[LiveExam] Creating new exam session for examID={$examID}, hostID={$hostID}, hostRole={$hostRole}");
         // generate codes
         $sessionCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
         $sessionToken = bin2hex(random_bytes(16)); // 32 chars  
@@ -268,9 +301,9 @@ class Live_exam_model extends MY_Model
             'host_role' => $hostRole,
             'session_code' => $sessionCode,
             'session_token' => $sessionToken,
-            'current_question_id' => $question_id,
+            'current_question_id' => null,
             'status' => 'waiting',
-            'started_at' => date('Y-m-d H:i:s')
+            'started_at' => null
         ];
 
         $this->db->insert('exam_sessions', $data);
@@ -283,17 +316,7 @@ class Live_exam_model extends MY_Model
         return false;
     }
 
-    // public function setCurrentQuestion($session_id, $question_id)
-    // {
-    //     $this->db->where('id', intval($session_id));
-    //     $this->db->update('exam_sessions', [
-    //         'current_question_id' => intval($question_id),
-    //     ]);
-
-    //     return $this->db->affected_rows() > 0;
-    // }
-
-    public function setCurrentQuestion($session_id, $question_id)
+    public function setCurrentQuestionHost($session_id, $question_id)
     {
         $this->db->set('current_question_id', (int) $question_id);
         $this->db->set('current_step_version', 'current_step_version + 1', false);
@@ -302,9 +325,26 @@ class Live_exam_model extends MY_Model
         return $this->db->affected_rows() > 0;
     }
 
+    public function autoActivateSession($session_id)
+    {
+        live_exam_log('debug', "[AutoActivate] Attempting auto-activate for session={$session_id}");
+        $this->db->reset_query();
+        $this->db->where('id', $session_id);
+        $this->db->where('status', 'starting');
+        $this->db->where('go_live_at <=', date('Y-m-d H:i:s'));
+        $this->db->update('exam_sessions', [
+            'status'     => 'active',
+            'started_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $affected = $this->db->affected_rows();
+        live_exam_log('debug', "[AutoActivate] Rows affected: " . $affected);
+        return $affected > 0;
+    }
 
     public function getSession($session_id)
     {
+        live_exam_log("[GetSession] Fetching session ID: {$session_id}");
         return $this->db->get_where('exam_sessions', ['id' => intval($session_id)])->row();
     }
 
@@ -315,7 +355,7 @@ class Live_exam_model extends MY_Model
     public function getSessionWithStatus($session_id)
     {
         return $this->db
-            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, ended_at, current_question_id, current_step_version, is_published')
+            ->select('id, exam_id, host_id, session_code, status, status_reason, started_at, go_live_at, ended_at, current_question_id, current_step_version, is_published')
             ->from('exam_sessions')
             ->where('id', intval($session_id))
             ->get()
@@ -338,7 +378,7 @@ class Live_exam_model extends MY_Model
     public function getSessionByCode($session_code)
     {
         return $this->db->where('session_code', $session_code)
-            ->where('status', 'active')
+            ->where_in('status', ['active', 'waiting', 'starting'])
             ->get('exam_sessions')
             ->row();
     }
@@ -470,7 +510,7 @@ class Live_exam_model extends MY_Model
         $this->db->from('online_exam as oe');
         $this->db->join('class', 'class.id = oe.class_id', 'left');
         $this->db->join('subject as subj', 'subj.id = oe.subject_id', 'left');
-        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status="active"', 'left');
+        $this->db->join('exam_sessions as sess', 'sess.exam_id = oe.id AND sess.status IN ("active", "waiting", "starting")', 'left');
 
         $this->db->where('oe.session_id', $sessionID);
         $this->db->where('oe.publish_status', 1);
@@ -504,8 +544,6 @@ class Live_exam_model extends MY_Model
         $query = $this->db->get();
         $records = $query->result();
 
-        // log_message('debug', 'the query is: '. $this->db->last_query());
-
         // Count total
         $totalRecords = $totalRecordwithFilter;
 
@@ -524,8 +562,20 @@ class Live_exam_model extends MY_Model
             $status = '<span class="label label-danger">' . translate('inactive') . '</span>';
             $action = '';
             if ($record->session_status === 'active') {
-                $status = '<span class="label label-success">' . translate('active') . '</span>';
+                $status = '<span class="label label-success">' . translate('Live') . '</span>';
                 $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
+                          class="btn btn-circle btn-success btn-sm" 
+                          title="' . translate('join_exam') . '">
+                          <i class="fas fa-sign-in-alt"></i></a>';
+            } elseif ($record->session_status === 'waiting') {
+                $status = '<span class="label label-info">' . translate('host_is_waiting_in_exam') . '</span>';
+                $action = '<a href="' . base_url('liveexam_student/join/' . $record->session_code) . '" 
+                          class="btn btn-circle btn-success btn-sm" 
+                          title="' . translate('join_exam') . '">
+                          <i class="fas fa-sign-in-alt"></i></a>';
+            } elseif ($record->session_status === 'starting') {
+                $status = '<span class="label label-warning">' . translate('Host is starting exam') . '</span>';
+                $action = '<a href="' . base_url('Liveexam_student/join/' . $record->session_code) . '" 
                           class="btn btn-circle btn-success btn-sm" 
                           title="' . translate('join_exam') . '">
                           <i class="fas fa-sign-in-alt"></i></a>';
@@ -542,7 +592,6 @@ class Live_exam_model extends MY_Model
             $row[] = $record->duration;
             $row[] = $status;
             $row[] = $action;
-
             $data[] = $row;
         }
 
@@ -556,6 +605,8 @@ class Live_exam_model extends MY_Model
 
         return json_encode($response);
     }
+
+
 
     public function getQuestionById($question_id, $exam_id)
     {
