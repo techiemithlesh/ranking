@@ -480,7 +480,7 @@
 		totalQuestions = $(".step-pane").length;
 		currentStep = parseInt(resp.current_index || 1);
 		elapsed_seconds = parseInt(resp.elapsed_seconds || 0);
-		
+
 		if (!window._live_session && resp.session_id) {
 			window._live_session = {
 				id: resp.session_id,
@@ -511,7 +511,7 @@
 			examLive = false;
 			setWaitingUI();
 			$("#exam_questions").hide();
-			startHostCountdown(resp.go_live_at);
+			startCountdown(resp.go_live_at);
 
 		} else if (resp.status_code === "aborted") {
 
@@ -582,10 +582,9 @@
 	===================================================== */
 
 	function startTimer(serverOffset = 0) {
-		elapsed_seconds = serverOffset;
-
-		// If timer already running AND difference is small → continue without reset
 		if (timerInterval && Math.abs(elapsed_seconds - serverOffset) < 3) return;
+
+		elapsed_seconds = serverOffset;
 
 		if (timerInterval) clearInterval(timerInterval);
 
