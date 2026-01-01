@@ -287,7 +287,7 @@ class Leaderboard_model extends MY_Model
     {
         $session = $this->live_exam_model->getSessionByCodeAnyStatus($session_code);
 
-        // log_message('info', 'The session from model method is: ' . json_encode($session));
+        live_exam_log('info', 'The session from model method is: ' . json_encode($session));
 
         if (!$session)
             return false;
@@ -319,7 +319,6 @@ class Leaderboard_model extends MY_Model
                 'branch_id' => $student['branch_id'],
                 'class_id' => $student['class_id'],
                 'section_id' => $student['section_id'],
-
                 'total_marks' => $report['total_marks'],
                 'obtain_marks' => $report['total_obtain_marks'],
                 'percentage' => $report['percentage'],

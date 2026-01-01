@@ -242,7 +242,7 @@ class LiveExam extends Admin_Controller
                 'session_status' => $active_session->status,
                 'go_live_at' => $active_session->go_live_at,
                 'elapsed_seconds' => max(0, $elapsed_seconds),
-                'join_link' => base_url('liveexam/join/' . $active_session->session_code),
+                'join_link' => base_url('Liveexam_student/join/' . $active_session->session_code),
                 'current_question_id' => $active_session->current_question_id,
                 'current_index' => $current_index,
                 'page' => $page
@@ -355,6 +355,9 @@ class LiveExam extends Admin_Controller
 
     public function endSession()
     {
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         $session_id = $this->input->post('session_id');
         $aborted = (int) $this->input->post('aborted');
         $publish = (int) $this->input->post('publish');
@@ -388,9 +391,14 @@ class LiveExam extends Admin_Controller
         if ($publish && !$aborted && $session_code) {
 
             // Compute leaderboard
+            live_exam_log('debug', "[LiveExam] Computing leaderboard for session {$session_code}");
             $this->leaderboard_model->computeLeaderboard($session_code);
 
+            live_exam_log('debug', "[LiveExam] Processing rewards and WhatsApp notifications for session {$session_code}");
+
             $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
+
+            live_exam_log('debug', "[LiveExam] Leaderboard data: " . json_encode($leaderboard));
 
             $rewardCount = 0;
             $sentCount = 0;
@@ -421,39 +429,39 @@ class LiveExam extends Admin_Controller
                 }
 
                 // ✅ WhatsApp notification 
-                try {
-                    $student = $this->whatsapp_model->getStudentWhatsappData($student_id);
-                    if (!empty($student) && !empty($student['student_phone'])) {
+                // try {
+                //     $student = $this->whatsapp_model->getStudentWhatsappData($student_id);
+                //     if (!empty($student) && !empty($student['student_phone'])) {
 
-                        // ✅ Generate and save report card PDF
-                        $reportData = $this->generateAndSaveReportPdf($session_code, $student_id);
+                //         // ✅ Generate and save report card PDF
+                //         $reportData = $this->generateAndSaveReportPdf($session_code, $student_id);
 
-                        // ✅ WhatsApp caption/message
-                        $message = sprintf(
-                            "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick to view/download your report card",
-                            $student['student_name'],
-                            $exam_name,
-                            $performance['percentage'],
-                            $performance['rank']
-                        );
+                //         // ✅ WhatsApp caption/message
+                //         $message = sprintf(
+                //             "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick to view/download your report card",
+                //             $student['student_name'],
+                //             $exam_name,
+                //             $performance['percentage'],
+                //             $performance['rank']
+                //         );
 
-                        // ✅ Send PDF as media (note: must be a publicly accessible URL)
-                        $response = $this->whatsapp_lib->send_media(
-                            $student['student_phone'],
-                            $message,
-                            $reportData['url'],   // ✅ public URL (not path)
-                            'live_exam'
-                        );
+                //         // ✅ Send PDF as media (note: must be a publicly accessible URL)
+                //         $response = $this->whatsapp_lib->send_media(
+                //             $student['student_phone'],
+                //             $message,
+                //             $reportData['url'],   // ✅ public URL (not path)
+                //             'live_exam'
+                //         );
 
-                        if (!empty($response['success'])) {
-                            $sentCount++;
-                        }
+                //         if (!empty($response['success'])) {
+                //             $sentCount++;
+                //         }
 
-                        log_message('debug', "[WhatsApp] Sent report card to {$student['student_phone']} => " . json_encode($response));
-                    }
-                } catch (Exception $e) {
-                    live_exam_log('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
-                }
+                //         log_message('debug', "[WhatsApp] Sent report card to {$student['student_phone']} => " . json_encode($response));
+                //     }
+                // } catch (Exception $e) {
+                //     live_exam_log('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
+                // }
             }
 
             live_exam_log('debug', "[LiveExam] ✅ {$rewardCount} rewards granted, {$sentCount} WhatsApp messages sent for session {$session_code}");
@@ -663,7 +671,7 @@ class LiveExam extends Admin_Controller
     {
         if (empty($sessionCode)) {
             set_alert('error', 'Invalid session code');
-            return redirect(base_url('liveexam'));
+            return redirect(base_url('LiveExam'));
         }
 
         $limitTopN = 3;
