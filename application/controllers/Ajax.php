@@ -584,7 +584,7 @@ class Ajax extends MY_Controller
         echo $html;
     }
 
-    public function getExamType_()
+    public function getExamByType_()
     {
         $html = "<option value=''>" . translate("select_exam") . "</option>";
 
@@ -656,7 +656,7 @@ class Ajax extends MY_Controller
         echo $html;
     }
 
-    public function getExamType()
+    public function getExamByType()
     {
         $html = "<option value=''>" . translate("select_exam") . "</option>";
 
@@ -736,8 +736,8 @@ class Ajax extends MY_Controller
 
                 $result = $this->db->get()->result();
 
-                log_message("debug", "Fetched " . count($result) . " live exams for branch_id: $branchID, class_id: $class_id");
-                log_message("debug", "Executed Live Exam Query: " . $this->db->last_query());
+                // log_message("debug", "Fetched " . count($result) . " live exams for branch_id: $branchID, class_id: $class_id");
+                // log_message("debug", "Executed Live Exam Query: " . $this->db->last_query());
 
                 if (count($result) > 0) {
                     foreach ($result as $row) {
@@ -785,4 +785,46 @@ class Ajax extends MY_Controller
 
         echo $html;
     }
+    public function getSubjectByExam()
+    {
+        $html = "";
+        $exam_id = $this->input->post('exam_id');
+
+        if (!empty($exam_id)) {
+            // 1. Get the subject array string from the exam first
+            $exam = $this->db->select('subject_id')
+                ->where('id', $exam_id)
+                ->get('online_exam')
+                ->row_array();
+
+            if (!empty($exam) && !empty($exam['subject_id'])) {
+                // Decode the JSON array (e.g., ["1", "2"] -> Array(1, 2))
+                $subject_ids = json_decode($exam['subject_id'], true);
+
+                if (!empty($subject_ids)) {
+                    $this->db->select('id, name');
+                    $this->db->from('subject');
+                    $this->db->where_in('id', $subject_ids);
+                    $subjects = $this->db->get()->result_array();
+
+                    if (count($subjects)) {
+                        $html .= "<option value=''>" . translate('all_subjects') . "</option>";
+                        foreach ($subjects as $row) {
+                            $html .= '<option value="' . $row['id'] . '">' . $row['name'] . '</option>';
+                        }
+                    }
+                }
+            }
+
+            if (empty($html)) {
+                $html .= '<option value="">' . translate('no_information_available') . '</option>';
+            }
+        } else {
+            $html .= '<option value="">' . translate('select_exam_first') . '</option>';
+        }
+
+        echo $html;
+    }
+
+   
 }

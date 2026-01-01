@@ -179,7 +179,6 @@ class Userrole extends User_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-
     public function getDigitalBook($class_id, $branch_id)
     {
         $this->db->select('sb.title, sb.book_url, sb.book_img');

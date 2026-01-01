@@ -391,14 +391,14 @@ class LiveExam extends Admin_Controller
         if ($publish && !$aborted && $session_code) {
 
             // Compute leaderboard
-            live_exam_log('debug', "[LiveExam] Computing leaderboard for session {$session_code}");
+            // live_exam_log('debug', "[LiveExam] Computing leaderboard for session {$session_code}");
             $this->leaderboard_model->computeLeaderboard($session_code);
 
-            live_exam_log('debug', "[LiveExam] Processing rewards and WhatsApp notifications for session {$session_code}");
+            // live_exam_log('debug', "[LiveExam] Processing rewards and WhatsApp notifications for session {$session_code}");
 
             $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
 
-            live_exam_log('debug', "[LiveExam] Leaderboard data: " . json_encode($leaderboard));
+            // live_exam_log('debug', "[LiveExam] Leaderboard data: " . json_encode($leaderboard));
 
             $rewardCount = 0;
             $sentCount = 0;
@@ -412,7 +412,7 @@ class LiveExam extends Admin_Controller
                     'rank' => (int) $entry['rank_position'],
                 ];
 
-                live_exam_log('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
+                // live_exam_log('debug', "[RewardFlow] Checking student={$student_id} perf=" . json_encode($performance));
 
                 // ✅ Process reward
                 $granted = $this->reward_lib->processExamReward(

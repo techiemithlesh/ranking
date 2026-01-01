@@ -231,7 +231,7 @@
                     }, 300);
 
                     if (selectedExamType) {
-                        $.post(base_url + 'ajax/getExamType', {
+                        $.post(base_url + 'ajax/getExamByType', {
                             exam_type: selectedExamType,
                             branch_id: selectedBranch,
                             class_id: selectedClass,
@@ -259,7 +259,7 @@
 
             if (examType) {
                 $.ajax({
-                    url: base + 'ajax/getExamType',
+                    url: base + 'ajax/getExamByType',
                     type: 'POST',
                     data: { exam_type: examType, branch_id: branchID, class_id: classID, section_id: sectionID },
                     success: function (data) {
