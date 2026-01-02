@@ -156,7 +156,7 @@ $selectedExamType = isset($exam_type) ? $exam_type : '';
                     <?php $this->load->view('leaderboard/partials/subject_wise_rank_list', $this->data); ?>
                 <?php else: ?>
                     <!-- EXAM-WISE LIVE EXAM RANK -->
-                    <?php $this->load->view('leaderboard/partials/table_live_exam', $this->data); ?>
+                    <?php $this->load->view('leaderboard/partials/exam_wise_rank_list', $this->data); ?>
                 <?php endif; ?>
 
             <?php else: ?>

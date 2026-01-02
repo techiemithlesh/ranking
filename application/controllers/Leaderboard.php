@@ -65,13 +65,12 @@ class Leaderboard extends Admin_Controller
                         $this->data['leaderboard'] = $this->leaderboard_model
                             ->getLiveExamSubjectRank($branch_id, $class_id, $section_id, $subject_id);
 
-                            // printVar($this->db->last_query());
-                            // die;
-
                     } else {
                         // ⭐ EXAM-WISE LIVE EXAM
                         $this->data['leaderboard'] = $this->leaderboard_model
-                            ->getAllRank($branch_id, $class_id, $section_id, $exam_id, $sessionCode);
+                            ->getLiveExamAllSessionsRank($branch_id, $class_id, $section_id, $exam_id, $sessionCode);
+                            // printVar($this->data['leaderboard']);
+                            // die();
                     }
                 }
                 
@@ -85,9 +84,7 @@ class Leaderboard extends Admin_Controller
         $this->data['filter_exam_id'] = $this->input->post('exam_id');
         $this->data['filter_subject_id'] = $this->input->post('subject_id');
         $this->data['branch_id'] = $this->application_model->get_branch_id();
-
         $this->data['sessionCode'] = $sessionCode;
-
         $this->data['title'] = translate('leaderboard');
         $this->data['sub_page'] = 'leaderboard/index';
         $this->data['main_menu'] = 'leaderboard';

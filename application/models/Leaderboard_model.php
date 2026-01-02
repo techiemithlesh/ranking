@@ -625,6 +625,62 @@ class Leaderboard_model extends MY_Model
         return $results;
     }
 
+    public function getLiveExamAllSessionsRank($branchID, $classID, $sectionID, $examID)
+    {
+        $rows = $this->db->select("
+        l.student_id,
+        s.first_name,
+        s.last_name,
+        s.photo,
+
+        COUNT(DISTINCT l.session_id) AS sessions_count,
+
+        SUM(l.obtain_marks) AS obtained_marks,
+        SUM(l.total_marks) AS total_marks,
+
+        ROUND(
+            (SUM(l.obtain_marks) / NULLIF(SUM(l.total_marks), 0)) * 100,
+            2
+        ) AS percentage,
+
+        SUM(l.correct_ans) AS correct,
+        SUM(l.wrong_ans) AS wrong,
+        SUM(l.total_skipped) AS skipped")
+            ->from('exam_session_leaderboard l')
+            ->join('student s', 's.id = l.student_id')
+            ->join('enroll e', 'e.student_id = s.id')
+            ->where('l.exam_id', $examID)
+            ->where('l.branch_id', $branchID)
+            ->where('l.class_id', $classID)
+            ->where('l.section_id', $sectionID)
+            ->group_by('l.student_id')
+            ->get()
+            ->result_array();
+
+        return $this->applyAggregatedRank($rows);
+    }
+
+    private function applyAggregatedRank(array $rows)
+    {
+        usort($rows, function ($a, $b) {
+            return
+                $b['percentage'] <=> $a['percentage']
+                ?: $b['sessions_count'] <=> $a['sessions_count']
+                ?: $b['obtained_marks'] <=> $a['obtained_marks']
+                ?: $a['student_id'] <=> $b['student_id'];
+        });
+
+        $rank = 1;
+        foreach ($rows as &$row) {
+            $row['rank_position'] = $rank++;
+        }
+
+        return $rows;
+    }
+
+
+
+
     public function getLiveExamSubjectRank($branchID, $classID, $sectionID, $subjectID)
     {
         // Step 1: Fetch ALL session IDs where questions of this subject were used
@@ -663,8 +719,7 @@ class Leaderboard_model extends MY_Model
         -- Wrong / Skipped / Time
         SUM(CASE WHEN esa.answer != q.answer AND esa.answer != '' THEN 1 ELSE 0 END) AS wrong,
         SUM(CASE WHEN esa.answer = '' OR esa.answer IS NULL THEN 1 ELSE 0 END) AS skipped,
-        MIN(esa.submitted_at) AS submit_time
-    ");
+        MIN(esa.submitted_at) AS submit_time");
 
         $this->db->from('exam_session_answers esa');
         $this->db->join('exam_sessions es', 'es.id = esa.session_id');
@@ -751,8 +806,7 @@ class Leaderboard_model extends MY_Model
         oe.subject_id,
         oe.section_id,
         oe.neg_mark,
-        oe.passing_mark
-    ");
+        oe.passing_mark");
         $this->db->from('online_exam_submitted oes');
         $this->db->join('online_exam oe', 'oe.id = oes.online_exam_id', 'inner');
         $this->db->join('student s', 's.id = oes.student_id', 'left');
@@ -916,14 +970,8 @@ class Leaderboard_model extends MY_Model
         return $rows;
     }
 
-    public function getLiveExamSubjectReport(
-        $branchID,
-        $classID,
-        $sectionID,
-        $subjectID = null,
-        $examID = null,
-        $sessionCode = null
-    ) {
+    public function getLiveExamSubjectReport($branchID, $classID, $sectionID, $subjectID = null, $examID = null, $sessionCode = null)
+    {
         $this->db->select("
                 s.id AS student_id,
                 s.first_name,
@@ -1011,9 +1059,6 @@ class Leaderboard_model extends MY_Model
 
         return $rows;
     }
-
-
-
 
     public function array_equal($a, $b)
     {
