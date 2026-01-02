@@ -114,6 +114,7 @@
                                     <th>#</th>
                                     <th><?= translate('student_name') ?></th>
                                     <th><?= translate('total_questions') ?></th>
+                                    <th><?= translate('correct_questions') ?></th>
                                     <th><?= translate('skipped_questions') ?></th>
                                     <th><?= translate('wrong__questions') ?></th>
                                     <th><?= translate('obtained_marks') ?></th>
@@ -127,6 +128,7 @@
                                             <td><?= $i++; ?></td>
                                             <td><?= html_escape($row['full_name']); ?></td>
                                             <td><?= (int) $row['total_questions']; ?></td>
+                                            <td><?= (int) $row['correct_questions']; ?></td>
                                             <td><?= (int) $row['skipped']; ?></td>
                                             <td><?= (int) $row['wrong']; ?></td>
                                             <td><?= (float) $row['obtained_marks']; ?></td>
@@ -210,6 +212,7 @@
                     exam_id: exam_id
                 },
                 success: function(data) {
+                    console.log(data);
                     $('#session_code').html(data);
                     if (selectedSession) {
                         $('#session_code').val(selectedSession).trigger('change');

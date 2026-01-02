@@ -685,6 +685,94 @@ class Live_exam_model extends MY_Model
             ->update('exam_session_students', ['status' => 'offline']);
     }
 
+    public function getStudentRank($session_code, $studentID)
+    {
+        $sql = "SELECT ess.student_id,
+                CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
+                FROM exam_sessions es
+                INNER JOIN exam_session_students ess ON ess.session_id = es.id
+                INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
+                INNER JOIN questions q ON q.id = qm.question_id
+                LEFT JOIN exam_session_answers esa 
+                    ON esa.session_id = es.id 
+                AND esa.student_id = ess.student_id 
+                AND esa.question_id = q.id
+                WHERE es.session_code = " . $this->db->escape($session_code) . "
+                GROUP BY ess.student_id
+                ORDER BY obtain_marks DESC";
+
+        $students = $this->db->query($sql)->result_array();
+
+        // log_message('debug', 'The Total Students Query'.$this->db->last_query());
+
+        $rank = null;
+        $total_students = count($students);
+
+        // log_message('debug', 'The Total Student' . $total_students);
+
+        foreach ($students as $i => $s) {
+            if ((int) $s['student_id'] === (int) $studentID) {
+                $rank = $i + 1;
+                break;
+            }
+        }
+
+        return [
+            'rank' => (int) $rank,
+            'total_students' => (int) $total_students
+        ];
+    }
+
+    public function getStudentRank2($session_code, $studentID)
+    {
+        $sql = "
+        SELECT 
+            ess.student_id,
+            CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks,
+            SUM(CASE WHEN esa.answer IS NOT NULL THEN 1 ELSE 0 END) as total_answered,
+            SUM(CASE WHEN esa.answer IS NULL THEN 1 ELSE 0 END) as total_skipped,
+            SUM(CASE WHEN esa.answer IS NOT NULL AND esa.answer != q.answer THEN 1 ELSE 0 END) as wrong_ans,
+            TIMESTAMPDIFF(SECOND, ess.joined_at, ess.last_ping_at) as time_taken
+        FROM exam_sessions es
+        INNER JOIN exam_session_students ess ON ess.session_id = es.id
+        INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
+        INNER JOIN questions q ON q.id = qm.question_id
+        LEFT JOIN exam_session_answers esa 
+            ON esa.session_id = es.id 
+           AND esa.student_id = ess.student_id 
+           AND esa.question_id = q.id
+        WHERE es.session_code = " . $this->db->escape($session_code) . "
+        GROUP BY ess.student_id
+        ORDER BY obtain_marks DESC, wrong_ans ASC, total_skipped ASC, time_taken ASC";
+
+        $students = $this->db->query($sql)->result_array();
+
+        $rank = null;
+        $total_students = count($students);
+
+        foreach ($students as $i => $s) {
+            if ((int) $s['student_id'] === (int) $studentID) {
+                $rank = $i + 1;
+                break;
+            }
+        }
+
+        return [
+            'rank' => (int) $rank,
+            'total_students' => (int) $total_students
+        ];
+    }
+
+    public function getSessionsByExam($exam_id)
+    {
+        return $this->db->select('id, session_code, started_at, ended_at')
+            ->from('exam_sessions')
+            ->where('exam_id', $exam_id)
+            ->order_by('started_at', 'DESC')
+            ->get()
+            ->result_array();
+    }
+
     public function getLiveExamSessionReport($session_code, $studentID)
     {
         // 1. Get exam + session + student info
@@ -824,94 +912,6 @@ class Live_exam_model extends MY_Model
             'rank' => (int) $rankData['rank'],
             'total_students' => (int) $rankData['total_students']
         ];
-    }
-
-    public function getStudentRank($session_code, $studentID)
-    {
-        $sql = "SELECT ess.student_id,
-                CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks
-                FROM exam_sessions es
-                INNER JOIN exam_session_students ess ON ess.session_id = es.id
-                INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
-                INNER JOIN questions q ON q.id = qm.question_id
-                LEFT JOIN exam_session_answers esa 
-                    ON esa.session_id = es.id 
-                AND esa.student_id = ess.student_id 
-                AND esa.question_id = q.id
-                WHERE es.session_code = " . $this->db->escape($session_code) . "
-                GROUP BY ess.student_id
-                ORDER BY obtain_marks DESC";
-
-        $students = $this->db->query($sql)->result_array();
-
-        // log_message('debug', 'The Total Students Query'.$this->db->last_query());
-
-        $rank = null;
-        $total_students = count($students);
-
-        // log_message('debug', 'The Total Student' . $total_students);
-
-        foreach ($students as $i => $s) {
-            if ((int) $s['student_id'] === (int) $studentID) {
-                $rank = $i + 1;
-                break;
-            }
-        }
-
-        return [
-            'rank' => (int) $rank,
-            'total_students' => (int) $total_students
-        ];
-    }
-
-    public function getStudentRank2($session_code, $studentID)
-    {
-        $sql = "
-        SELECT 
-            ess.student_id,
-            CAST(SUM(CASE WHEN esa.answer = q.answer THEN q.mark ELSE 0 END) AS DECIMAL(10,2)) as obtain_marks,
-            SUM(CASE WHEN esa.answer IS NOT NULL THEN 1 ELSE 0 END) as total_answered,
-            SUM(CASE WHEN esa.answer IS NULL THEN 1 ELSE 0 END) as total_skipped,
-            SUM(CASE WHEN esa.answer IS NOT NULL AND esa.answer != q.answer THEN 1 ELSE 0 END) as wrong_ans,
-            TIMESTAMPDIFF(SECOND, ess.joined_at, ess.last_ping_at) as time_taken
-        FROM exam_sessions es
-        INNER JOIN exam_session_students ess ON ess.session_id = es.id
-        INNER JOIN questions_manage qm ON qm.onlineexam_id = es.exam_id
-        INNER JOIN questions q ON q.id = qm.question_id
-        LEFT JOIN exam_session_answers esa 
-            ON esa.session_id = es.id 
-           AND esa.student_id = ess.student_id 
-           AND esa.question_id = q.id
-        WHERE es.session_code = " . $this->db->escape($session_code) . "
-        GROUP BY ess.student_id
-        ORDER BY obtain_marks DESC, wrong_ans ASC, total_skipped ASC, time_taken ASC";
-
-        $students = $this->db->query($sql)->result_array();
-
-        $rank = null;
-        $total_students = count($students);
-
-        foreach ($students as $i => $s) {
-            if ((int) $s['student_id'] === (int) $studentID) {
-                $rank = $i + 1;
-                break;
-            }
-        }
-
-        return [
-            'rank' => (int) $rank,
-            'total_students' => (int) $total_students
-        ];
-    }
-
-    public function getSessionsByExam($exam_id)
-    {
-        return $this->db->select('id, session_code, started_at, ended_at')
-            ->from('exam_sessions')
-            ->where('exam_id', $exam_id)
-            ->order_by('started_at', 'DESC')
-            ->get()
-            ->result_array();
     }
 
     public function getSessionReportForAdmin($session_code, $branch_id = null, $class_id = null, $section_id = null)

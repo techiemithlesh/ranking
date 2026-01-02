@@ -557,6 +557,7 @@ class LiveExam extends Admin_Controller
                 $sectionId = $this->input->post('section_id');
                 $sessionCode = $this->input->post('session_code');
                 $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode, $branchID, $classID, $sectionId);
+                
             }
         }
 
