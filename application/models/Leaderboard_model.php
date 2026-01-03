@@ -1016,7 +1016,7 @@ class Leaderboard_model extends MY_Model
         s.id AS student_id,
         s.first_name,
         s.last_name,
-
+        COUNT(DISTINCT es.id) AS sessions_count,
         COUNT(q.id) AS total_questions,
 
         SUM(

@@ -113,6 +113,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th><?= translate('student_name') ?></th>
+                                    <th><?= translate('sessions') ?></th>
                                     <th><?= translate('total_questions') ?></th>
                                     <th><?= translate('correct_questions') ?></th>
                                     <th><?= translate('skipped_questions') ?></th>
@@ -127,6 +128,7 @@
                                         <tr>
                                             <td><?= $i++; ?></td>
                                             <td><?= html_escape($row['full_name']); ?></td>
+                                            <td><?= (int) $row['sessions_count']; ?></td>
                                             <td><?= (int) $row['total_questions']; ?></td>
                                             <td><?= (int) $row['correct_questions']; ?></td>
                                             <td><?= (int) $row['skipped']; ?></td>
