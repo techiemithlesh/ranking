@@ -11,75 +11,16 @@
         color: #f46c6c;
     }
 
-
-    /* GRID */
-    .reward-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    /* CARD */
     .reward-card {
-        border-radius: 14px;
-        transition: all 0.25s ease;
+        transition: transform 0.2s ease-in-out;
+        padding: 10px;
+        border-radius: 12px;
     }
 
     .reward-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
     }
-
-    /* HEADER */
-    .reward-title {
-        font-weight: 600;
-        font-size: 15px;
-    }
-
-    .reward-sub {
-        font-size: 12px;
-        color: #888;
-    }
-
-    /* RULE ROW */
-    .reward-rule {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-        font-size: 13px;
-    }
-
-    /* COIN BADGE */
-    .coin-badge {
-        background: #f39c12;
-        color: #fff;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    /* SCOPE BADGE */
-    .scope-badge {
-        background: #5bc0de;
-        color: #fff;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-    }
-
-    /* WALLET */
-    .wallet-badge {
-        background: linear-gradient(145deg, #ff735c, #ff8f7a);
-        color: #fff;
-        padding: 12px 30px;
-        border-radius: 22px;
-        font-size: 26px;
-        font-weight: bold;
-    }
-
 
     .tab-content {
         margin-top: 20px;
@@ -121,69 +62,56 @@
         <div class="tab-content">
 
             <!-- Rewards Tab -->
-
-            <div class="tab-pane fade in active" id="rewardsTab">
-
+            <div role="tabpanel" class="tab-pane fade in active" id="rewardsTab">
                 <?php if (!empty($rewards)): ?>
-                    <div class="reward-grid">
+                    <div class="row">
+                        <?php foreach ($rewards as $r): ?>
+                            <div class="col-xs-12 col-sm-6 col-lg-3 mb-md">
+                                <div class="panel panel-default shadow-sm reward-card">
+                                    <div class="panel-body text-center">
+                                        <h5 class="mt-0 mb-xs">
+                                            <?= htmlspecialchars($r['exam_name']); ?>
+                                            <small class="text-muted">(<?= ucfirst($r['exam_type']); ?>)</small>
+                                        </h5>
 
-                        <?php foreach ($rewards as $exam): ?>
-                            <div class="panel panel-default reward-card">
-                                <div class="panel-body">
+                                        <!-- Reward Basis & Qualifying Value -->
+                                        <p class="text-muted small">
+                                            <?php
+                                            switch ($r['reward_basis']) {
+                                                case 'rank':
+                                                    echo translate('rank') . " ≤ " . intval($r['qualifying_value']);
+                                                    break;
+                                                case 'percentile':
+                                                    echo translate('percentile') . " ≥ " . floatval($r['qualifying_value']) . "%";
+                                                    break;
+                                                default:
+                                                    echo translate('percentage') . " ≥ " . floatval($r['qualifying_value']) . "%";
+                                                    break;
+                                            }
+                                            ?>
+                                            <br>
+                                            <span class="label label-info">
+                                                <?= translate('reward_scope') ?>: <?= ucfirst($r['reward_scope']); ?>
+                                            </span>
+                                        </p>
 
-                                    <div class="text-center">
-                                        <div class="reward-title">
-                                            <?= htmlspecialchars($exam['exam_name']); ?>
-                                        </div>
-                                        <div class="reward-sub">
-                                            (<?= ucfirst($exam['exam_type']); ?>)
+                                        <!-- Coin Reward -->
+                                        <div class="mt-md">
+                                            <span class="label label-warning" style="font-size:14px;">
+                                                +<?= (int) $r['coin_reward']; ?> <i class="fa fa-coins"></i>
+                                            </span>
                                         </div>
                                     </div>
-
-                                    <hr>
-
-                                    <?php foreach ($exam['rules'] as $rule): ?>
-                                        <div class="reward-rule">
-                                            <span>
-                                                <?php
-                                                switch ($rule['reward_basis']) {
-                                                    case 'rank':
-                                                        echo translate('rank') . " ≤ " . intval($rule['qualifying_value']);
-                                                        break;
-                                                    case 'percentile':
-                                                        echo translate('percentile') . " ≥ " . $rule['qualifying_value'] . "%";
-                                                        break;
-                                                    default:
-                                                        echo translate('percentage') . " ≥ " . $rule['qualifying_value'] . "%";
-                                                }
-                                                ?>
-                                            </span>
-
-                                            <span class="coin-badge">
-                                                +<?= (int)$rule['coin_reward']; ?> <i class="fa fa-coins"></i>
-                                            </span>
-                                        </div>
-                                    <?php endforeach; ?>
-
-                                    <div class="text-center" style="margin-top:12px">
-                                        <span class="scope-badge">
-                                            <?= translate('reward_scope') ?>: <?= ucfirst($exam['reward_scope']); ?>
-                                        </span>
-                                    </div>
-
                                 </div>
                             </div>
                         <?php endforeach; ?>
-
                     </div>
                 <?php else: ?>
-                    <div class="alert alert-info">
+                    <div class="alert alert-info text-center">
                         <?= translate('no_reward_opportunities_found'); ?>
                     </div>
                 <?php endif; ?>
-
             </div>
-
 
             <!-- History Tab -->
             <div role="tabpanel" class="tab-pane fade" id="historyTab">
@@ -234,8 +162,9 @@
 </section>
 
 <script>
-    $(document).ready(function() {
-        $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+
+    $(document).ready(function () {
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             var target = $(e.target).attr("href");
             $(".tab-pane").removeClass("in active");
             $(target).addClass("in active");

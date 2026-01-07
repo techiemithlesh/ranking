@@ -25,6 +25,7 @@ class Userrole extends User_Controller
         $this->load->model('onlineexam_model');
         $this->load->model('reward_model');
         $this->load->library('reward_lib');
+
     }
 
     public function index()
@@ -104,7 +105,7 @@ class Userrole extends User_Controller
     public function myInteractiveBook()
     {
         $month = $this->input->get('month');
-
+        
         $student_data = $this->userrole_model->getStudentDetails();
         $branch_id = $student_data['branch_id'];
         $class_id = $student_data['class_id'];
@@ -268,6 +269,7 @@ class Userrole extends User_Controller
 
         $this->session->set_userdata('report_card_data', $reportCardData);
         echo json_encode(["status" => true, "message" => "Success"]);
+
     }
 
     public function annual_examination_report()
@@ -935,6 +937,7 @@ class Userrole extends User_Controller
             $postData = $this->input->post();
             $currencySymbol = $this->data['global_config']['currency_symbol'];
             echo $this->userrole_model->examListDT($postData, $currencySymbol);
+
         }
     }
 
@@ -1182,6 +1185,7 @@ class Userrole extends User_Controller
                                 } else {
                                     log_message('debug', "[Reward] No applicable reward found for Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
                                 }
+
                             } else {
                                 log_message('debug', "[Reward] Skipped (Already Rewarded) → Student={$studentID}, Exam={$online_examID}");
                             }
@@ -1281,22 +1285,25 @@ class Userrole extends User_Controller
                                     );
 
                                     log_message("debug", "THE REWARD RULE" . json_encode($rewardRule));
-
+                                    
                                     if (!empty($rewardRule) && isset($rewardRule['coin_reward'])) {
                                         $coins = (int) $rewardRule['coin_reward'];
                                         $rewardMsg = " You have earned <strong>{$coins} coins</strong> 🎉";
                                     } else {
                                         $rewardMsg = " Reward has been successfully added!";
                                     }
-
+                                    
                                     log_message('debug', "[Reward] Online exam reward granted → Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
+
                                 } else {
                                     log_message('debug', "[Reward] No applicable reward found for Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
                                 }
-                            }
+
+                            } 
 
                             $rewardMsg = "Testing";
                             log_message("debug", "The reward MSG" . $rewardMsg);
+                            
                         }
                     }
                 }
@@ -1530,29 +1537,10 @@ class Userrole extends User_Controller
         $studentDetails = $this->userrole_model->getStudentDetails();
         $student_id = $studentDetails['student_id'];
         $this->data['wallet'] = $this->reward_model->getWallet($student_id);
-        $rawRewards = $this->reward_model->getAvailableRewards($studentDetails);
-        $groupedRewards = [];
-        foreach ($rawRewards as $r) {
-            $key = $r['exam_type'] . '_' . $r['exam_id'];
-
-            if (!isset($groupedRewards[$key])) {
-                $groupedRewards[$key] = [
-                    'exam_id'     => $r['exam_id'],
-                    'exam_type'   => $r['exam_type'],
-                    'exam_name'   => $r['exam_name'],
-                    'reward_scope' => $r['reward_scope'],
-                    'rules'       => []
-                ];
-            }
-
-            $groupedRewards[$key]['rules'][] = [
-                'reward_basis'     => $r['reward_basis'],
-                'qualifying_value' => $r['qualifying_value'],
-                'coin_reward'      => $r['coin_reward']
-            ];
-        }
-        $this->data['rewards'] = $groupedRewards;
+        $this->data['rewards'] = $this->reward_model->getAvailableRewards($studentDetails);
         $this->data['history'] = $this->reward_model->getStudentRewards($student_id);
+        // printVar($this->data['rewards']);
+        // die;
         $this->data['branch_id'] = $this->application_model->get_branch_id();
         $this->data['title'] = translate('my_rewards');
         $this->data['sub_page'] = 'userrole/reward';
@@ -1560,4 +1548,6 @@ class Userrole extends User_Controller
 
         $this->load->view('layout/index', $this->data);
     }
+
+
 }

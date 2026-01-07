@@ -29,7 +29,7 @@ class Reward_lib
             ? $value
             : [$basis => (float) $value];
 
-        // log_message('debug', "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" . json_encode($performance) . " Session={$session_code}");
+        live_exam_log('debug', "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" . json_encode($performance) . " Session={$session_code}");
 
         $rewardRule = $this->CI->reward_model->getApplicableReward(
             $student_id,
