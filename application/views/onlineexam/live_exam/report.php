@@ -98,6 +98,7 @@
                         <th><?= translate('obtained') ?></th>
                         <th><?= translate('total_marks') ?></th>
                         <th><?= translate('percentage') ?></th>
+                        <th><?= translate('percentile') ?></th>
                         <th><?= translate('result') ?></th>
                         <th><?= translate('rank') ?>/<?= translate('total_students') ?></th>
                         <th><?= translate('action') ?></th>
@@ -118,6 +119,7 @@
                             <td><?= $row['total_obtain_marks'] ?></td>
                             <td><?= $row['total_marks'] ?></td>
                             <td><?= $row['percentage'] ?>%</td>
+                            <td><?= $row['percentile'] ?></td>
                             <td><?= $row['result_status'] ?></td>
                             <td><?= $row['rank'] ?>/<?= $row['total_students'] ?></td>
                             <td>

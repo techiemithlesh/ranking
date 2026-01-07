@@ -895,6 +895,7 @@ class Live_exam_model extends MY_Model
         // 7. Rank calculation
         $rankData = $this->getStudentRank2($session_code, $studentID);
 
+
         // 8. Return (all casted safely)
         return [
             'exam_name' => $examTitle,
@@ -940,16 +941,63 @@ class Live_exam_model extends MY_Model
         $students = $students->get()->result_array();
 
         $report = [];
+        $percentiles = $this->getSessionPercentiles($session_code);
+
         foreach ($students as $stu) {
             $studentReport = $this->getLiveExamSessionReport($session_code, $stu['student_id']);
+            $studentReport['percentile'] = $percentiles[$stu['student_id']] ?? 0;
+
             $report[] = array_merge($stu, $studentReport, [
                 'student_name' => $stu['first_name'] . ' ' . $stu['last_name'],
                 'session_code' => $stu['session_code']
             ]);
         }
 
+        usort($report, function ($a, $b) {
+            return $a['rank'] <=> $b['rank']; // rank 1 comes first
+        });
+
         return $report;
     }
+
+    public function getSessionPercentiles($session_code)
+    {
+        // Fetch all students in session
+        $students = $this->db
+            ->select('ess.student_id')
+            ->from('exam_session_students ess')
+            ->join('exam_sessions es', 'es.id = ess.session_id')
+            ->where('es.session_code', $session_code)
+            ->get()
+            ->result_array();
+
+        if (empty($students)) {
+            return [];
+        }
+
+        $scores = [];
+
+        foreach ($students as $stu) {
+            $report = $this->getLiveExamSessionReport($session_code, $stu['student_id']);
+            $scores[$stu['student_id']] = (float) ($report['total_obtain_marks'] ?? 0);
+        }
+
+        // Sort scores ASC
+        asort($scores);
+
+        $totalStudents = count($scores);
+        $percentiles = [];
+
+        $index = 0;
+        foreach ($scores as $student_id => $score) {
+            $lowerCount = $index;
+            $percentiles[$student_id] = round(($lowerCount / $totalStudents) * 100, 2);
+            $index++;
+        }
+
+        return $percentiles;
+    }
+
 
     public function getSessionReportForStudent($student_id, $session_code)
     {

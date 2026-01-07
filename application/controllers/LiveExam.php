@@ -355,9 +355,6 @@ class LiveExam extends Admin_Controller
 
     public function endSession()
     {
-        set_time_limit(300);
-        ini_set('memory_limit', '512M');
-
         $session_id = $this->input->post('session_id');
         $aborted = (int) $this->input->post('aborted');
         $publish = (int) $this->input->post('publish');
@@ -557,10 +554,9 @@ class LiveExam extends Admin_Controller
                 $sectionId = $this->input->post('section_id');
                 $sessionCode = $this->input->post('session_code');
                 $this->data['reports'] = $this->live_exam_model->getSessionReportForAdmin($sessionCode, $branchID, $classID, $sectionId);
-                
             }
         }
-
+        $this->data['session_code'] = $sessionCode;
         $this->data['title'] = translate('live_exam_report');
         $this->data['sub_page'] = 'onlineexam/live_exam/report';
         $this->data['main_menu'] = 'onlineexam';

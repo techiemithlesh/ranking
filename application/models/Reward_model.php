@@ -90,89 +90,6 @@ class Reward_model extends MY_Model
 
 
     /**
-     * PERCENTAGE ->PERCENTILE->REWARD (ORDER FOLLOWS) OPPOSITE TO INDUSTRY
-     * @param mixed $student_id
-     * @param mixed $exam_id
-     * @param mixed $exam_type
-     * @param mixed $performance_values
-     * @param mixed $session_code
-     */
-    public function getApplicableReward_P($student_id, $exam_id, $exam_type, $performance_values = [], $session_code = null)
-    {
-        /**
-         * $performance_values = [
-         *     'percentage'  => 78.5,
-         *     'percentile'  => 92.3,
-         *     'rank'        => 4
-         * ];
-         */
-
-        $this->db->select('rc.*');
-        $this->db->from('reward_config as rc');
-        $this->db->join(
-            'enroll as e',
-            'e.class_id = rc.class_id 
-         AND e.section_id = rc.section_id 
-         AND e.student_id = ' . $this->db->escape($student_id)
-        );
-        $this->db->where('rc.exam_id', $exam_id);
-        $this->db->where('rc.exam_type', $exam_type);
-        $this->db->where('rc.is_active', 1);
-        $this->db->order_by('rc.reward_basis', 'ASC');
-        $this->db->order_by('rc.qualifying_value', 'DESC');
-
-        $configs = $this->db->get()->result_array();
-        if (empty($configs)) {
-            live_exam_log('debug', "[Reward] No reward config found for student={$student_id}, exam={$exam_id}, type={$exam_type}");
-            return null;
-        }
-
-        live_exam_log('debug', "[Reward] Checking applicable rewards for student={$student_id}, performance=" . json_encode($performance_values));
-        foreach ($configs as $config) {
-            $basis = strtolower($config['reward_basis'] ?? 'percentage');
-            $qualifying_value = (float) $config['qualifying_value'];
-            $performance_value = 0;
-            $isEligible = false;
-
-            switch ($basis) {
-                case 'rank':
-                    $performance_value = (float) ($performance_values['rank'] ?? 0);
-                    $isEligible = ($performance_value > 0 && $performance_value <= $qualifying_value);
-                    break;
-
-                case 'percentile':
-                    $performance_value = (float) ($performance_values['percentile'] ?? 0);
-                    $isEligible = ($performance_value >= $qualifying_value);
-                    break;
-
-                case 'percentage':
-                default:
-                    $performance_value = (float) ($performance_values['percentage'] ?? 0);
-                    $isEligible = ($performance_value >= $qualifying_value);
-                    break;
-            }
-
-            live_exam_log('debug', sprintf(
-                "[RewardCheck] Student=%d | Basis=%s | Perf=%.2f | Qualify=%.2f | Eligible=%s",
-                $student_id,
-                ucfirst($basis),
-                $performance_value,
-                $qualifying_value,
-                $isEligible ? 'YES' : 'NO'
-            ));
-
-            if ($isEligible) {
-                live_exam_log('debug', "[Reward] ✅ Eligible reward found for student={$student_id} (Basis={$basis}) — Rule=" . json_encode($config));
-                $config['performance_value'] = $performance_value;
-                return $config;
-            }
-        }
-
-        live_exam_log('debug', "[Reward] ❌ No eligible reward for student={$student_id}, exam={$exam_id}");
-        return null;
-    }
-
-    /**
      * RANK PRIORITY INDUSTRY STANDARD (RANK->PERCENTILE->PERCENTAGE)
      * @param mixed $student_id
      * @param mixed $exam_id
@@ -270,34 +187,31 @@ class Reward_model extends MY_Model
     /**
      * Finds the most appropriate reward based on Rank > Percentile > Percentage.
      */
-    public function getApplicableReward($student_id, $exam_id, $exam_type, $performance_values = [], $session_code = null)
-    {
+    public function getApplicableReward($student_id,$exam_id,$exam_type,array $performance,string $reward_scope = 'exam') {
+        // 1️⃣ Fetch configs ONLY for this scope
         $this->db->select('rc.*');
-        $this->db->from('reward_config as rc');
+        $this->db->from('reward_config rc');
         $this->db->join(
-            'enroll as e',
-            'e.class_id = rc.class_id 
-             AND e.section_id = rc.section_id 
-             AND e.student_id = ' . $this->db->escape($student_id) . '
-             AND e.session_id = ' . $this->db->escape(get_session_id())
+            'enroll e',
+            'e.class_id = rc.class_id
+         AND e.section_id = rc.section_id
+         AND e.student_id = ' . $this->db->escape($student_id) . '
+         AND e.session_id = ' . $this->db->escape(get_session_id())
         );
         $this->db->where([
-            'rc.exam_id'   => $exam_id,
-            'rc.exam_type' => $exam_type,
-            'rc.is_active' => 1
+            'rc.exam_id'     => $exam_id,
+            'rc.exam_type'   => $exam_type,
+            'rc.reward_scope' => $reward_scope,
+            'rc.is_active'   => 1
         ]);
-
-        // Sorting helps: Stricter qualifying values evaluated first
-        $this->db->order_by('rc.reward_basis', 'ASC');
-        $this->db->order_by('rc.qualifying_value', 'ASC');
 
         $configs = $this->db->get()->result_array();
 
         if (empty($configs)) {
-            live_exam_log('debug', "[Reward] No config found for student {$student_id}");
             return null;
         }
 
+        // 2️⃣ Priority: Rank > Percentile > Percentage
         $priority = [
             'rank'       => 1,
             'percentile' => 2,
@@ -309,47 +223,60 @@ class Reward_model extends MY_Model
 
         foreach ($configs as $config) {
             $basis = strtolower($config['reward_basis']);
-            $qual  = (float) $config['qualifying_value'];
-            $value = 0.0;
+            $qual  = (float)$config['qualifying_value'];
 
-            // Map the performance data
+            $value = $performance[$basis] ?? 0;
+            $eligible = false;
+
             switch ($basis) {
                 case 'rank':
-                    $value = (float) ($performance_values['rank'] ?? 0);
                     $eligible = ($value > 0 && $value <= $qual);
                     break;
+
                 case 'percentile':
-                    $value = (float) ($performance_values['percentile'] ?? 0);
-                    $eligible = ($value >= $qual);
-                    break;
                 case 'percentage':
-                default:
-                    $value = (float) ($performance_values['percentage'] ?? 0);
                     $eligible = ($value >= $qual);
                     break;
             }
 
-            // Priority Check: Is this basis higher than what we found? 
-            // OR is it the same basis but a higher coin reward?
-            if ($eligible) {
-                $currentBasisPriority = $priority[$basis] ?? 99;
+            if (!$eligible) {
+                continue;
+            }
 
-                if ($currentBasisPriority < $bestPriority) {
-                    $bestPriority = $currentBasisPriority;
-                    $config['performance_value'] = $value;
-                    $bestRule = $config;
-                } elseif ($currentBasisPriority == $bestPriority) {
-                    // If same basis (e.g. Rank), take the one with more coins
-                    if ($config['coin_reward'] > ($bestRule['coin_reward'] ?? 0)) {
-                        $config['performance_value'] = $value;
-                        $bestRule = $config;
-                    }
-                }
+            $currentPriority = $priority[$basis] ?? 99;
+
+            if (
+                $currentPriority < $bestPriority ||
+                ($currentPriority === $bestPriority && $config['coin_reward'] > ($bestRule['coin_reward'] ?? 0))
+            ) {
+                $bestPriority = $currentPriority;
+                $config['performance_value'] = $value;
+                $bestRule = $config;
             }
         }
 
         return $bestRule;
     }
+
+
+
+    public function isAlreadyRewarded($student_id, $exam_id, $exam_type, $reward_scope, $session_code = null)
+    {
+        $this->db->where([
+            'student_id' => $student_id,
+            'exam_id' => $exam_id,
+            'exam_type' => $exam_type,
+            'reward_scope' => $reward_scope
+        ]);
+
+        // If reward is session-based, check session_code too
+        if ($reward_scope === 'session' && $session_code) {
+            $this->db->where('session_code', $session_code);
+        }
+
+        return $this->db->count_all_results('student_rewards') > 0;
+    }
+
 
     /**
      * Log and apply a reward transaction safely (atomic).
@@ -421,22 +348,6 @@ class Reward_model extends MY_Model
             live_exam_log('error', '[Reward] Transaction failed: ' . $e->getMessage());
             return false;
         }
-    }
-
-    public function isAlreadyRewarded($student_id, $exam_id, $exam_type, $session_code = null)
-    {
-        $this->db->where([
-            'student_id' => $student_id,
-            'exam_id' => $exam_id,
-            'exam_type' => $exam_type,
-        ]);
-
-        // If reward is session-based, check session_code too
-        if (!empty($session_code)) {
-            $this->db->where('session_code', $session_code);
-        }
-
-        return $this->db->count_all_results('student_rewards') > 0;
     }
 
     public function rewardList($data)
