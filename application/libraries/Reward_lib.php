@@ -10,14 +10,7 @@ class Reward_lib
         $this->CI = &get_instance();
         $this->CI->load->model('reward_model');
         $this->CI->load->model('student_model');
-    }
-
-
-    /**
-     * 21-10-2025 (LIVE EXAM INTEGRATION) 
-     */
-
-   
+    }   
 
     /**
      * Unified reward processor

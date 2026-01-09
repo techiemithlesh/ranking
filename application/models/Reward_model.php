@@ -259,21 +259,17 @@ class Reward_model extends MY_Model
     }
 
 
-    public function isAlreadyRewarded(
-        $student_id,
-        $exam_id,
-        $exam_type,
-        $reward_scope,
-        $session_code = null
-    ) {
+    public function isAlreadyRewarded(int $student_id,int $exam_id,string $exam_type,string $reward_scope,?string $session_code = null ) {
         $this->db->where([
-            'student_id'  => $student_id,
-            'exam_id'     => $exam_id,
-            'exam_type'   => $exam_type,
-            'reward_scope' => $reward_scope
+            'student_id'   => $student_id,
+            'exam_id'      => $exam_id,
+            'exam_type'    => $exam_type,
+            'reward_scope' => $reward_scope,
         ]);
 
-        if ($reward_scope === 'session' && $session_code) {
+        // 🔑 Session-based reward → must also match session_code
+        if ($reward_scope === 'session') {
+            live_exam_log('debug', "[RewardModel] Checking session-based reward for session_code={$session_code}");
             $this->db->where('session_code', $session_code);
         }
 
