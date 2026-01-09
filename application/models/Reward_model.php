@@ -187,31 +187,32 @@ class Reward_model extends MY_Model
     /**
      * Finds the most appropriate reward based on Rank > Percentile > Percentage.
      */
-    public function getApplicableReward($student_id,$exam_id,$exam_type,array $performance,string $reward_scope = 'exam') {
-        // 1️⃣ Fetch configs ONLY for this scope
+    public function getApplicableReward(
+        $student_id,
+        $exam_id,
+        $exam_type,
+        array $performance
+    ) {
         $this->db->select('rc.*');
         $this->db->from('reward_config rc');
         $this->db->join(
             'enroll e',
             'e.class_id = rc.class_id
          AND e.section_id = rc.section_id
-         AND e.student_id = ' . $this->db->escape($student_id) . '
-         AND e.session_id = ' . $this->db->escape(get_session_id())
+         AND e.student_id = ' . $this->db->escape($student_id)
         );
         $this->db->where([
-            'rc.exam_id'     => $exam_id,
-            'rc.exam_type'   => $exam_type,
-            'rc.reward_scope' => $reward_scope,
-            'rc.is_active'   => 1
+            'rc.exam_id'   => $exam_id,
+            'rc.exam_type' => $exam_type,
+            'rc.is_active' => 1
         ]);
 
         $configs = $this->db->get()->result_array();
-
         if (empty($configs)) {
             return null;
         }
 
-        // 2️⃣ Priority: Rank > Percentile > Percentage
+        // Priority order
         $priority = [
             'rank'       => 1,
             'percentile' => 2,
@@ -223,16 +224,14 @@ class Reward_model extends MY_Model
 
         foreach ($configs as $config) {
             $basis = strtolower($config['reward_basis']);
-            $qual  = (float)$config['qualifying_value'];
+            $qual  = (float) $config['qualifying_value'];
+            $value = (float) ($performance[$basis] ?? 0);
 
-            $value = $performance[$basis] ?? 0;
             $eligible = false;
-
             switch ($basis) {
                 case 'rank':
                     $eligible = ($value > 0 && $value <= $qual);
                     break;
-
                 case 'percentile':
                 case 'percentage':
                     $eligible = ($value >= $qual);
@@ -247,7 +246,8 @@ class Reward_model extends MY_Model
 
             if (
                 $currentPriority < $bestPriority ||
-                ($currentPriority === $bestPriority && $config['coin_reward'] > ($bestRule['coin_reward'] ?? 0))
+                ($currentPriority === $bestPriority &&
+                    $config['coin_reward'] > ($bestRule['coin_reward'] ?? 0))
             ) {
                 $bestPriority = $currentPriority;
                 $config['performance_value'] = $value;
@@ -259,17 +259,20 @@ class Reward_model extends MY_Model
     }
 
 
-
-    public function isAlreadyRewarded($student_id, $exam_id, $exam_type, $reward_scope, $session_code = null)
-    {
+    public function isAlreadyRewarded(
+        $student_id,
+        $exam_id,
+        $exam_type,
+        $reward_scope,
+        $session_code = null
+    ) {
         $this->db->where([
-            'student_id' => $student_id,
-            'exam_id' => $exam_id,
-            'exam_type' => $exam_type,
+            'student_id'  => $student_id,
+            'exam_id'     => $exam_id,
+            'exam_type'   => $exam_type,
             'reward_scope' => $reward_scope
         ]);
 
-        // If reward is session-based, check session_code too
         if ($reward_scope === 'session' && $session_code) {
             $this->db->where('session_code', $session_code);
         }
@@ -278,10 +281,11 @@ class Reward_model extends MY_Model
     }
 
 
+
     /**
      * Log and apply a reward transaction safely (atomic).
      */
-    public function logRewardTransaction($student_id, $exam_id, $exam_type, $coins, $remarks, $reference_type = 'exam', $session_code = null, $reward_scope = 'exam')
+    public function logRewardTransaction_($student_id, $exam_id, $exam_type, $coins, $remarks, $reference_type = 'exam', $session_code = null, $reward_scope = 'exam')
     {
         // Duplicate prevention based on reward scope
         $check = [
@@ -349,6 +353,75 @@ class Reward_model extends MY_Model
             return false;
         }
     }
+
+    public function logRewardTransaction(
+        $student_id,
+        $exam_id,
+        $exam_type,
+        $coins,
+        $remarks,
+        $reference_type = 'exam',
+        $session_code = null,
+        $reward_scope = 'exam'
+    ) {
+        $check = [
+            'student_id'  => $student_id,
+            'exam_id'     => $exam_id,
+            'exam_type'   => $exam_type,
+            'reward_scope' => $reward_scope
+        ];
+
+        if ($reward_scope === 'session' && $session_code) {
+            $check['session_code'] = $session_code;
+        }
+
+        if ($this->db->get_where('student_rewards', $check)->row()) {
+            return false;
+        }
+
+        $this->db->trans_start();
+
+        // Reward entry
+        $this->db->insert('student_rewards', [
+            'student_id'   => $student_id,
+            'exam_id'      => $exam_id,
+            'exam_type'    => $exam_type,
+            'earned_coins' => $coins,
+            'remarks'      => $remarks,
+            'reward_scope' => $reward_scope,
+            'session_code' => $session_code,
+            'rewarded_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+        // Wallet update
+        $wallet = $this->db->get_where('student_wallet', ['student_id' => $student_id])->row_array();
+        if ($wallet) {
+            $this->db->set('total_coins', 'total_coins + ' . (int)$coins, false)
+                ->where('student_id', $student_id)
+                ->update('student_wallet');
+        } else {
+            $this->db->insert('student_wallet', [
+                'student_id'  => $student_id,
+                'total_coins' => $coins
+            ]);
+        }
+
+        // Transaction log
+        $this->db->insert('reward_transactions_log', [
+            'student_id'    => $student_id,
+            'type'          => 'earn',
+            'coins'         => $coins,
+            'reference_id'  => $exam_id,
+            'reference_type' => $reference_type,
+            'exam_type'     => $exam_type,
+            'session_code'  => $session_code,
+            'remarks'       => $remarks,
+        ]);
+
+        $this->db->trans_complete();
+        return $this->db->trans_status();
+    }
+
 
     public function rewardList($data)
     {

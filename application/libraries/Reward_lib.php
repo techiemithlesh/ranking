@@ -17,32 +17,32 @@ class Reward_lib
      * 21-10-2025 (LIVE EXAM INTEGRATION) 
      */
 
+   
+
     /**
-     * Unified reward processing method (supports percentage, rank, percentile).
+     * Unified reward processor
+     * Supports: percentage, percentile, rank
+     * Scope comes ONLY from reward_config
      */
-
-
-    public function processExamReward($student_id,$exam_id,$exam_type,$value,$basis = 'percentage',$session_code = null) {
-        // Convert to performance array
-        $performance = is_array($value)
-            ? $value
-            : [$basis => (float)$value];
-
-        // 🔑 Decide reward scope
-        $reward_scope = $session_code ? 'session' : 'exam';
-
+    public function processExamReward(
+        $student_id,
+        $exam_id,
+        $exam_type,
+        array $performance,
+        $session_code = null
+    ) {
         live_exam_log(
             'debug',
-            "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Scope={$reward_scope} Perf=" .
-                json_encode($performance));
+            "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" .
+                json_encode($performance)
+        );
 
-        // ✅ CORRECT CALL
+        // 🔑 Fetch applicable reward (scope decided by config)
         $rewardRule = $this->CI->reward_model->getApplicableReward(
             $student_id,
             $exam_id,
             $exam_type,
-            $performance,
-            $reward_scope
+            $performance
         );
 
         if (!$rewardRule) {
@@ -50,35 +50,35 @@ class Reward_lib
             return false;
         }
 
+        $scope             = $rewardRule['reward_scope']; // exam | session
         $basis_used        = $rewardRule['reward_basis'];
-        $performance_value = (float)($rewardRule['performance_value'] ?? ($performance[$basis_used] ?? 0));
-        $coins             = (int)$rewardRule['coin_reward'];
+        $performance_value = (float) $rewardRule['performance_value'];
+        $coins             = (int) $rewardRule['coin_reward'];
 
-        $remarks = sprintf(
-            "Rewarded for %s (%s) in %s%s",
-            ucfirst($basis_used),
-            $basis_used === 'rank'
-                ? "Rank {$performance_value}"
-                : ($basis_used === 'percentile'
-                    ? "{$performance_value} Percentile"
-                    : "{$performance_value}% Score"),
-            ucfirst($exam_type),
-            $session_code ? " [Session: {$session_code}]" : ''
-        );
-
-        // ✅ CORRECT DUPLICATE CHECK
+        // 🔁 Duplicate prevention (scope-aware)
         if ($this->CI->reward_model->isAlreadyRewarded(
             $student_id,
             $exam_id,
             $exam_type,
-            $reward_scope,
-            $session_code
+            $scope,
+            $scope === 'session' ? $session_code : null
         )) {
-            live_exam_log('debug', "[RewardLib] Skipped duplicate | Scope={$reward_scope}");
+            live_exam_log('debug', "[RewardLib] Skipped duplicate | Scope={$scope}");
             return false;
         }
 
-        // Grant reward
+        // 📝 Remarks
+        $remarkValue =
+            $basis_used === 'rank'
+            ? "Rank {$performance_value}"
+            : ($basis_used === 'percentile'
+                ? "{$performance_value} Percentile"
+                : "{$performance_value}% Score");
+
+        $remarks = "Rewarded for {$basis_used} ({$remarkValue}) in {$exam_type}" .
+            ($scope === 'session' && $session_code ? " [Session: {$session_code}]" : '');
+
+        // 💰 Grant reward
         return $this->CI->reward_model->logRewardTransaction(
             $student_id,
             $exam_id,
@@ -86,8 +86,8 @@ class Reward_lib
             $coins,
             $remarks,
             'exam',
-            $session_code,
-            $reward_scope
+            $scope === 'session' ? $session_code : null,
+            $scope
         );
     }
 
