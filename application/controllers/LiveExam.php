@@ -417,51 +417,14 @@ class LiveExam extends Admin_Controller
                     $exam_id,
                     $exam_type,
                     $performance,
-                    'percentage',
                     $session_code
                 );
-
                 if ($granted) {
                     $rewardCount++;
                 }
-
-                // ✅ WhatsApp notification 
-                // try {
-                //     $student = $this->whatsapp_model->getStudentWhatsappData($student_id);
-                //     if (!empty($student) && !empty($student['student_phone'])) {
-
-                //         // ✅ Generate and save report card PDF
-                //         $reportData = $this->generateAndSaveReportPdf($session_code, $student_id);
-
-                //         // ✅ WhatsApp caption/message
-                //         $message = sprintf(
-                //             "🎓 Dear %s,\n\nYour report card for *%s* is ready!\nScore: %.2f%% | Rank: #%d\n\nClick to view/download your report card",
-                //             $student['student_name'],
-                //             $exam_name,
-                //             $performance['percentage'],
-                //             $performance['rank']
-                //         );
-
-                //         // ✅ Send PDF as media (note: must be a publicly accessible URL)
-                //         $response = $this->whatsapp_lib->send_media(
-                //             $student['student_phone'],
-                //             $message,
-                //             $reportData['url'],   // ✅ public URL (not path)
-                //             'live_exam'
-                //         );
-
-                //         if (!empty($response['success'])) {
-                //             $sentCount++;
-                //         }
-
-                //         log_message('debug', "[WhatsApp] Sent report card to {$student['student_phone']} => " . json_encode($response));
-                //     }
-                // } catch (Exception $e) {
-                //     live_exam_log('error', '[WhatsApp] Error sending exam message: ' . $e->getMessage());
-                // }
             }
 
-            live_exam_log('debug', "[LiveExam] ✅ {$rewardCount} rewards granted, {$sentCount} WhatsApp messages sent for session {$session_code}");
+            live_exam_log('debug', "[LiveExam] ✅ {$rewardCount} rewards granted for session {$session_code}");
         }
 
         // Final response
