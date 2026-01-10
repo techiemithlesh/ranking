@@ -380,8 +380,9 @@ class Reward_model extends MY_Model
         $this->db->where('rc.class_id', $student['class_id']);
         $this->db->where('rc.section_id', $student['section_id']);
         $this->db->where('rc.branch_id', $student['branch_id']);
-        $this->db->order_by('rc.exam_type', 'ASC');
-        $this->db->order_by('rc.exam_id', 'ASC');
+        // $this->db->order_by('rc.exam_type', 'ASC');
+        // $this->db->order_by('rc.exam_id', 'DESC');
+        $this->db->order_by('rc.created_at', 'DESC');
         $this->db->order_by('rc.qualifying_value', 'ASC');
 
         return $this->db->get()->result_array();
