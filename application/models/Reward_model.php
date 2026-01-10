@@ -158,7 +158,8 @@ class Reward_model extends MY_Model
     }
 
 
-    public function isAlreadyRewarded(int $student_id,int $exam_id,string $exam_type,string $reward_scope,?string $session_code = null ) {
+    public function isAlreadyRewarded(int $student_id, int $exam_id, string $exam_type, string $reward_scope, ?string $session_code = null)
+    {
         $this->db->where([
             'student_id'   => $student_id,
             'exam_id'      => $exam_id,
@@ -174,8 +175,6 @@ class Reward_model extends MY_Model
 
         return $this->db->count_all_results('student_rewards') > 0;
     }
-
-
 
     /**
      * Log and apply a reward transaction safely (atomic).
@@ -248,6 +247,50 @@ class Reward_model extends MY_Model
         $this->db->trans_complete();
         return $this->db->trans_status();
     }
+
+    public function hasRewardLock(
+        int $student_id,
+        int $exam_id,
+        string $exam_type,
+        string $reward_scope,
+        ?string $session_code = null
+    ) {
+        $this->db->where([
+            'student_id'   => $student_id,
+            'exam_id'      => $exam_id,
+            'exam_type'    => $exam_type,
+            'reward_scope' => $reward_scope,
+        ]);
+
+        if ($reward_scope === 'session') {
+            $this->db->where('session_code', $session_code);
+        }
+
+        return $this->db->count_all_results('live_exam_reward_locks') > 0;
+    }
+
+    public function acquireRewardLock(
+        int $student_id,
+        int $exam_id,
+        string $exam_type,
+        string $reward_scope,
+        ?string $session_code = null
+    ): bool {
+        try {
+            $this->db->insert('live_exam_reward_locks', [
+                'student_id'   => $student_id,
+                'exam_id'      => $exam_id,
+                'exam_type'    => $exam_type,
+                'reward_scope' => $reward_scope,
+                'session_code' => $reward_scope === 'session' ? $session_code : null,
+            ]);
+            return true;
+        } catch (Exception $e) {
+            // Duplicate key → already rewarded
+            return false;
+        }
+    }
+
 
 
     public function rewardList($data)
