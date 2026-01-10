@@ -1260,43 +1260,28 @@ class Userrole extends User_Controller
                             $session_code = null;
 
 
-                            // ✅ Check if eligible for reward
-                            if ($this->reward_lib->shouldReward($studentID, $online_examID, $exam_type, $session_code)) {
-                                $rewardSuccess = $this->reward_lib->processExamReward(
-                                    $studentID,
-                                    $online_examID,
-                                    $exam_type,
-                                    $performance,
-                                    null,
-                                    $session_code
+                            // 🔐 Unified reward processor (handles eligibility + locking)
+                            $rewardGranted = $this->reward_lib->processExamReward(
+                                $studentID,
+                                $online_examID,
+                                $exam_type,
+                                $performance,
+                                $session_code
+                            );
+
+                            if ($rewardGranted) {
+                                log_message(
+                                    'debug',
+                                    "[Reward] Online exam reward granted → Student={$studentID}, Exam={$online_examID}, Score={$percentage}%"
                                 );
-
-                                if ($rewardSuccess) {
-                                    $rewardRule = $this->reward_model->getApplicableReward(
-                                        $studentID,
-                                        $online_examID,
-                                        $exam_type,
-                                        $performance,
-                                        $session_code
-                                    );
-
-                                    log_message("debug", "THE REWARD RULE" . json_encode($rewardRule));
-
-                                    if (!empty($rewardRule) && isset($rewardRule['coin_reward'])) {
-                                        $coins = (int) $rewardRule['coin_reward'];
-                                        $rewardMsg = " You have earned <strong>{$coins} coins</strong> 🎉";
-                                    } else {
-                                        $rewardMsg = " Reward has been successfully added!";
-                                    }
-
-                                    log_message('debug', "[Reward] Online exam reward granted → Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
-                                } else {
-                                    log_message('debug', "[Reward] No applicable reward found for Student={$studentID}, Exam={$online_examID}, Score={$percentage}%");
-                                }
+                                $rewardMsg = " 🎉 You have earned reward coins!";
+                            } else {
+                                log_message(
+                                    'debug',
+                                    "[Reward] Online exam → no reward / already rewarded → Student={$studentID}, Exam={$online_examID}"
+                                );
+                                $rewardMsg = "";
                             }
-
-                            $rewardMsg = "Testing";
-                            log_message("debug", "The reward MSG" . $rewardMsg);
                         }
                     }
                 }
