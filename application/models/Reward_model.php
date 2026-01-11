@@ -76,6 +76,26 @@ class Reward_model extends MY_Model
         }
     }
 
+
+    public function rewardRuleExists($data)
+    {
+        return $this->db
+            ->where([
+                'branch_id'        => $this->application_model->get_branch_id(),
+                'class_id'         => $data['class_id'],
+                'section_id'       => $data['section_id'],
+                'exam_type'        => $data['exam_type'],
+                'exam_id'          => $data['exam_id'],
+                'reward_scope'     => $data['reward_scope'],
+                'reward_basis'     => $data['reward_basis'],
+                'qualifying_value' => $data['qualifying_value'],
+                'is_active'        => 1
+            ])
+            ->get('reward_config')
+            ->num_rows() > 0;
+    }
+
+
     public function isRewarded($exam_id, $student_id)
     {
         $this->db->where('exam_id', $exam_id);
@@ -274,22 +294,24 @@ class Reward_model extends MY_Model
         int $exam_id,
         string $exam_type,
         string $reward_scope,
-        ?string $session_code = null
-    ): bool {
-        try {
-            $this->db->insert('live_exam_reward_locks', [
-                'student_id'   => $student_id,
-                'exam_id'      => $exam_id,
-                'exam_type'    => $exam_type,
-                'reward_scope' => $reward_scope,
-                'session_code' => $reward_scope === 'session' ? $session_code : null,
-            ]);
-            return true;
-        } catch (Exception $e) {
-            // Duplicate key → already rewarded
+        ?string $session_code = null): bool {
+        $this->db->insert('live_exam_reward_locks', [
+            'student_id'   => $student_id,
+            'exam_id'      => $exam_id,
+            'exam_type'    => $exam_type,
+            'reward_scope' => $reward_scope,
+            'session_code' => $reward_scope === 'session' ? $session_code : null,
+            'locked_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+        // ✅ duplicate key or insert failure
+        if ($this->db->affected_rows() === 0) {
             return false;
         }
+
+        return true;
     }
+
 
 
 

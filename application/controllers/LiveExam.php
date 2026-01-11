@@ -388,7 +388,10 @@ class LiveExam extends Admin_Controller
         if ($publish && !$aborted && $session_code) {
 
             // Compute leaderboard
+            // live_exam_log('debug', "[LiveExam] Computing leaderboard for session {$session_code}");
             $this->leaderboard_model->computeLeaderboard($session_code);
+
+            // live_exam_log('debug', "[LiveExam] Processing rewards and WhatsApp notifications for session {$session_code}");
 
             $leaderboard = $this->leaderboard_model->getAllRankBySession($session_code);
 

@@ -749,6 +749,8 @@
 			publish: publish
 		}, function(resp) {
 
+		console.log("End session response:", resp);
+
 			let data = {};
 			try {
 				data = typeof resp === "string" ? JSON.parse(resp) : resp;

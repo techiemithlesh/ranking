@@ -89,8 +89,7 @@ class Reward_lib
         $exam_id,
         $exam_type,
         array $performance,
-        $session_code = null
-    ) {
+        $session_code = null) {
         live_exam_log(
             'debug',
             "[RewardLib] Checking reward | Student={$student_id} Exam={$exam_id} Type={$exam_type} Perf=" .
@@ -130,7 +129,6 @@ class Reward_lib
         }
 
 
-
         // 📝 Remarks
         $remarkValue =
             $basis_used === 'rank'
@@ -153,15 +151,7 @@ class Reward_lib
             $scope === 'session' ? $session_code : null,
             $scope
         );
-
-        $this->CI->reward_model->lockReward(
-            $student_id,
-            $exam_id,
-            $exam_type,
-            $scope,
-            $scope === 'session' ? $session_code : null
-        );
-
+        
         live_exam_log(
             'debug',
             "[RewardLib] Reward granted & locked | Coins={$coins} Scope={$scope}"
