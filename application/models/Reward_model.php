@@ -77,23 +77,27 @@ class Reward_model extends MY_Model
     }
 
 
-    public function rewardRuleExists($data)
+    public function rewardRuleExists(array $data, ?int $excludeId = null): bool
     {
-        return $this->db
-            ->where([
-                'branch_id'        => $this->application_model->get_branch_id(),
-                'class_id'         => $data['class_id'],
-                'section_id'       => $data['section_id'],
-                'exam_type'        => $data['exam_type'],
-                'exam_id'          => $data['exam_id'],
-                'reward_scope'     => $data['reward_scope'],
-                'reward_basis'     => $data['reward_basis'],
-                'qualifying_value' => $data['qualifying_value'],
-                'is_active'        => 1
-            ])
-            ->get('reward_config')
-            ->num_rows() > 0;
+        $this->db->where([
+            'branch_id'        => $this->application_model->get_branch_id(),
+            'class_id'         => $data['class_id'],
+            'section_id'       => $data['section_id'],
+            'exam_type'        => $data['exam_type'],
+            'exam_id'          => $data['exam_id'],
+            'reward_scope'     => $data['reward_scope'],
+            'reward_basis'     => $data['reward_basis'],
+            'qualifying_value' => $data['qualifying_value']
+        ]);
+
+        // 👇 allow edit without blocking itself
+        if (!empty($excludeId)) {
+            $this->db->where('id !=', $excludeId);
+        }
+
+        return $this->db->count_all_results('reward_config') > 0;
     }
+
 
 
     public function isRewarded($exam_id, $student_id)
@@ -110,8 +114,7 @@ class Reward_model extends MY_Model
         $student_id,
         $exam_id,
         $exam_type,
-        array $performance
-    ) {
+        array $performance) {
         $this->db->select('rc.*');
         $this->db->from('reward_config rc');
         $this->db->join(
@@ -208,8 +211,7 @@ class Reward_model extends MY_Model
         $remarks,
         $reference_type = 'exam',
         $session_code = null,
-        $reward_scope = 'exam'
-    ) {
+        $reward_scope = 'exam') {
         $check = [
             'student_id'  => $student_id,
             'exam_id'     => $exam_id,
@@ -273,8 +275,7 @@ class Reward_model extends MY_Model
         int $exam_id,
         string $exam_type,
         string $reward_scope,
-        ?string $session_code = null
-    ) {
+        ?string $session_code = null) {
         $this->db->where([
             'student_id'   => $student_id,
             'exam_id'      => $exam_id,
@@ -311,8 +312,6 @@ class Reward_model extends MY_Model
 
         return true;
     }
-
-
 
 
     public function rewardList($data)

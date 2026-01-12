@@ -154,6 +154,7 @@ class Rewards extends Admin_Controller
         );
         $this->load->view('layout/index', $this->data);
     }
+    
     public function configSave()
     {
         if ($_POST) {
