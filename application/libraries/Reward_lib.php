@@ -17,7 +17,7 @@ class Reward_lib
      * Supports: percentage, percentile, rank
      * Scope comes ONLY from reward_config
      */
-    public function processExamReward_(
+    public function processExamReward(
         $student_id,
         $exam_id,
         $exam_type,
@@ -161,7 +161,7 @@ class Reward_lib
         return true;
     }
 
-    public function processExamReward(
+    public function processExamReward_Dev(
         int $student_id,
         int $exam_id,
         string $exam_type,

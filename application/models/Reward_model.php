@@ -99,7 +99,6 @@ class Reward_model extends MY_Model
     }
 
 
-
     public function isRewarded($exam_id, $student_id)
     {
         $this->db->where('exam_id', $exam_id);
@@ -114,7 +113,8 @@ class Reward_model extends MY_Model
         $student_id,
         $exam_id,
         $exam_type,
-        array $performance) {
+        array $performance
+    ) {
         $this->db->select('rc.*');
         $this->db->from('reward_config rc');
         $this->db->join(
@@ -211,7 +211,8 @@ class Reward_model extends MY_Model
         $remarks,
         $reference_type = 'exam',
         $session_code = null,
-        $reward_scope = 'exam') {
+        $reward_scope = 'exam'
+    ) {
         $check = [
             'student_id'  => $student_id,
             'exam_id'     => $exam_id,
@@ -275,7 +276,8 @@ class Reward_model extends MY_Model
         int $exam_id,
         string $exam_type,
         string $reward_scope,
-        ?string $session_code = null) {
+        ?string $session_code = null
+    ) {
         $this->db->where([
             'student_id'   => $student_id,
             'exam_id'      => $exam_id,
@@ -290,12 +292,13 @@ class Reward_model extends MY_Model
         return $this->db->count_all_results('live_exam_reward_locks') > 0;
     }
 
-    public function acquireRewardLock(
+    public function acquireRewardLock_(
         int $student_id,
         int $exam_id,
         string $exam_type,
         string $reward_scope,
-        ?string $session_code = null): bool {
+        ?string $session_code = null
+    ): bool {
         $this->db->insert('live_exam_reward_locks', [
             'student_id'   => $student_id,
             'exam_id'      => $exam_id,
@@ -311,6 +314,44 @@ class Reward_model extends MY_Model
         }
 
         return true;
+    }
+
+    public function acquireRewardLock(
+        int $student_id,
+        int $exam_id,
+        string $exam_type,
+        string $reward_scope,
+        ?string $session_code = null): bool {
+
+        $this->db->insert('live_exam_reward_locks', [
+            'student_id'   => $student_id,
+            'exam_id'      => $exam_id,
+            'exam_type'    => $exam_type,
+            'reward_scope' => $reward_scope,
+            'session_code' => ($reward_scope === 'session') ? $session_code : null,
+            'locked_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+        // ✅ Success
+        if ($this->db->affected_rows() === 1) {
+            return true;
+        }
+
+        // ❌ Insert failed → check reason
+        $error = $this->db->error();
+
+        // MySQL duplicate key error code
+        if (!empty($error['code']) && $error['code'] == 1062) {
+            return false; // already locked
+        }
+
+        // Other DB error → log it
+        log_message(
+            'error',
+            '[RewardLock] DB error: ' . json_encode($error)
+        );
+
+        return false;
     }
 
 
