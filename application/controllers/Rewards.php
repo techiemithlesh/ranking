@@ -183,6 +183,7 @@ class Rewards extends Admin_Controller
         }
 
     }
+    
     public function configEdit($id = '')
     {
         $reward = $this->db->get_where('reward_config', ['id' => $id])->row_array();

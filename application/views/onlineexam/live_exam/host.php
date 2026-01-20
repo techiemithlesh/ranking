@@ -749,7 +749,7 @@
 			publish: publish
 		}, function(resp) {
 
-		console.log("End session response:", resp);
+		// console.log("End session response:", resp);
 
 			let data = {};
 			try {

@@ -115,9 +115,9 @@
                                                         <?php if (is_superadmin_loggedin()): ?>
 
                                                             <span
-                                                                class="badge <?= ($row['status'] == 1) ? 'badge-success' : 'badge-danger' ?>"
+                                                                class="badge toggleBtn <?= ($row['status'] == 1) ? 'badge-success' : 'badge-danger' ?>"
                                                                 style="cursor: pointer;" title="Double-click to toggle status"
-                                                                id="toggleBtn" data-id="<?= $row['id'] ?>"
+                                                                  data-id="<?= $row['id'] ?>"
                                                                 data-status="<?= $row['status'] ?>">
                                                                 <?= ($row['status'] == 1) ? 'Active' : 'Inactive' ?>
                                                             </span>
@@ -290,9 +290,9 @@
 <script>
     $(document).ready(function () {
 
-        document.querySelector('#toggleBtn').addEventListener('dblclick', function () {
+        document.querySelector('.toggleBtn').addEventListener('dblclick', function () {
             let id = this.getAttribute('data-id');
-            let currentStatus = parseInt(this.getAttribute('data-status')); // Convert to number
+            let currentStatus = parseInt(this.getAttribute('data-status'));
             updateStatus(id, currentStatus);
         });
 
@@ -369,7 +369,7 @@
                 },
                 success: function (response) {
                     response = JSON.parse(response);
-                    console.log("response", response.status);
+                    // console.log("response", response.status);
                     if (response.status === 'success') {
                         swal({
                             title: 'success!',

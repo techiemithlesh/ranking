@@ -36,8 +36,6 @@ class EducationMaterial extends Admin_Controller
         if ($_POST) {
             $fileType = $this->input->post('file_type');
             $this->data['marketing'] = $this->educationMaterial_model->get_all_materials($branchId, $fileType);
-            // printVar($this->data['marketing']);
-            // die;
         }
 
         $this->data['file_types'] = [
