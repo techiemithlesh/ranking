@@ -25,6 +25,8 @@ class TemplateOverlay_model extends MY_Model
             ->result_array();
     }
 
+    
+
     public function delete_by_template($template_id)
     {
         $this->db->where('template_id', $template_id)->delete('template_overlays');

@@ -50,4 +50,50 @@ class Template_model extends MY_Model
             ->result_array();
     }
 
+    public function countTemplatesWithOverlayCount($templateType = '', $editStatus = '', $status = '')
+    {
+        $dbType = '';
+        if ($templateType === '1') $dbType = 'image';
+        if ($templateType === '2') $dbType = 'video';
+
+        $this->db->select('ta.id', false);
+        $this->db->from($this->table . ' ta');
+        $this->db->join('template_overlays to1', 'to1.template_id = ta.id', 'left');
+        $this->db->group_by('ta.id');
+
+        if ($dbType !== '') $this->db->where('ta.type', $dbType);
+        if ($status !== '' && $status !== null) $this->db->where('ta.status', (int)$status);
+
+        if ($editStatus !== '' && $editStatus !== null) {
+            if ((string)$editStatus === '1') $this->db->having('COUNT(to1.id) >', 0);
+            if ((string)$editStatus === '0') $this->db->having('COUNT(to1.id) =', 0);
+        }
+
+        // count groups (CI3 workaround)
+        return $this->db->get()->num_rows();
+    }
+
+    public function getTemplatesWithOverlayCountPaged($templateType = '', $editStatus = '', $status = '', $limit = 12, $offset = 0)
+    {
+        $dbType = '';
+        if ($templateType === '1') $dbType = 'image';
+        if ($templateType === '2') $dbType = 'video';
+
+        $this->db->select('ta.*, COUNT(to1.id) AS overlay_count', false);
+        $this->db->from($this->table . ' ta');
+        $this->db->join('template_overlays to1', 'to1.template_id = ta.id', 'left');
+        $this->db->group_by('ta.id');
+        $this->db->order_by('ta.id', 'DESC');
+
+        if ($dbType !== '') $this->db->where('ta.type', $dbType);
+        if ($status !== '' && $status !== null) $this->db->where('ta.status', (int)$status);
+
+        if ($editStatus !== '' && $editStatus !== null) {
+            if ((string)$editStatus === '1') $this->db->having('overlay_count >', 0);
+            if ((string)$editStatus === '0') $this->db->having('overlay_count =', 0);
+        }
+
+        $this->db->limit((int)$limit, (int)$offset);
+        return $this->db->get()->result_array();
+    }
 }
