@@ -72,7 +72,7 @@ class Template_manager extends Admin_Controller
         $editStatus   = $this->input->get('edit_status', true) ?? '';
         $status       = $this->input->get('status', true) ?? '';
 
-        $perPage = 12; // grid: 12 items/page
+        $perPage = 12;
         $page = (int) ($this->input->get('page') ?? 1);
         if ($page < 1) $page = 1;
         $offset = ($page - 1) * $perPage;
@@ -80,13 +80,11 @@ class Template_manager extends Admin_Controller
         $total = $this->Template_model->countTemplatesWithOverlayCount($templateType, $editStatus, $status);
         $rows  = $this->Template_model->getTemplatesWithOverlayCountPaged($templateType, $editStatus, $status, $perPage, $offset);
 
-        // keep query string in links
-        $base = base_url('template-manager');
         $query = $_GET;
         unset($query['page']);
         $suffix = !empty($query) ? '?' . http_build_query($query) : '';
 
-        $config['base_url'] = $base;
+        $config['base_url'] = base_url('Template_manager');
         $config['total_rows'] = $total;
         $config['per_page'] = $perPage;
 

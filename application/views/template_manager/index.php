@@ -13,7 +13,7 @@
             </header>
 
 
-            <form method="get" action="<?= base_url('template-manager') ?>" class="validate">
+            <form method="get" action="<?= base_url('Template_manager') ?>" class="validate">
                 <div class="panel-body">
                     <div class="row mb-sm">
                         <?php if (is_superadmin_loggedin()): ?>
