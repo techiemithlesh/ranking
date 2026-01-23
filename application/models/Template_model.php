@@ -29,6 +29,19 @@ class Template_model extends MY_Model
         return $this->db->insert_id();
     }
 
+
+
+    public function saveTemplate($data)
+    {
+        try {
+            $this->db->insert($this->table, $data);
+            return $this->db->insert_id();
+        }catch (\Exception $e) {
+            return $e->getMessage();
+        };
+    }
+
+
     /* ---------------------------------------------
         GET template by ID
     --------------------------------------------- */

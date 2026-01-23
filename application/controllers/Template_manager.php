@@ -19,7 +19,7 @@ class Template_manager extends Admin_Controller
         parent::__construct();
         $this->load->model('Template_model');
         $this->load->model('TemplateOverlay_model');
-        $this->load->library('TemplateEngine_lib');
+        $this->load->library('templateengine_lib');
         $this->load->library('pagination');
 
         if (!is_superadmin_loggedin()) {
@@ -128,5 +128,56 @@ class Template_manager extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    
+    public function create()
+    {
+        $this->data['title'] = translate('Upload_template');
+        $this->data['sub_page'] = 'template_manager/create';
+        $this->data['main_menu'] = 'Template_manager';
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function storeAssets()
+    {
+        $this->form_validation->set_rules('title', 'Title', 'trim|required|max_length[255]');
+        $this->form_validation->set_rules('type', 'Template Type', 'trim|required|in_list[image,video]');
+
+        if ($this->form_validation->run() == false) {
+            echo json_encode(['status' => 'error', 'message' => strip_tags(validation_errors())]);
+            exit;
+        }
+
+        $result = $this->templateengine_lib->storeTemplate();
+
+        // ✅ SUCCESS: insert_id returned
+        if (is_numeric($result) && (int)$result > 0) {
+            $id = (int)$result;
+            $type = $this->input->post('type', true);
+
+            $url = ($type === 'image')
+                ? base_url('Template_manager/edit/' . $id )
+                : base_url('Template_manager');
+
+            echo json_encode([
+                'status'  => 'success',
+                'message' => 'Template Uploaded Successfully!',
+                'url'     => $url
+            ]);
+            exit;
+        }
+
+        // ✅ ERROR returned as array
+        if (is_array($result) && isset($result['error'])) {
+            echo json_encode(['status' => 'error', 'message' => $result['error']]);
+            exit;
+        }
+
+        // ✅ DB exception returned as string (your saveTemplate try/catch)
+        if (is_string($result) && $result !== '') {
+            echo json_encode(['status' => 'error', 'message' => $result]);
+            exit;
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'Upload failed']);
+        exit;
+    }
 }
