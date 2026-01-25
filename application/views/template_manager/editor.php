@@ -395,7 +395,8 @@
                 settings: ov.settings
             }))));
 
-            
+            fd.append("<?= $this->security->get_csrf_token_name(); ?>", "<?= $this->security->get_csrf_hash(); ?>");
+
             fetch(saveUrl, {
                     method: 'POST',
                     body: fd
