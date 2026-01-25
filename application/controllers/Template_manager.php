@@ -17,8 +17,8 @@ class Template_manager extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('Template_model');
-        $this->load->model('TemplateOverlay_model');
+        $this->load->model('template_model');
+        $this->load->model('templateOverlay_model');
         $this->load->library('templateengine_lib');
         $this->load->library('pagination');
 
@@ -77,8 +77,8 @@ class Template_manager extends Admin_Controller
         if ($page < 1) $page = 1;
         $offset = ($page - 1) * $perPage;
 
-        $total = $this->Template_model->countTemplatesWithOverlayCount($templateType, $editStatus, $status);
-        $rows  = $this->Template_model->getTemplatesWithOverlayCountPaged($templateType, $editStatus, $status, $perPage, $offset);
+        $total = $this->template_model->countTemplatesWithOverlayCount($templateType, $editStatus, $status);
+        $rows  = $this->template_model->getTemplatesWithOverlayCountPaged($templateType, $editStatus, $status, $perPage, $offset);
 
         $query = $_GET;
         unset($query['page']);
@@ -152,7 +152,7 @@ class Template_manager extends Admin_Controller
             $type = $this->input->post('type', true);
 
             $url = ($type === 'image')
-                ? base_url('Template_manager/edit/' . $id )
+                ? base_url('Template_manager/edit/' . $id)
                 : base_url('Template_manager');
 
             echo json_encode([
@@ -176,6 +176,95 @@ class Template_manager extends Admin_Controller
         }
 
         echo json_encode(['status' => 'error', 'message' => 'Upload failed']);
+        exit;
+    }
+
+    public function edit($id)
+    {
+        $template = $this->template_model->getById($id);
+        if (empty($template)) {
+            show_404();
+        }
+
+        // Only image editor now
+        if ($template['type'] !== 'image') {
+            set_alert('info', 'Video editor will be available soon.');
+            redirect(base_url('template-manager'));
+            return;
+        }
+
+        $overlays = $this->templateOverlay_model->get_by_template($id);
+
+        $this->data['template'] = $template;
+        $this->data['overlays'] = $overlays;
+
+        $this->data['title'] = translate('edit_template');
+        $this->data['sub_page'] = 'template_manager/editor';
+        $this->data['main_menu'] = 'Resources';
+
+        $this->data['headerelements'] = array(
+            'css' => array(),
+            'js'  => array(
+                'vendor/interactjs/interact.min.js',
+            ),
+        );
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function saveOverlays($template_id)
+    {
+        // AJAX JSON
+        $template = $this->Template_model->getById($template_id);
+        if (empty($template)) {
+            echo json_encode(['status' => 'error', 'message' => 'Template not found']);
+            exit;
+        }
+
+        $raw = $this->input->post('overlays', false);
+        if (!$raw) {
+            echo json_encode(['status' => 'error', 'message' => 'Missing overlays payload']);
+            exit;
+        }
+
+        $overlays = json_decode($raw, true);
+        if (!is_array($overlays)) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid JSON payload']);
+            exit;
+        }
+
+        // Replace all overlays for this template
+        $this->TemplateOverlay_model->delete_by_template($template_id);
+
+        $rows = [];
+        $z = 1;
+
+        foreach ($overlays as $ov) {
+            $settings = null;
+            if (isset($ov['settings']) && is_array($ov['settings'])) {
+                $settings = json_encode($ov['settings'], JSON_UNESCAPED_UNICODE);
+            }
+
+            $rows[] = [
+                'template_id'  => (int)$template_id,
+                'overlay_type' => 'logo',
+                'x'            => (float)($ov['x'] ?? 0),
+                'y'            => (float)($ov['y'] ?? 0),
+                'width'        => (float)($ov['width'] ?? 100),
+                'height'       => (float)($ov['height'] ?? 100),
+                'start_time'   => null,
+                'end_time'     => null,
+                'z_index'      => $z++,
+                'settings'     => $settings,
+            ];
+        }
+
+        $ok = $this->TemplateOverlay_model->insert_batch($rows);
+
+        echo json_encode([
+            'status' => $ok ? 'success' : 'error',
+            'message' => $ok ? 'Placements saved successfully.' : 'Failed to save overlays.'
+        ]);
         exit;
     }
 }

@@ -127,12 +127,8 @@
                                             <i class="fas fa-download"></i> Download
                                         </a>
 
-                                        <a href="<?= base_url('template-manager/' . $item['id'] . '/preview') ?>" class="btn btn-info">
-                                            <i class="fas fa-eye"></i> Preview
-                                        </a>
-
-                                        <a href="<?= base_url('template-manager/' . $item['id'] . '/edit') ?>" class="btn btn-primary">
-                                            <i class="fas fa-pen"></i> Edit Placements
+                                        <a href="<?= base_url('Template_manager/edit/' . $item['id']) ?>" class="btn btn-primary">
+                                            <i class="fas fa-pen"></i> Edit
                                         </a>
 
                                     </div>

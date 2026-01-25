@@ -44,7 +44,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootbox@5/bootbox.min.js"></script>
 
 <!-- FOR DRAG AND DROP (MINI EDITOR) -->
-<script src="<?= base_url('assets/vendor/interactjs/interact.min.js') ?>"></script>
+<!-- <script src="<?= base_url('assets/vendor/interactjs/interact.min.js') ?>"></script> -->
 
 <!-- FOR NEW DESIGN -->
 <script type="text/javascript">
