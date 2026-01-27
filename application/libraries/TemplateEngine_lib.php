@@ -50,16 +50,26 @@ class TemplateEngine_lib
         }
     }
 
-    public function renderImage($templatePath, $logoPath, $overlays, $filename)
+    public function renderImage($templatePath, $logoUrl, $overlays, $filename)
     {
-        log_message('error', 'DOWNLOAD renderImage called');
-        log_message('error', 'Base path=' . $templatePath);
-        log_message('error', 'Logo path=' . $logoPath);
-        log_message('error', 'Overlays=' . json_encode($overlays));
+        log_message('info', 'Rendering template image: ' . $templatePath . ' with logo: ' . $logoUrl);
 
-        $base = $this->loadImage($templatePath);
+        $basePath = $this->toFilePath($templatePath);
+        $logoPath = $this->toFilePath($logoUrl);
+
+        if (!file_exists($basePath)) {
+            log_message('error', 'Base image missing: ' . $basePath);
+            show_error('Base image not found');
+        }
+
+        if (!file_exists($logoPath)) {
+            log_message('error', 'Logo image missing: ' . $logoPath);
+            show_error('Logo image not found');
+        }
+
+        $base = $this->loadImage($basePath);
         if (!$base) {
-            show_error('Base image load failed');
+            show_error('Failed to load base image');
         }
 
         $baseW = imagesx($base);
@@ -70,29 +80,29 @@ class TemplateEngine_lib
             $settings = json_decode($ov['settings'], true) ?? [];
             $bg = $settings['bg'] ?? [];
 
-            // Convert ratio → pixels
-            $x = (int)($ov['x'] * $baseW);
-            $y = (int)($ov['y'] * $baseH);
-            $w = (int)($ov['width'] * $baseW);
-            $h = (int)($ov['height'] * $baseH);
+            // ratios → pixels
+            $x = (int)round((float)$ov['x'] * $baseW);
+            $y = (int)round((float)$ov['y'] * $baseH);
+            $w = (int)round((float)$ov['width'] * $baseW);
+            $h = (int)round((float)$ov['height'] * $baseH);
 
-            // Padding
+            if ($w <= 0 || $h <= 0) continue;
+
             $padding = (int)($bg['padding'] ?? 0);
 
-            // Background box
+            // background
             if (!empty($bg['enabled'])) {
-                $this->drawRoundedRect(
+                $this->drawBackground(
                     $base,
                     $x,
                     $y,
                     $w,
                     $h,
-                    (int)($bg['radius'] ?? 0),
                     $bg['color'] ?? '#ffffff'
                 );
             }
 
-            // Draw logo
+            // logo
             $this->drawImage(
                 $base,
                 $logoPath,
@@ -103,23 +113,47 @@ class TemplateEngine_lib
             );
         }
 
-        // Output
         $this->outputImage($base, $filename);
         imagedestroy($base);
         exit;
     }
 
+    /* ==============================
+       HELPERS
+    ============================== */
+
+    // 🔑 URL or relative path → absolute filesystem path
+    private function toFilePath($path)
+    {
+        // If full URL → extract path
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $path = parse_url($path, PHP_URL_PATH);
+        }
+
+        // Remove base folder from path (futurecampus)
+        $base = trim(parse_url(base_url(), PHP_URL_PATH), '/');
+
+        if ($base && strpos($path, '/' . $base . '/') === 0) {
+            $path = substr($path, strlen('/' . $base));
+        }
+
+        return FCPATH . ltrim($path, '/');
+    }
+
+
     private function loadImage($path)
     {
-        $full = FCPATH . $path;
-        if (!file_exists($full)) return false;
+        $info = getimagesize($path);
+        if (!$info) return false;
 
-        $info = getimagesize($full);
         switch ($info[2]) {
             case IMAGETYPE_JPEG:
-                return imagecreatefromjpeg($full);
+                return imagecreatefromjpeg($path);
             case IMAGETYPE_PNG:
-                return imagecreatefrompng($full);
+                $img = imagecreatefrompng($path);
+                imagealphablending($img, true);
+                imagesavealpha($img, true);
+                return $img;
             default:
                 return false;
         }
@@ -132,6 +166,9 @@ class TemplateEngine_lib
 
         imagealphablending($canvas, true);
         imagesavealpha($canvas, true);
+
+        imagealphablending($logo, true);
+        imagesavealpha($logo, true);
 
         imagecopyresampled(
             $canvas,
@@ -149,18 +186,17 @@ class TemplateEngine_lib
         imagedestroy($logo);
     }
 
-    private function drawRoundedRect($img, $x, $y, $w, $h, $r, $hex)
+    private function drawBackground($img, $x, $y, $w, $h, $hex)
     {
-        [$rC, $gC, $bC] = $this->hexToRgb($hex);
-        $color = imagecolorallocate($img, $rC, $gC, $bC);
-
+        [$r, $g, $b] = $this->hexToRgb($hex);
+        $color = imagecolorallocate($img, $r, $g, $b);
         imagefilledrectangle($img, $x, $y, $x + $w, $y + $h, $color);
     }
 
     private function hexToRgb($hex)
     {
         $hex = ltrim($hex, '#');
-        if (strlen($hex) == 3) {
+        if (strlen($hex) === 3) {
             $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
         }
         return [

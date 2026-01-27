@@ -737,26 +737,17 @@ if (!function_exists('month_list')) {
     }
 }
 
-function get_branch_logo($branchID = null)
+function get_branch_logo()
 {
     $CI = &get_instance();
 
-    // Fallback to logged-in branch if null
-    if (empty($branchID)) {
-        $branchID = get_loggedin_branch_id();
-    }
-
-    
-    if (empty($branchID)) {
-        return base_url('uploads/app_image/logo.png');
-    }
 
     // Select only the logo column to make the query faster
     $CI->db->select('logo');
-    $CI->db->where('id', $branchID);
+    $CI->db->where('id', get_loggedin_branch_id());
     $branch = $CI->db->get('branch')->row_array();
 
-    $logoPath = 'uploads/branch/' . ($branch['logo'] ?? '');
+    $logoPath = ($branch['logo'] ?? '');
 
     if (!empty($branch['logo']) && file_exists(FCPATH . $logoPath)) {
         return base_url($logoPath);
