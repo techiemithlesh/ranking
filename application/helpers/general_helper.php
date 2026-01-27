@@ -277,7 +277,6 @@ function set_alert($type, $message = "")
         $CI->session->unset_userdata('alert-message-' . $type);
         return $message;
     }
-
 }
 function set_alert_sa($type, $message = "")
 {
@@ -320,6 +319,7 @@ function get_image_url($role = '', $file_name = '')
     }
     return $image_url;
 }
+
 
 function get_signature_url($role = '', $file_name = '')
 {
@@ -631,7 +631,6 @@ if (!function_exists("sendWhatsAppMsg")) {
             log_message('error', 'Failed to send WhatsApp message: ' . $response);
         }
     }
-
 }
 
 if (!function_exists('is_new_design')) {
@@ -728,7 +727,8 @@ if (!function_exists('getSectionDetails')) {
 }
 
 if (!function_exists('month_list')) {
-    function month_list() {
+    function month_list()
+    {
         $months = [];
         for ($i = 1; $i <= 12; $i++) {
             $months[$i] = "Month " . $i;
@@ -737,4 +737,30 @@ if (!function_exists('month_list')) {
     }
 }
 
+function get_branch_logo($branchID = null)
+{
+    $CI = &get_instance();
 
+    // Fallback to logged-in branch if null
+    if (empty($branchID)) {
+        $branchID = get_loggedin_branch_id();
+    }
+
+    
+    if (empty($branchID)) {
+        return base_url('uploads/app_image/logo.png');
+    }
+
+    // Select only the logo column to make the query faster
+    $CI->db->select('logo');
+    $CI->db->where('id', $branchID);
+    $branch = $CI->db->get('branch')->row_array();
+
+    $logoPath = 'uploads/branch/' . ($branch['logo'] ?? '');
+
+    if (!empty($branch['logo']) && file_exists(FCPATH . $logoPath)) {
+        return base_url($logoPath);
+    }
+
+    return base_url('uploads/app_image/logo.png');
+}

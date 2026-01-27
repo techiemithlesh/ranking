@@ -49,4 +49,131 @@ class TemplateEngine_lib
             return ['error' => $this->CI->upload->display_errors('', '')];
         }
     }
+
+    public function renderImage($templatePath, $logoPath, $overlays, $filename)
+    {
+        log_message('error', 'DOWNLOAD renderImage called');
+        log_message('error', 'Base path=' . $templatePath);
+        log_message('error', 'Logo path=' . $logoPath);
+        log_message('error', 'Overlays=' . json_encode($overlays));
+
+        $base = $this->loadImage($templatePath);
+        if (!$base) {
+            show_error('Base image load failed');
+        }
+
+        $baseW = imagesx($base);
+        $baseH = imagesy($base);
+
+        foreach ($overlays as $ov) {
+
+            $settings = json_decode($ov['settings'], true) ?? [];
+            $bg = $settings['bg'] ?? [];
+
+            // Convert ratio → pixels
+            $x = (int)($ov['x'] * $baseW);
+            $y = (int)($ov['y'] * $baseH);
+            $w = (int)($ov['width'] * $baseW);
+            $h = (int)($ov['height'] * $baseH);
+
+            // Padding
+            $padding = (int)($bg['padding'] ?? 0);
+
+            // Background box
+            if (!empty($bg['enabled'])) {
+                $this->drawRoundedRect(
+                    $base,
+                    $x,
+                    $y,
+                    $w,
+                    $h,
+                    (int)($bg['radius'] ?? 0),
+                    $bg['color'] ?? '#ffffff'
+                );
+            }
+
+            // Draw logo
+            $this->drawImage(
+                $base,
+                $logoPath,
+                $x + $padding,
+                $y + $padding,
+                $w - ($padding * 2),
+                $h - ($padding * 2)
+            );
+        }
+
+        // Output
+        $this->outputImage($base, $filename);
+        imagedestroy($base);
+        exit;
+    }
+
+    private function loadImage($path)
+    {
+        $full = FCPATH . $path;
+        if (!file_exists($full)) return false;
+
+        $info = getimagesize($full);
+        switch ($info[2]) {
+            case IMAGETYPE_JPEG:
+                return imagecreatefromjpeg($full);
+            case IMAGETYPE_PNG:
+                return imagecreatefrompng($full);
+            default:
+                return false;
+        }
+    }
+
+    private function drawImage($canvas, $path, $x, $y, $w, $h)
+    {
+        $logo = $this->loadImage($path);
+        if (!$logo) return;
+
+        imagealphablending($canvas, true);
+        imagesavealpha($canvas, true);
+
+        imagecopyresampled(
+            $canvas,
+            $logo,
+            $x,
+            $y,
+            0,
+            0,
+            $w,
+            $h,
+            imagesx($logo),
+            imagesy($logo)
+        );
+
+        imagedestroy($logo);
+    }
+
+    private function drawRoundedRect($img, $x, $y, $w, $h, $r, $hex)
+    {
+        [$rC, $gC, $bC] = $this->hexToRgb($hex);
+        $color = imagecolorallocate($img, $rC, $gC, $bC);
+
+        imagefilledrectangle($img, $x, $y, $x + $w, $y + $h, $color);
+    }
+
+    private function hexToRgb($hex)
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) == 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        return [
+            hexdec(substr($hex, 0, 2)),
+            hexdec(substr($hex, 2, 2)),
+            hexdec(substr($hex, 4, 2))
+        ];
+    }
+
+    private function outputImage($img, $name)
+    {
+        header('Content-Type: image/png');
+        header('Content-Disposition: attachment; filename="' . url_title($name) . '.png"');
+        imagepng($img);
+    }
 }

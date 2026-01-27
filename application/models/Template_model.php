@@ -36,7 +36,7 @@ class Template_model extends MY_Model
         try {
             $this->db->insert($this->table, $data);
             return $this->db->insert_id();
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             return $e->getMessage();
         };
     }
@@ -108,5 +108,14 @@ class Template_model extends MY_Model
 
         $this->db->limit((int)$limit, (int)$offset);
         return $this->db->get()->result_array();
+    }
+
+    public function getActiveTemplates()
+    {
+        return $this->db
+            ->where('status', 1)
+            ->order_by('id', 'DESC')
+            ->get($this->table)
+            ->result_array();
     }
 }

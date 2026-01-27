@@ -129,8 +129,8 @@
 
 <script>
     (function() {
-        const saveUrl = "<?= base_url('Template_manager/saveOverlays' . '/' . $template['id']) ?>";
 
+        const saveUrl = "<?= base_url('Template_manager/saveOverlays/' . $template['id']) ?>";
         const demoLogo = "<?= base_url('assets/images/logo.jpg') ?>";
 
         const overlayLayer = document.getElementById('overlayLayer');
@@ -144,38 +144,29 @@
         const bgRadius = document.getElementById('bgRadius');
 
         let overlays = <?= json_encode($overlays, JSON_UNESCAPED_UNICODE) ?> || [];
-        overlays = overlays.map(o => {
-            let settings = {};
-            try {
-                settings = o.settings ? JSON.parse(o.settings) : {};
-            } catch (e) {}
-            return {
-                x: parseFloat(o.x || 40),
-                y: parseFloat(o.y || 40),
-                width: parseFloat(o.width || 180),
-                height: parseFloat(o.height || 180),
-                settings: Object.assign({
-                    fit: 'contain',
-                    bg: {
-                        enabled: true,
-                        color: '#ffffff',
-                        padding: 12,
-                        radius: 16,
-                        opacity: 1
-                    }
-                }, settings)
-            };
-        });
-        if (overlays.length === 0) overlays.push(defaultOverlay());
-
         let selectedIndex = 0;
+
+        /* -------------------------------
+           Utils
+        -------------------------------- */
+        function clamp(n, min, max) {
+            return Math.max(min, Math.min(n, max));
+        }
+
+        function ratioToPx(val, total) {
+            return (val <= 1) ? val * total : val; // backward compatible
+        }
+
+        function pxToRatio(val, total) {
+            return total > 0 ? (val / total) : 0;
+        }
 
         function defaultOverlay() {
             return {
-                x: 40,
-                y: 40,
-                width: 180,
-                height: 180,
+                x: overlayLayer.clientWidth * 0.05,
+                y: overlayLayer.clientHeight * 0.05,
+                width: overlayLayer.clientWidth * 0.2,
+                height: overlayLayer.clientWidth * 0.2,
                 settings: {
                     fit: 'contain',
                     bg: {
@@ -189,35 +180,14 @@
             };
         }
 
-        function clamp(n, min, max) {
-            return Math.max(min, Math.min(n, max));
-        }
-
-        function applySettingsToSelected() {
-            const ov = overlays[selectedIndex];
-            ov.settings = ov.settings || {};
-            ov.settings.bg = ov.settings.bg || {};
-
-            ov.settings.bg.enabled = (bgEnabled.value === '1');
-            ov.settings.bg.color = (bgColor.value || '#ffffff').trim();
-            ov.settings.bg.padding = parseFloat(bgPadding.value || 0);
-            ov.settings.bg.radius = parseFloat(bgRadius.value || 0);
-            ov.settings.bg.opacity = 1;
-        }
-
-        function loadSettingsForm() {
-            const ov = overlays[selectedIndex];
-            const bg = ov.settings?.bg || {
-                enabled: true,
-                color: '#ffffff',
-                padding: 12,
-                radius: 16,
-                opacity: 1
-            };
-            bgEnabled.value = bg.enabled ? '1' : '0';
-            bgColor.value = bg.color || '#ffffff';
-            bgPadding.value = bg.padding ?? 12;
-            bgRadius.value = bg.radius ?? 16;
+        function hexToRgba(hex, alpha = 1) {
+            let h = (hex || '').replace('#', '').trim();
+            if (h.length === 3) h = h.split('').map(c => c + c).join('');
+            if (h.length !== 6) return `rgba(255,255,255,${alpha})`;
+            const r = parseInt(h.slice(0, 2), 16);
+            const g = parseInt(h.slice(2, 4), 16);
+            const b = parseInt(h.slice(4, 6), 16);
+            return `rgba(${r},${g},${b},${alpha})`;
         }
 
         function boxBgStyle(ov) {
@@ -234,18 +204,61 @@
             };
         }
 
-        function hexToRgba(hex, alpha = 1) {
-            let h = (hex || '').replace('#', '').trim();
-            if (h.length === 3) h = h.split('').map(c => c + c).join('');
-            if (h.length !== 6) return `rgba(255,255,255,${alpha})`;
-            const r = parseInt(h.slice(0, 2), 16);
-            const g = parseInt(h.slice(2, 4), 16);
-            const b = parseInt(h.slice(4, 6), 16);
-            return `rgba(${r},${g},${b},${alpha})`;
+        /* -------------------------------
+           Init overlays (DB → PIXELS)
+        -------------------------------- */
+        function initOverlays() {
+            overlays = overlays.map(o => {
+                let settings = {};
+                try {
+                    settings = o.settings ? JSON.parse(o.settings) : {};
+                } catch (e) {}
+
+                return {
+                    x: ratioToPx(parseFloat(o.x || 0.05), overlayLayer.clientWidth),
+                    y: ratioToPx(parseFloat(o.y || 0.05), overlayLayer.clientHeight),
+                    width: ratioToPx(parseFloat(o.width || 0.2), overlayLayer.clientWidth),
+                    height: ratioToPx(parseFloat(o.height || 0.2), overlayLayer.clientHeight),
+                    settings: Object.assign({
+                        fit: 'contain',
+                        bg: {
+                            enabled: true,
+                            color: '#ffffff',
+                            padding: 12,
+                            radius: 16,
+                            opacity: 1
+                        }
+                    }, settings)
+                };
+            });
+
+            if (!overlays.length) overlays.push(defaultOverlay());
         }
 
+        /* -------------------------------
+           Settings
+        -------------------------------- */
+        function loadSettingsForm() {
+            const bg = overlays[selectedIndex]?.settings?.bg || {};
+            bgEnabled.value = bg.enabled ? '1' : '0';
+            bgColor.value = bg.color || '#ffffff';
+            bgPadding.value = bg.padding ?? 12;
+            bgRadius.value = bg.radius ?? 16;
+        }
+
+        function applySettingsToSelected() {
+            const ov = overlays[selectedIndex];
+            ov.settings.bg.enabled = (bgEnabled.value === '1');
+            ov.settings.bg.color = bgColor.value;
+            ov.settings.bg.padding = parseFloat(bgPadding.value || 0);
+            ov.settings.bg.radius = parseFloat(bgRadius.value || 0);
+            ov.settings.bg.opacity = 1;
+        }
+
+        /* -------------------------------
+           Render
+        -------------------------------- */
         function render() {
-            // ✅ unset before remove
             overlayLayer.querySelectorAll('.overlay-box').forEach(el => {
                 try {
                     interact(el).unset();
@@ -257,17 +270,22 @@
 
             overlays.forEach((ov, idx) => {
 
-                // list
+                // List
                 const item = document.createElement('div');
                 item.className = 'list-item' + (idx === selectedIndex ? ' active' : '');
-                item.innerHTML = `<div>Layer ${idx+1}<div class="small">${Math.round(ov.width)}×${Math.round(ov.height)} @ (${Math.round(ov.x)},${Math.round(ov.y)})</div></div><div class="small">#${idx+1}</div>`;
+                item.innerHTML = `
+                <div>Layer ${idx + 1}
+                    <div class="small">
+                        ${Math.round(ov.width)}×${Math.round(ov.height)}
+                    </div>
+                </div>`;
                 item.onclick = () => {
                     selectedIndex = idx;
                     render();
                 };
                 listEl.appendChild(item);
 
-                // box
+                // Box
                 const box = document.createElement('div');
                 box.className = 'overlay-box' + (idx === selectedIndex ? ' selected' : '');
                 box.dataset.index = idx;
@@ -281,53 +299,42 @@
                 box.style.borderRadius = st.borderRadius;
 
                 const img = document.createElement('img');
-                img.className = 'demo';
                 img.src = demoLogo;
+                img.className = 'demo';
                 box.appendChild(img);
 
                 overlayLayer.appendChild(box);
 
-                // ✅ DO NOT re-render on mousedown
                 box.addEventListener('mousedown', () => {
                     selectedIndex = idx;
-                    highlightSelectedOnly(); 
                     loadSettingsForm();
+                    highlightSelected();
                 });
 
                 interact(box)
                     .draggable({
                         listeners: {
-                            move(event) {
-                                const i = parseInt(event.target.dataset.index, 10);
-                                overlays[i].x += event.dx;
-                                overlays[i].y += event.dy;
-
-                                const maxX = overlayLayer.clientWidth - overlays[i].width;
-                                const maxY = overlayLayer.clientHeight - overlays[i].height;
-                                overlays[i].x = clamp(overlays[i].x, 0, maxX);
-                                overlays[i].y = clamp(overlays[i].y, 0, maxY);
-
-                                event.target.style.left = overlays[i].x + 'px';
-                                event.target.style.top = overlays[i].y + 'px';
+                            move(e) {
+                                const i = +e.target.dataset.index;
+                                overlays[i].x = clamp(overlays[i].x + e.dx, 0, overlayLayer.clientWidth - overlays[i].width);
+                                overlays[i].y = clamp(overlays[i].y + e.dy, 0, overlayLayer.clientHeight - overlays[i].height);
+                                e.target.style.left = overlays[i].x + 'px';
+                                e.target.style.top = overlays[i].y + 'px';
                             }
                         }
                     })
                     .resizable({
                         edges: {
-                            left: false,
                             right: true,
-                            bottom: true,
-                            top: false
+                            bottom: true
                         },
                         listeners: {
-                            move(event) {
-                                const i = parseInt(event.target.dataset.index, 10);
-
-                                overlays[i].width = clamp(event.rect.width, 40, overlayLayer.clientWidth - overlays[i].x);
-                                overlays[i].height = clamp(event.rect.height, 40, overlayLayer.clientHeight - overlays[i].y);
-
-                                event.target.style.width = overlays[i].width + 'px';
-                                event.target.style.height = overlays[i].height + 'px';
+                            move(e) {
+                                const i = +e.target.dataset.index;
+                                overlays[i].width = clamp(e.rect.width, 40, overlayLayer.clientWidth - overlays[i].x);
+                                overlays[i].height = clamp(e.rect.height, 40, overlayLayer.clientHeight - overlays[i].y);
+                                e.target.style.width = overlays[i].width + 'px';
+                                e.target.style.height = overlays[i].height + 'px';
                             }
                         }
                     });
@@ -336,65 +343,51 @@
             loadSettingsForm();
         }
 
-        function highlightSelectedOnly() {
-            overlayLayer.querySelectorAll('.overlay-box').forEach((el) => {
-                const i = parseInt(el.dataset.index, 10);
-                if (i === selectedIndex) el.classList.add('selected');
-                else el.classList.remove('selected');
-            });
-
-            listEl.querySelectorAll('.list-item').forEach((el, i) => {
-                if (i === selectedIndex) el.classList.add('active');
-                else el.classList.remove('active');
+        function highlightSelected() {
+            overlayLayer.querySelectorAll('.overlay-box').forEach((el, i) => {
+                el.classList.toggle('selected', i === selectedIndex);
             });
         }
 
-
-        function renderListOnly() {
-            const items = listEl.querySelectorAll('.list-item .small');
-            overlays.forEach((ov, idx) => {
-                // items structure has 2 .small per item; simplest is rerender fully if you want perfect,
-                // but keep it light: just skip
-            });
-        }
-
-        document.getElementById('btnAdd').addEventListener('click', () => {
+        /* -------------------------------
+           Buttons
+        -------------------------------- */
+        document.getElementById('btnAdd').onclick = () => {
             overlays.push(defaultOverlay());
             selectedIndex = overlays.length - 1;
             render();
-        });
+        };
 
-        document.getElementById('btnDelete').addEventListener('click', () => {
-            if (overlays.length <= 1) {
-                alert('At least one placement is required.');
-                return;
-            }
+        document.getElementById('btnDelete').onclick = () => {
+            if (overlays.length <= 1) return alert('At least one placement required');
             overlays.splice(selectedIndex, 1);
             selectedIndex = Math.max(0, selectedIndex - 1);
             render();
-        });
+        };
 
         [bgEnabled, bgColor, bgPadding, bgRadius].forEach(el => {
-            el.addEventListener('input', () => {
+            el.oninput = () => {
                 applySettingsToSelected();
                 render();
-            });
+            };
         });
 
-        document.getElementById('btnSave').addEventListener('click', () => {
+        document.getElementById('btnSave').onclick = () => {
             msg.innerHTML = 'Saving...';
 
-            applySettingsToSelected();
+            const stageW = overlayLayer.clientWidth;
+            const stageH = overlayLayer.clientHeight;
+
+            const payload = overlays.map(ov => ({
+                x: pxToRatio(ov.x, stageW),
+                y: pxToRatio(ov.y, stageH),
+                width: pxToRatio(ov.width, stageW),
+                height: pxToRatio(ov.height, stageH),
+                settings: ov.settings
+            }));
 
             const fd = new FormData();
-            fd.append('overlays', JSON.stringify(overlays.map(ov => ({
-                x: ov.x,
-                y: ov.y,
-                width: ov.width,
-                height: ov.height,
-                settings: ov.settings
-            }))));
-
+            fd.append('overlays', JSON.stringify(payload));
             fd.append("<?= $this->security->get_csrf_token_name(); ?>", "<?= $this->security->get_csrf_hash(); ?>");
 
             fetch(saveUrl, {
@@ -402,18 +395,19 @@
                     body: fd
                 })
                 .then(r => r.json())
-                .then(j => {
-                    msg.innerHTML = (j.status === 'success') ? '<span style="color:green;">✅ Saved</span>' : '<span style="color:red;">❌ ' + (j.message || 'Error') + '</span>';
-                })
-                .catch(() => {
-                    msg.innerHTML = '<span style="color:red;">❌ Network error</span>';
-                });
-        });
+                .then(j => msg.innerHTML = j.status === 'success' ?
+                    '<span style="color:green">✅ Saved</span>' :
+                    '<span style="color:red">❌ ' + j.message + '</span>')
+                .catch(() => msg.innerHTML = '<span style="color:red">❌ Network error</span>');
+        };
 
-        // ensure overlayLayer matches image size
+        /* -------------------------------
+           Init
+        -------------------------------- */
         baseImg.onload = function() {
             overlayLayer.style.width = baseImg.clientWidth + 'px';
             overlayLayer.style.height = baseImg.clientHeight + 'px';
+            initOverlays();
             render();
         };
         if (baseImg.complete) baseImg.onload();

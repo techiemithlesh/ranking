@@ -21,7 +21,7 @@ class Template_manager extends Admin_Controller
         $this->load->model('templateOverlay_model');
         $this->load->library('templateengine_lib');
 
-        if (!is_superadmin_loggedin()) {
+        if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
             redirect(base_url('dashboard'), 'refresh');
             set_alert('info', "You are not authorized to access it !");
         }
@@ -199,7 +199,7 @@ class Template_manager extends Admin_Controller
 
         $this->data['title'] = translate('edit_template');
         $this->data['sub_page'] = 'template_manager/editor';
-        $this->data['main_menu'] = 'Resources';
+        $this->data['main_menu'] = 'Template_manager';
 
         $this->data['headerelements'] = array(
             'css' => array(),
@@ -341,5 +341,94 @@ class Template_manager extends Admin_Controller
             'message' => $ok ? 'Placements saved successfully.' : 'Failed to save overlays.'
         ]);
         exit;
+    }
+
+    public function branch_templates()
+    {
+        if (!is_loggedin() || !is_admin_loggedin()) {
+            redirect(base_url('dashboard'), 'refresh');
+        }
+
+
+        $templates = $this->template_model->getActiveTemplates();
+
+        $this->data['templates'] = $templates;
+        $this->data['title'] = translate('marketing_templates');
+        $this->data['sub_page'] = 'template_manager/branch_templates';
+        $this->data['main_menu'] = 'Template_manager';
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function preview($template_id)
+    {
+        // Branch admin only
+        if (!is_loggedin() || is_superadmin_loggedin()) {
+            redirect(base_url('dashboard'));
+            return;
+        }
+
+        $template = $this->template_model->getById($template_id);
+        if (empty($template) || $template['status'] != 1) {
+            show_404();
+        }
+
+        // Image only for now
+        if ($template['type'] !== 'image') {
+            set_alert('info', 'Video preview coming soon.');
+            redirect(base_url('Template_manager/branch_templates'));
+            return;
+        }
+
+        $overlays = $this->templateOverlay_model->get_by_template($template_id);
+
+
+        $branchLogo = get_branch_logo(get_loggedin_branch_id());
+
+        if (empty($branchLogo)) {
+            set_alert('warning', 'Branch logo not uploaded.');
+            redirect(base_url('settings'));
+            return;
+        }
+
+        $this->data['template'] = $template;
+        $this->data['overlays'] = $overlays;
+        $this->data['branch_logo'] = $branchLogo;
+
+        $this->data['title'] = translate('preview_template');
+        $this->data['sub_page'] = 'template_manager/preview';
+        $this->data['main_menu'] = 'Resources';
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function download($template_id)
+    {
+        if (!is_loggedin()) {
+            show_404();
+        }
+
+        $template = $this->template_model->getById($template_id);
+        if (!$template || $template['type'] !== 'image') {
+            show_404();
+        }
+
+        $overlays = $this->templateOverlay_model->get_by_template($template_id);
+        $branchLogo = get_branch_logo();
+
+        if (empty($branchLogo)) {
+            set_alert('error', 'Branch logo not found.');
+            redirect(base_url('Template_manager/branch_templates'));
+            return;
+        }
+
+        
+
+        $this->templateengine_lib->renderImage(
+            $template['file_path'],
+            $branchLogo,
+            $overlays,
+            $template['title']
+        );
     }
 }
