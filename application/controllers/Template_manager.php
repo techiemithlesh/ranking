@@ -19,7 +19,7 @@ class Template_manager extends Admin_Controller
         parent::__construct();
         $this->load->model('template_model');
         $this->load->model('templateOverlay_model');
-        $this->load->library('templateengine_lib');
+        $this->load->library('templatengine_lib');
 
         if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
             redirect(base_url('dashboard'), 'refresh');
@@ -211,69 +211,6 @@ class Template_manager extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    // public function saveOverlays($template_id)
-    // {
-    //     // AJAX JSON
-    //     $template = $this->template_model->getById($template_id);
-    //     if (empty($template)) {
-    //         echo json_encode(['status' => 'error', 'message' => 'Template not found']);
-    //         exit;
-    //     }
-
-    //     $raw = $this->input->post('overlays', false);
-    //     if (!$raw) {
-    //         echo json_encode(['status' => 'error', 'message' => 'Missing overlays payload']);
-    //         exit;
-    //     }
-
-    //     $overlays = json_decode($raw, true);
-    //     if (!is_array($overlays)) {
-    //         echo json_encode(['status' => 'error', 'message' => 'Invalid JSON payload']);
-    //         exit;
-    //     }
-
-    //     // Replace all overlays for this template
-    //     $this->templateOverlay_model->delete_by_template($template_id);
-
-    //     $rows = [];
-    //     $z = 1;
-
-    //     foreach ($overlays as $ov) {
-    //         $settings = null;
-    //         if (isset($ov['settings']) && is_array($ov['settings'])) {
-    //             $settings = json_encode($ov['settings'], JSON_UNESCAPED_UNICODE);
-    //         }
-
-    //         $overlayType = isset($ov['overlay_type']) ? $ov['overlay_type'] : 'logo';
-    //         if (!in_array($overlayType, ['logo', 'text', 'image', 'qrcode'], true)) $overlayType = 'logo';
-
-    //         $rows[] = [
-    //             'template_id'  => (int)$template_id,
-    //             'overlay_type' => $overlayType,
-    //             'x'            => (float)($ov['x'] ?? 0),
-    //             'y'            => (float)($ov['y'] ?? 0),
-    //             'width'        => (float)($ov['width'] ?? 100),
-    //             'height'       => (float)($ov['height'] ?? 100),
-    //             'start_time'   => null,
-    //             'end_time'     => null,
-    //             'z_index'      => $z++,
-    //             'settings'     => $settings,
-    //         ];
-    //     }
-
-    //     $ok = $this->templateOverlay_model->insert_batch($rows);
-
-    //     if (!$ok) {
-    //         $dbError = $this->db->error();
-    //         log_message('error', 'Overlay insert_batch failed: ' . json_encode($dbError));
-    //     }
-
-    //     echo json_encode([
-    //         'status' => $ok ? 'success' : 'error',
-    //         'message' => $ok ? 'Placements saved successfully.' : 'Failed to save overlays.'
-    //     ]);
-    //     exit;
-    // }
 
     public function saveOverlays($template_id)
     {

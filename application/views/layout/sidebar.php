@@ -49,24 +49,32 @@
                     <?php } ?>
                     <!-- TRAINING MATERIAL FOR VIDEO START HERE -->
 
-                    <?php if (is_superadmin_loggedin()) {
-                    ?>
-                        <!-- MARKETING MANAGER -->
+                    <?php if (is_superadmin_loggedin() || is_admin_loggedin()): ?>
                         <li class="nav-parent <?php if ($main_menu == 'Template_manager') echo 'nav-expanded nav-active'; ?>">
                             <a>
                                 <i class="fas fa-layer-group"></i><span><?= translate('Template_manager') ?></span>
                             </a>
                             <ul class="nav nav-children">
-                                <li class="<?php if ($sub_page == 'template_manager/index') echo 'nav-active'; ?>">
-                                    <a href="<?= base_url('Template_manager') ?>">
-                                        <span><?= translate('Template_manager') ?></span>
-                                    </a>
-                                </li>
+
+                                <?php if (is_superadmin_loggedin()): ?>
+                                    <li class="<?php if ($sub_page == 'template_manager/index') echo 'nav-active'; ?>">
+                                        <a href="<?= base_url('Template_manager') ?>">
+                                            <span><?= translate('Template_manager') ?></span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <?php if (is_admin_loggedin()): ?>
+                                    <li class="<?php if ($sub_page == 'template_manager/branch_templates') echo 'nav-active'; ?>">
+                                        <a href="<?= base_url('Template_manager/branch_templates') ?>">
+                                            <span><?= translate('download_template') ?></span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+
                             </ul>
                         </li>
-                    <?php
-                    }
-                    ?>
+                    <?php endif; ?>
 
                     <?php if (is_superadmin_loggedin() || is_admin_loggedin() || is_teacher_loggedin()) { ?>
 
