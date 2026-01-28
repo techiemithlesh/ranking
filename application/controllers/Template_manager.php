@@ -19,7 +19,7 @@ class Template_manager extends Admin_Controller
         parent::__construct();
         $this->load->model('template_model');
         $this->load->model('templateOverlay_model');
-        $this->load->library('templatengine_lib');
+        $this->load->library('templateengine_lib');
 
         if (!is_superadmin_loggedin() && !is_admin_loggedin()) {
             redirect(base_url('dashboard'), 'refresh');
