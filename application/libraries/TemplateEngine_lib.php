@@ -1,6 +1,6 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-class TemplateEngine_lib
+class Templateengine_lib
 {
     protected $CI;
 
