@@ -14,8 +14,8 @@ class Templateengine_lib
     // Get template + overlays at once
     public function get_template_data($template_id)
     {
-        $template = $this->CI->Template_model->get($template_id);
-        $overlays = $this->CI->TemplateOverlay_model->get_by_template($template_id);
+        $template = $this->CI->template_model->get($template_id);
+        $overlays = $this->CI->templateOverlay_model->get_by_template($template_id);
         return ['template' => $template, 'overlays' => $overlays];
     }
 
@@ -43,9 +43,10 @@ class Templateengine_lib
                 'file_path' => $config['upload_path'] . $uploadData['file_name'],
                 'created_by' => get_loggedin_user_id()
             ];
-            return $this->CI->Template_model->saveTemplate($arrayData);
+            return $this->CI->template_model->saveTemplate($arrayData);
         } else {
             // Return the actual upload error so it shows in Swal
+            log_message('error', 'Template upload error: ' . json_encode($this->CI->upload->display_errors('', '')));
             return ['error' => $this->CI->upload->display_errors('', '')];
         }
     }
