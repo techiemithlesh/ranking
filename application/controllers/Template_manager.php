@@ -267,7 +267,7 @@ class Template_manager extends Admin_Controller
             $this->db->insert('template_overlays', $r);
             if ($this->db->affected_rows() <= 0) {
                 $ok = false;
-                log_message('error', 'Overlay insert failed: ' . json_encode($this->db->error()));
+                // log_message('error', 'Overlay insert failed: ' . json_encode($this->db->error()));
                 log_message('error', 'Overlay insert last_query: ' . $this->db->last_query());
                 break;
             }
