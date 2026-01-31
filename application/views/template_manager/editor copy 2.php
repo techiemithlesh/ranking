@@ -33,11 +33,6 @@
                         <i class="fas fa-plus"></i> Add Placement
                     </button>
 
-                    <button type="button" id="btnAddText" class="btn btn-info btn-sm">
-                        <i class="fas fa-font"></i> Add Text
-                    </button>
-
-
                     <button id="btnSave" class="btn btn-success btn-sm">
                         <i class="fas fa-save"></i> Save All
                     </button>
@@ -111,29 +106,6 @@
 
         </div>
     </div>
-
-    <!-- MODAL FOR POP UP OF SETTING -->
-    <div id="textPicker"
-        style="
-        display:none;
-        position:absolute;
-        z-index:1000;
-        background:#fff;
-        border:1px solid #ddd;
-        border-radius:6px;
-        padding:10px;
-        box-shadow:0 6px 20px rgba(0,0,0,.15);
-     ">
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Text type</label>
-            <select id="textPickerSelect" class="form-control">
-                <option value="branch_name">Branch Name</option>
-                <option value="branch_address">Branch Address</option>
-            </select>
-        </div>
-        <button class="btn btn-primary btn-xs" id="textPickerConfirm">Add</button>
-    </div>
-
 </section>
 
 <style>
@@ -202,11 +174,6 @@
         let overlays = <?= json_encode($overlays, JSON_UNESCAPED_UNICODE) ?> || [];
         let selectedIndex = 0;
         let safeAreaEl = null;
-
-        const btnAddText = document.getElementById('btnAddText');
-        const textPicker = document.getElementById('textPicker');
-        const textPickerSelect = document.getElementById('textPickerSelect');
-        const textPickerConfirm = document.getElementById('textPickerConfirm');
 
         /* ---------- utils ---------- */
         const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
@@ -304,115 +271,72 @@
                     interact(el).unset();
                 } catch (e) {}
             });
-
             overlayLayer.innerHTML = '';
             listEl.innerHTML = '';
             renderSafeArea();
 
             overlays.forEach((ov, i) => {
-
-                /* ---------- LIST ---------- */
                 const li = document.createElement('div');
                 li.className = 'list-item' + (i === selectedIndex ? ' active' : '');
-                li.textContent = `Layer ${i + 1} (${ov.overlay_type || 'logo'})`;
+                li.textContent = 'Layer ' + (i + 1);
                 li.onclick = () => {
                     selectedIndex = i;
                     render();
                 };
                 listEl.appendChild(li);
 
-                /* ---------- BOX ---------- */
                 const box = document.createElement('div');
                 box.className = 'overlay-box' + (i === selectedIndex ? ' selected' : '');
-                box.dataset.index = i;
-
                 Object.assign(box.style, {
                     left: ov.x + 'px',
                     top: ov.y + 'px',
                     width: ov.width + 'px',
                     height: ov.height + 'px',
-                    background: ov.settings?.bg?.enabled ?
-                        ov.settings.bg.color : 'rgba(13,110,253,.08)',
-                    borderRadius: (ov.settings?.bg?.radius || 0) + 'px'
+                    background: ov.settings.bg.enabled ? ov.settings.bg.color : 'rgba(13,110,253,.08)',
+                    borderRadius: ov.settings.bg.radius + 'px'
                 });
 
-                /* ---------- CONTENT ---------- */
-                if (ov.overlay_type === 'text') {
-                    const text = document.createElement('div');
-                    text.style.width = '100%';
-                    text.style.height = '100%';
-                    text.style.display = 'flex';
-                    text.style.alignItems = 'center';
-                    text.style.justifyContent = 'center';
-                    text.style.fontSize = (ov.settings.font_size || 18) + 'px';
-                    text.style.color = ov.settings.color || '#000';
-                    text.style.pointerEvents = 'none';
-
-                    text.textContent =
-                        ov.settings.text_key === 'branch_address' ?
-                        '{{BRANCH_ADDRESS}}' :
-                        '{{BRANCH_NAME}}';
-
-                    box.appendChild(text);
-                } else {
-                    const img = document.createElement('img');
-                    img.src = demoLogo;
-                    img.className = 'demo';
-                    box.appendChild(img);
-                }
-
+                const img = document.createElement('img');
+                img.src = demoLogo;
+                img.className = 'demo';
+                box.appendChild(img);
                 overlayLayer.appendChild(box);
 
-                /* ---------- INTERACT ---------- */
-                interact(box)
-                    .draggable({
-                        listeners: {
-                            move(e) {
-                                ov.x = clamp(ov.x + e.dx, 0, overlayLayer.clientWidth - ov.width);
-                                ov.y = clamp(ov.y + e.dy, 0, overlayLayer.clientHeight - ov.height);
-                                box.style.left = ov.x + 'px';
-                                box.style.top = ov.y + 'px';
-                            }
+                interact(box).draggable({
+                    listeners: {
+                        move: e => {
+                            ov.x = clamp(ov.x + e.dx, 0, overlayLayer.clientWidth - ov.width);
+                            ov.y = clamp(ov.y + e.dy, 0, overlayLayer.clientHeight - ov.height);
+                            box.style.left = ov.x + 'px';
+                            box.style.top = ov.y + 'px';
                         }
-                    })
-                    .resizable({
-                        edges: {
-                            right: true,
-                            bottom: true
-                        },
-                        listeners: {
-                            move(e) {
-                                ov.width = clamp(e.rect.width, 40, overlayLayer.clientWidth - ov.x);
-                                ov.height = clamp(e.rect.height, 40, overlayLayer.clientHeight - ov.y);
-                                box.style.width = ov.width + 'px';
-                                box.style.height = ov.height + 'px';
-                            }
+                    }
+                }).resizable({
+                    edges: {
+                        right: true,
+                        bottom: true
+                    },
+                    listeners: {
+                        move: e => {
+                            ov.width = clamp(e.rect.width, 40, overlayLayer.clientWidth - ov.x);
+                            ov.height = clamp(e.rect.height, 40, overlayLayer.clientHeight - ov.y);
+                            box.style.width = ov.width + 'px';
+                            box.style.height = ov.height + 'px';
                         }
-                    });
+                    }
+                });
             });
 
             loadSettings();
             updateToolVisibility();
         }
 
-
         /* ---------- buttons ---------- */
-
-        btnAddText.onclick = function(e) {
-            const rect = e.target.getBoundingClientRect();
-
-            textPicker.style.left = rect.left + 'px';
-            textPicker.style.top = (rect.bottom + 6) + 'px';
-            textPicker.style.display = 'block';
-        };
-
-
         btnAdd.onclick = () => {
             overlays.push(defaultOverlay());
             selectedIndex = overlays.length - 1;
             render();
         };
-
         btnDuplicate.onclick = () => {
             const c = JSON.parse(JSON.stringify(overlays[selectedIndex]));
             c.x += 10;
@@ -421,18 +345,21 @@
             selectedIndex = overlays.length - 1;
             render();
         };
+        
         btnDelete.onclick = () => {
             if (overlays.length <= 1) return alert('At least one placement required');
             overlays.splice(selectedIndex, 1);
             selectedIndex = Math.max(0, selectedIndex - 1);
             render();
         };
+
         btnUp.onclick = () => {
             if (selectedIndex <= 0) return;
             [overlays[selectedIndex], overlays[selectedIndex - 1]] = [overlays[selectedIndex - 1], overlays[selectedIndex]];
             selectedIndex--;
             render();
         };
+
         btnDown.onclick = () => {
             if (selectedIndex >= overlays.length - 1) return;
             [overlays[selectedIndex], overlays[selectedIndex + 1]] = [overlays[selectedIndex + 1], overlays[selectedIndex]];
@@ -444,36 +371,10 @@
             render();
         });
 
-        textPickerConfirm.onclick = function() {
-            const type = textPickerSelect.value;
-
-            const ov = {
-                overlay_type: 'text',
-                x: overlayLayer.clientWidth * 0.1,
-                y: overlayLayer.clientHeight * 0.1,
-                width: overlayLayer.clientWidth * 0.4,
-                height: 50,
-                settings: {
-                    text_key: type, // branch_name | branch_address
-                    font_size: 18,
-                    color: '#000000',
-                    align: 'center'
-                }
-            };
-
-            overlays.push(ov);
-            selectedIndex = overlays.length - 1;
-
-            textPicker.style.display = 'none';
-            render();
-        };
-
-
         document.getElementById('btnSave').onclick = () => {
             const w = overlayLayer.clientWidth,
                 h = overlayLayer.clientHeight;
             const payload = overlays.map(o => ({
-                overlay_type: o.overlay_type || 'logo',
                 x: pxToRatio(o.x, w),
                 y: pxToRatio(o.y, h),
                 width: pxToRatio(o.width, w),
@@ -485,7 +386,7 @@
             fd.append("<?= $this->security->get_csrf_token_name(); ?>", "<?= $this->security->get_csrf_hash(); ?>");
             fetch(saveUrl, {
                     method: 'POST',
-                    body: fd,
+                    body: fd
                 })
                 .then(r => r.json())
                 .then(j => msg.innerHTML = j.status === 'success' ? '✅ Saved' : '❌ ' + j.message);
