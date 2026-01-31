@@ -215,6 +215,7 @@
 
         function defaultOverlay() {
             return {
+                overlay_type: 'logo',
                 x: overlayLayer.clientWidth * 0.05,
                 y: overlayLayer.clientHeight * 0.05,
                 width: overlayLayer.clientWidth * 0.2,
@@ -257,6 +258,7 @@
                     s = o.settings ? JSON.parse(o.settings) : {}
                 } catch (e) {}
                 return {
+                    overlay_type: o.overlay_type || 'logo',
                     x: ratioToPx(o.x || .05, overlayLayer.clientWidth),
                     y: ratioToPx(o.y || .05, overlayLayer.clientHeight),
                     width: ratioToPx(o.width || .2, overlayLayer.clientWidth),

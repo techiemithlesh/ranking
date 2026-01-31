@@ -223,6 +223,8 @@ class Template_manager extends Admin_Controller
         }
 
         $raw = $this->input->post('overlays', false);
+        // printVar($raw);
+        // die;
         if (!$raw) {
             echo json_encode(['status' => 'error', 'message' => 'Missing overlays payload']);
             exit;
@@ -234,7 +236,7 @@ class Template_manager extends Admin_Controller
             exit;
         }
 
-        // Replace overlays
+
         $this->templateOverlay_model->delete_by_template($template_id);
 
         $rows = [];
@@ -247,9 +249,14 @@ class Template_manager extends Admin_Controller
                 if ($settings === false) $settings = null;
             }
 
+            $overlayType = $ov['overlay_type'] ?? 'logo';
+            if (!in_array($overlayType, ['logo', 'text'])) {
+                $overlayType = 'logo';
+            }
+
             $rows[] = [
                 'template_id'  => (int)$template_id,
-                'overlay_type' => 'logo',
+                'overlay_type' => $overlayType,
                 'x'            => (float)($ov['x'] ?? 0),
                 'y'            => (float)($ov['y'] ?? 0),
                 'width'        => (float)($ov['width'] ?? 100),
@@ -286,9 +293,7 @@ class Template_manager extends Admin_Controller
             redirect(base_url('dashboard'), 'refresh');
         }
 
-
         $templates = $this->template_model->getActiveTemplates();
-
         $this->data['templates'] = $templates;
         $this->data['title'] = translate('marketing_templates');
         $this->data['sub_page'] = 'template_manager/branch_templates';
@@ -318,16 +323,21 @@ class Template_manager extends Admin_Controller
         }
 
         $overlays = $this->templateOverlay_model->get_by_template($template_id);
-
+        $branch = $this->db->select('*')->from('branch')->where('id', get_loggedin_branch_id())->get()->row_array();
 
         $branchLogo = get_branch_logo(get_loggedin_branch_id());
-
 
         if (empty($branchLogo)) {
             set_alert('warning', 'Branch logo not uploaded.');
             redirect(base_url('settings'));
             return;
         }
+
+        $this->data['branch_text_map'] = [
+            'branch_name'    => $branch['name'] ?? '',
+            'branch_address' => $branch['address'] ?? '',
+            'branch_email'   => $branch['email'] ?? '',
+        ];
 
         $this->data['template'] = $template;
         $this->data['overlays'] = $overlays;

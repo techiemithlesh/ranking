@@ -4,7 +4,6 @@
             <h4 class="panel-title">
                 <i class="fas fa-eye"></i> <?= translate('preview_template') ?>
             </h4>
-
             <a href="<?= base_url('Template_manager/branch_templates') ?>"
                 class="btn btn-default btn-sm">
                 <i class="fas fa-arrow-left"></i> <?= translate('back') ?>
@@ -22,6 +21,7 @@
                 <?php
                 $settings = json_decode($ov['settings'], true) ?? [];
                 $bg = $settings['bg'] ?? [];
+                $textKey = $settings['text_key'] ?? '';
                 ?>
                 <div class="overlay-box"
                     data-x="<?= (float)$ov['x'] ?>"
@@ -33,8 +33,21 @@
                     data-bg-padding="<?= (int)($bg['padding'] ?? 0) ?>"
                     data-bg-radius="<?= (int)($bg['radius'] ?? 0) ?>"
                     style="position:absolute; display:flex; align-items:center; justify-content:center;">
-                    <img src="<?= $branch_logo ?>"
-                        style="max-width:100%; max-height:100%; object-fit:contain;">
+                    <?php if ($ov['overlay_type'] == 'logo'): ?>
+                        <img src="<?= $branch_logo ?>"
+                            style="max-width:100%; max-height:100%; object-fit:contain;">
+                    <?php elseif ($ov['overlay_type'] == 'text'): ?>
+
+                        <div style="
+                         font-size:<?= (int)($settings['font_size'] ?? 18) ?>px;
+                         color:<?= $settings['color'] ?? '#000' ?>;
+                         text-align:center;
+                         line-height:1.2;
+                         word-break:break-word;">
+                            <?= html_escape($branch_text_map[$textKey] ?? '') ?>
+                        </div>
+                    <?php endif; ?>
+
                 </div>
             <?php endforeach; ?>
         </div>

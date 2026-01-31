@@ -278,6 +278,7 @@ function set_alert($type, $message = "")
         return $message;
     }
 }
+
 function set_alert_sa($type, $message = "")
 {
     $CI = &get_instance();
