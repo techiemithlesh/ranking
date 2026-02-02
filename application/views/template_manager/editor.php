@@ -129,6 +129,7 @@
             <select id="textPickerSelect" class="form-control">
                 <option value="branch_name">Branch Name</option>
                 <option value="branch_address">Branch Address</option>
+                <option value="branch_contact">Branch Contact</option>
             </select>
         </div>
         <button class="btn btn-primary btn-xs" id="textPickerConfirm">Add</button>
@@ -351,8 +352,8 @@
                     text.style.pointerEvents = 'none';
 
                     text.textContent =
-                        ov.settings.text_key === 'branch_address' ?
-                        '{{BRANCH_ADDRESS}}' :
+                        ov.settings.text_key === 'branch_address' ? '{{BRANCH_ADDRESS}}' :
+                        ov.settings.text_key === 'branch_contact' ? '{{BRANCH_CONTACT}}' :
                         '{{BRANCH_NAME}}';
 
                     box.appendChild(text);

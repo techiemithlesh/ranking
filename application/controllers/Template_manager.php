@@ -336,8 +336,9 @@ class Template_manager extends Admin_Controller
         $this->data['branch_text_map'] = [
             'branch_name'    => $branch['name'] ?? '',
             'branch_address' => $branch['address'] ?? '',
-            'branch_email'   => $branch['email'] ?? '',
+            'branch_contact'   => $branch['mobileno'] ?? '',
         ];
+
 
         $this->data['template'] = $template;
         $this->data['overlays'] = $overlays;
@@ -345,7 +346,7 @@ class Template_manager extends Admin_Controller
 
         $this->data['title'] = translate('preview_template');
         $this->data['sub_page'] = 'template_manager/preview';
-        $this->data['main_menu'] = 'Resources';
+        $this->data['main_menu'] = 'Template_manager';
 
         $this->load->view('layout/index', $this->data);
     }
