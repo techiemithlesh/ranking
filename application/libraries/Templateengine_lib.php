@@ -51,27 +51,16 @@ class Templateengine_lib
         }
     }
 
-    public function renderImage($templatePath, $logoUrl, $overlays, $filename)
+    public function renderImage($templatePath, $logoUrl, $overlays, $filename, $branchTextMap)
     {
-        log_message('info', 'Rendering template image: ' . $templatePath . ' with logo: ' . $logoUrl);
-
         $basePath = $this->toFilePath($templatePath);
         $logoPath = $this->toFilePath($logoUrl);
 
-        if (!file_exists($basePath)) {
-            log_message('error', 'Base image missing: ' . $basePath);
-            show_error('Base image not found');
-        }
-
-        if (!file_exists($logoPath)) {
-            log_message('error', 'Logo image missing: ' . $logoPath);
-            show_error('Logo image not found');
-        }
+        if (!file_exists($basePath)) show_error('Base image not found');
+        if (!file_exists($logoPath)) show_error('Logo image not found');
 
         $base = $this->loadImage($basePath);
-        if (!$base) {
-            show_error('Failed to load base image');
-        }
+        if (!$base) show_error('Failed to load base image');
 
         $baseW = imagesx($base);
         $baseH = imagesy($base);
@@ -81,17 +70,16 @@ class Templateengine_lib
             $settings = json_decode($ov['settings'], true) ?? [];
             $bg = $settings['bg'] ?? [];
 
-            // ratios → pixels
-            $x = (int)round((float)$ov['x'] * $baseW);
-            $y = (int)round((float)$ov['y'] * $baseH);
-            $w = (int)round((float)$ov['width'] * $baseW);
-            $h = (int)round((float)$ov['height'] * $baseH);
+            $x = (int)round($ov['x'] * $baseW);
+            $y = (int)round($ov['y'] * $baseH);
+            $w = (int)round($ov['width'] * $baseW);
+            $h = (int)round($ov['height'] * $baseH);
 
             if ($w <= 0 || $h <= 0) continue;
 
             $padding = (int)($bg['padding'] ?? 0);
 
-            // background
+            // Background
             if (!empty($bg['enabled'])) {
                 $this->drawBackground(
                     $base,
@@ -103,21 +91,68 @@ class Templateengine_lib
                 );
             }
 
-            // logo
-            $this->drawImage(
-                $base,
-                $logoPath,
-                $x + $padding,
-                $y + $padding,
-                $w - ($padding * 2),
-                $h - ($padding * 2)
-            );
+            /* ==========================
+           LOGO
+        ========================== */
+            if ($ov['overlay_type'] === 'logo') {
+
+                $this->drawImage(
+                    $base,
+                    $logoPath,
+                    $x + $padding,
+                    $y + $padding,
+                    $w - ($padding * 2),
+                    $h - ($padding * 2)
+                );
+            }
+
+            /* ==========================
+           TEXT
+        ========================== */ elseif ($ov['overlay_type'] === 'text') {
+
+                $textKey = $settings['text_key'] ?? '';
+                $text = $branchTextMap[$textKey] ?? '';
+
+                if ($text !== '') {
+                    $this->drawText(
+                        $base,
+                        $text,
+                        $x + $padding,
+                        $y + $padding,
+                        $w - ($padding * 2),
+                        $h - ($padding * 2),
+                        $settings
+                    );
+                }
+            }
         }
 
         $this->outputImage($base, $filename);
         imagedestroy($base);
         exit;
     }
+
+    private function drawText($img, $text, $x, $y, $w, $h, $settings)
+    {
+        $fontSize = (int)($settings['font_size'] ?? 18);
+        $colorHex = $settings['color'] ?? '#000000';
+
+        [$r, $g, $b] = $this->hexToRgb($colorHex);
+        $color = imagecolorallocate($img, $r, $g, $b);
+
+        // Use default GD font (Phase-1 safe)
+        $font = 5; // GD built-in font
+
+        $textWidth = imagefontwidth($font) * strlen($text);
+        $textHeight = imagefontheight($font);
+
+        // center text
+        $tx = $x + max(0, ($w - $textWidth) / 2);
+        $ty = $y + max(0, ($h - $textHeight) / 2);
+
+        imagestring($img, $font, (int)$tx, (int)$ty, $text, $color);
+    }
+
 
     /* ==============================
        HELPERS

@@ -364,19 +364,30 @@ class Template_manager extends Admin_Controller
 
         $overlays = $this->templateOverlay_model->get_by_template($template_id);
 
-        // get_branch_logo() RETURNS URL (do not change it)
-        $branchLogoUrl = get_branch_logo();
+        $branch = $this->db
+            ->select('*')
+            ->from('branch')
+            ->where('id', get_loggedin_branch_id())
+            ->get()
+            ->row_array();
 
+        $branchLogoUrl = get_branch_logo(get_loggedin_branch_id());
         if (empty($branchLogoUrl)) {
             show_error('Branch logo not found');
         }
 
+        $branchTextMap = [
+            'branch_name'    => $branch['name'] ?? '',
+            'branch_address' => $branch['address'] ?? '',
+            'branch_contact' => $branch['mobileno'] ?? '',
+        ];
 
         $this->templateengine_lib->renderImage(
-            $template['file_path'],   // relative path
-            $branchLogoUrl,           // URL (will be converted internally)
+            $template['file_path'],
+            $branchLogoUrl,
             $overlays,
-            $template['title']
+            $template['title'],
+            $branchTextMap // 👈 NEW
         );
     }
 }
