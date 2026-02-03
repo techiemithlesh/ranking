@@ -123,7 +123,7 @@
         border-radius:6px;
         padding:10px;
         box-shadow:0 6px 20px rgba(0,0,0,.15);
-     ">
+        ">
         <div class="form-group" style="margin-bottom:8px;">
             <label style="font-size:12px;">Text type</label>
             <select id="textPickerSelect" class="form-control">
@@ -214,6 +214,31 @@
         const pxToRatio = (v, t) => t ? v / t : 0;
         const ratioToPx = (v, t) => v <= 1 ? v * t : v;
 
+        function normalizeSettings(ov) {
+            ov.settings = ov.settings || {};
+
+            // background defaults
+            ov.settings.bg = Object.assign({
+                enabled: true,
+                color: '#ffffff',
+                padding: 12,
+                radius: 16
+            }, ov.settings.bg || {});
+
+            // text defaults (ONLY if text overlay)
+            if (ov.overlay_type === 'text') {
+                ov.settings = Object.assign({
+                    text_key: 'branch_name',
+                    font_size: 18,
+                    color: '#000000',
+                    align: 'center'
+                }, ov.settings);
+            }
+
+            return ov;
+        }
+
+
         function defaultOverlay() {
             return {
                 overlay_type: 'logo',
@@ -256,28 +281,35 @@
             overlays = overlays.map(o => {
                 let s = {};
                 try {
-                    s = o.settings ? JSON.parse(o.settings) : {}
+                    s = o.settings ? JSON.parse(o.settings) : {};
                 } catch (e) {}
-                return {
+
+                const ov = {
                     overlay_type: o.overlay_type || 'logo',
                     x: ratioToPx(o.x || .05, overlayLayer.clientWidth),
                     y: ratioToPx(o.y || .05, overlayLayer.clientHeight),
                     width: ratioToPx(o.width || .2, overlayLayer.clientWidth),
                     height: ratioToPx(o.height || .2, overlayLayer.clientHeight),
-                    settings: Object.assign({
-                        bg: {
-                            enabled: true,
-                            color: '#fff',
-                            padding: 12,
-                            radius: 16
-                        }
-                    }, s)
+                    settings: s
                 };
+
+                return normalizeSettings(ov);
             });
-            if (!overlays.length) overlays.push(defaultOverlay());
+
+            if (!overlays.length) overlays.push(normalizeSettings(defaultOverlay()));
         }
 
+
         /* ---------- tools ---------- */
+
+        function calcFontSize(ov) {
+            const min = 10;
+            const max = 80;
+            const size = ov.height * 0.35;
+            return clamp(Math.round(size), min, max);
+        }
+
+
         function updateToolVisibility() {
             const has = overlays[selectedIndex];
             settingsPanel.style.display = has ? 'block' : 'none';
@@ -293,12 +325,15 @@
         }
 
         function applySettings() {
-            const bg = overlays[selectedIndex].settings.bg;
-            bg.enabled = bgEnabled.value === '1';
-            bg.color = bgColor.value;
-            bg.padding = +bgPadding.value;
-            bg.radius = +bgRadius.value;
+            const ov = overlays[selectedIndex];
+            normalizeSettings(ov);
+
+            ov.settings.bg.enabled = bgEnabled.value === '1';
+            ov.settings.bg.color = bgColor.value;
+            ov.settings.bg.padding = +bgPadding.value;
+            ov.settings.bg.radius = +bgRadius.value;
         }
+
 
         /* ---------- render ---------- */
         function render() {
@@ -387,6 +422,10 @@
                             move(e) {
                                 ov.width = clamp(e.rect.width, 40, overlayLayer.clientWidth - ov.x);
                                 ov.height = clamp(e.rect.height, 40, overlayLayer.clientHeight - ov.y);
+                                if (ov.overlay_type === 'text') {
+                                    ov.settings.font_size = calcFontSize(ov);
+                                }
+
                                 box.style.width = ov.width + 'px';
                                 box.style.height = ov.height + 'px';
                             }
@@ -425,7 +464,7 @@
             render();
         };
         btnDelete.onclick = () => {
-            if (overlays.length <= 1) return alert('At least one placement required');
+            // if (overlays.length <= 1) return alert('At least one placement required');
             overlays.splice(selectedIndex, 1);
             selectedIndex = Math.max(0, selectedIndex - 1);
             render();
