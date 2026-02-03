@@ -1,0 +1,34 @@
+.overlay-box {
+  position: absolute;
+  border: 2px dashed #0d6efd;
+  background: rgba(13, 110, 253, 0.08);
+  box-sizing: border-box;
+  cursor: move;
+}
+
+.overlay-box.selected {
+  border-style: solid;
+}
+
+.overlay-box .demo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.safe-area {
+  position: absolute;
+  border: 2px dashed rgba(255, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.list-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.list-item.active {
+  background: #eef5ff;
+}

@@ -78,6 +78,52 @@
                                 </select>
                             </div>
 
+                            <div id="textTools" style="display:none;">
+
+                                <hr>
+                                <strong>Text Settings</strong>
+
+                                <!-- Text Size -->
+                                <div class="form-group">
+                                    <label>Font Size</label>
+                                    <input type="range" id="fontSize"
+                                        min="10" max="80" step="1">
+                                    <small id="fontSizeVal">24px</small>
+                                </div>
+
+                                <!-- Text Color -->
+                                <div class="form-group">
+                                    <label>Text Color</label>
+                                    <input type="color" id="textColor">
+                                </div>
+
+                                <!-- Alignment -->
+                                <div class="form-group">
+                                    <label>Alignment</label><br>
+                                    <button type="button" class="btn btn-default btn-xs" data-align="left">⬅</button>
+                                    <button type="button" class="btn btn-default btn-xs" data-align="center">⬆</button>
+                                    <button type="button" class="btn btn-default btn-xs" data-align="right">➡</button>
+                                </div>
+
+                                <!-- Line height -->
+                                <div class="form-group">
+                                    <label>Line Height</label>
+                                    <input type="range" id="lineHeight"
+                                        min="1" max="2.5" step="0.1">
+                                </div>
+
+                                <!-- Weight -->
+                                <div class="form-group">
+                                    <label>Font Weight</label>
+                                    <select id="fontWeight" class="form-control">
+                                        <option value="normal">Normal</option>
+                                        <option value="bold">Bold</option>
+                                    </select>
+                                </div>
+
+                            </div>
+
+
                             <div class="form-group">
                                 <label>Color</label>
                                 <input type="text" id="bgColor" class="form-control" value="#ffffff">
@@ -137,42 +183,6 @@
 
 </section>
 
-<style>
-    .overlay-box {
-        position: absolute;
-        border: 2px dashed #0d6efd;
-        background: rgba(13, 110, 253, .08);
-        box-sizing: border-box;
-        cursor: move;
-    }
-
-    .overlay-box.selected {
-        border-style: solid;
-    }
-
-    .overlay-box .demo {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        pointer-events: none;
-    }
-
-    .safe-area {
-        position: absolute;
-        border: 2px dashed rgba(255, 0, 0, .4);
-        pointer-events: none;
-    }
-
-    .list-item {
-        padding: 8px 10px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-    }
-
-    .list-item.active {
-        background: #eef5ff;
-    }
-</style>
 
 <script>
     (function() {
@@ -209,15 +219,24 @@
         const textPickerSelect = document.getElementById('textPickerSelect');
         const textPickerConfirm = document.getElementById('textPickerConfirm');
 
+        const textTools = document.getElementById('textTools');
+        const fontSize = document.getElementById('fontSize');
+        const fontSizeVal = document.getElementById('fontSizeVal');
+        const textColor = document.getElementById('textColor');
+        const lineHeight = document.getElementById('lineHeight');
+        const fontWeight = document.getElementById('fontWeight');
+
+
         /* ---------- utils ---------- */
         const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
         const pxToRatio = (v, t) => t ? v / t : 0;
         const ratioToPx = (v, t) => v <= 1 ? v * t : v;
 
         function normalizeSettings(ov) {
+            ov.overlay_type = ov.overlay_type || 'logo';
             ov.settings = ov.settings || {};
 
-            // background defaults
+            // Background defaults (ALL overlays)
             ov.settings.bg = Object.assign({
                 enabled: true,
                 color: '#ffffff',
@@ -225,17 +244,30 @@
                 radius: 16
             }, ov.settings.bg || {});
 
-            // text defaults (ONLY if text overlay)
+            // Text defaults (TEXT ONLY)
             if (ov.overlay_type === 'text') {
                 ov.settings = Object.assign({
                     text_key: 'branch_name',
                     font_size: 18,
                     color: '#000000',
-                    align: 'center'
+                    align: 'center',
+                    line_height: 1.2,
+                    weight: 'normal'
                 }, ov.settings);
             }
 
             return ov;
+        }
+
+
+        function loadTextSettings() {
+            const s = overlays[selectedIndex].settings;
+
+            fontSize.value = s.font_size;
+            fontSizeVal.innerText = s.font_size + 'px';
+            textColor.value = s.color;
+            lineHeight.value = s.line_height;
+            fontWeight.value = s.weight;
         }
 
 
@@ -279,25 +311,30 @@
         /* ---------- init ---------- */
         function initOverlays() {
             overlays = overlays.map(o => {
-                let s = {};
+                let settings = {};
                 try {
-                    s = o.settings ? JSON.parse(o.settings) : {};
+                    settings = typeof o.settings === 'string' ?
+                        JSON.parse(o.settings) :
+                        (o.settings || {});
                 } catch (e) {}
 
                 const ov = {
                     overlay_type: o.overlay_type || 'logo',
-                    x: ratioToPx(o.x || .05, overlayLayer.clientWidth),
-                    y: ratioToPx(o.y || .05, overlayLayer.clientHeight),
-                    width: ratioToPx(o.width || .2, overlayLayer.clientWidth),
-                    height: ratioToPx(o.height || .2, overlayLayer.clientHeight),
-                    settings: s
+                    x: ratioToPx(o.x || 0.05, overlayLayer.clientWidth),
+                    y: ratioToPx(o.y || 0.05, overlayLayer.clientHeight),
+                    width: ratioToPx(o.width || 0.2, overlayLayer.clientWidth),
+                    height: ratioToPx(o.height || 0.2, overlayLayer.clientHeight),
+                    settings
                 };
 
                 return normalizeSettings(ov);
             });
 
-            if (!overlays.length) overlays.push(normalizeSettings(defaultOverlay()));
+            if (!overlays.length) {
+                overlays.push(normalizeSettings(defaultOverlay()));
+            }
         }
+
 
 
         /* ---------- tools ---------- */
@@ -314,6 +351,13 @@
             const has = overlays[selectedIndex];
             settingsPanel.style.display = has ? 'block' : 'none';
             emptyHint.style.display = has ? 'none' : 'block';
+
+            if (has.overlay_type === 'text') {
+                document.getElementById('textTools').style.display = 'block';
+            } else {
+                document.getElementById('textTools').style.display = 'none';
+            }
+
         }
 
         function loadSettings() {
@@ -541,6 +585,35 @@
             render();
         };
         if (baseImg.complete) baseImg.onload();
+
+        fontSize.oninput = () => {
+            overlays[selectedIndex].settings.font_size = +fontSize.value;
+            fontSizeVal.innerText = fontSize.value + 'px';
+            render();
+        };
+
+        textColor.oninput = () => {
+            overlays[selectedIndex].settings.color = textColor.value;
+            render();
+        };
+
+        lineHeight.oninput = () => {
+            overlays[selectedIndex].settings.line_height = +lineHeight.value;
+            render();
+        };
+
+        fontWeight.onchange = () => {
+            overlays[selectedIndex].settings.weight = fontWeight.value;
+            render();
+        };
+
+        document.querySelectorAll('[data-align]').forEach(btn => {
+            btn.onclick = () => {
+                overlays[selectedIndex].settings.align = btn.dataset.align;
+                render();
+            };
+        });
+
 
     })();
 </script>

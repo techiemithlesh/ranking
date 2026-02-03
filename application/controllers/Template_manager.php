@@ -200,9 +200,8 @@ class Template_manager extends Admin_Controller
         $this->data['title'] = translate('edit_template');
         $this->data['sub_page'] = 'template_manager/editor';
         $this->data['main_menu'] = 'Template_manager';
-
         $this->data['headerelements'] = array(
-            'css' => array(),
+            'css' => array('css/template_editor.css'),
             'js'  => array(
                 'vendor/interactjs/interact.min.js',
             ),
