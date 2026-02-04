@@ -125,8 +125,8 @@
 
 
                             <div class="form-group">
-                                <label>Background Color</label>
-                                <input type="text" id="bgColor" class="form-control" value="#ffffff">
+                                <label for="bgColor">Background Color</label>
+                                <input type="color" id="bgColor" class="form-control" value="#ffffff">
                             </div>
 
                             <div class="form-group">
@@ -411,9 +411,10 @@
                     top: ov.y + 'px',
                     width: ov.width + 'px',
                     height: ov.height + 'px',
-                    background: ov.settings?.bg?.enabled ?
-                        ov.settings.bg.color : 'rgba(13,110,253,.08)',
-                    borderRadius: (ov.settings?.bg?.radius || 0) + 'px'
+                    background: ov.settings.bg.enabled ? ov.settings.bg.color : 'transparent',
+                    borderRadius: (ov.settings?.bg?.radius || 0) + 'px',
+                    padding: ov.settings.bg.padding + 'px',
+                    boxSizing: 'border-box'
                 });
 
                 /* ---------- CONTENT ---------- */
