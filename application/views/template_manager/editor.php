@@ -4,7 +4,7 @@
             <h4 class="panel-title" style="margin:0;">
                 <?= translate('edit_template') ?> : <?= html_escape($template['title']) ?>
             </h4>
-            <a href="<?= base_url('template-manager') ?>" class="btn btn-default btn-sm">
+            <a href="<?= base_url('Template_manager') ?>" class="btn btn-default btn-sm">
                 <i class="fas fa-arrow-left"></i> <?= translate('back') ?>
             </a>
         </div>
@@ -125,7 +125,7 @@
 
 
                             <div class="form-group">
-                                <label>Color</label>
+                                <label>Background Color</label>
                                 <input type="text" id="bgColor" class="form-control" value="#ffffff">
                             </div>
 
@@ -399,6 +399,7 @@
                 li.textContent = `Layer ${i + 1} (${ov.overlay_type || 'logo'})`;
                 li.onclick = () => {
                     selectedIndex = i;
+                    normalizeSettings(overlays[selectedIndex]);
                     render();
                 };
                 listEl.appendChild(li);
@@ -479,6 +480,9 @@
 
             loadSettings();
             updateToolVisibility();
+            if (overlays[selectedIndex]?.overlay_type === 'text') {
+                loadTextSettings();
+            }
         }
 
 
@@ -533,19 +537,16 @@
         textPickerConfirm.onclick = function() {
             const type = textPickerSelect.value;
 
-            const ov = {
+            const ov = normalizeSettings({
                 overlay_type: 'text',
                 x: overlayLayer.clientWidth * 0.1,
                 y: overlayLayer.clientHeight * 0.1,
                 width: overlayLayer.clientWidth * 0.4,
                 height: 50,
                 settings: {
-                    text_key: type, // branch_name | branch_address
-                    font_size: 18,
-                    color: '#000000',
-                    align: 'center'
+                    text_key: type
                 }
-            };
+            });
 
             overlays.push(ov);
             selectedIndex = overlays.length - 1;
