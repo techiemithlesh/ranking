@@ -40,3 +40,8 @@
 .list-item.active {
   background: #eef5ff;
 }
+
+input[type="color"] {
+    padding: 3px;
+    height: 38px; /* Matches standard Bootstrap input height */
+}
