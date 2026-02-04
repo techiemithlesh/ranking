@@ -335,8 +335,6 @@
             }
         }
 
-
-
         /* ---------- tools ---------- */
 
         function calcFontSize(ov) {
@@ -377,7 +375,6 @@
             ov.settings.bg.padding = +bgPadding.value;
             ov.settings.bg.radius = +bgRadius.value;
         }
-
 
         /* ---------- render ---------- */
         function render() {
@@ -484,7 +481,6 @@
                 loadTextSettings();
             }
         }
-
 
         /* ---------- buttons ---------- */
 
