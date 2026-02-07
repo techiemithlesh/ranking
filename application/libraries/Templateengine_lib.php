@@ -41,6 +41,7 @@ class Templateengine_lib
                 'title'     => $this->CI->input->post('title'),
                 'type'      => $type,
                 'file_path' => $config['upload_path'] . $uploadData['file_name'],
+                'upload_status' => 'completed',
                 'created_by' => get_loggedin_user_id()
             ];
             return $this->CI->template_model->saveTemplate($arrayData);

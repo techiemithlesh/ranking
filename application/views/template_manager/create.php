@@ -51,6 +51,17 @@
                                 Upload JPG or PNG.
                             </small>
                         </div>
+                        <div id="uploadProgressWrap" style="display:none;margin-top:10px;">
+                            <div class="progress">
+                                <div id="uploadProgress"
+                                    class="progress-bar progress-bar-striped active"
+                                    role="progressbar"
+                                    style="width:0%">
+                                    0%
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -69,71 +80,135 @@
     </div>
 </div>
 
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#type').on('change', function() {
-            var type = $(this).val();
-            $('#template_file').val('');
+<script>
+    $(function() {
+
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+        const progressWrap = $('#uploadProgressWrap');
+        const progressBar = $('#uploadProgress');
+
+        function toast(type, message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 8000
+            });
+        }
+
+        $('#templateUploadForm').on('submit', function(e) {
+            e.preventDefault();
+
+            const type = $('#type').val();
+            const file = document.getElementById('template_file').files[0];
+
+            if (!file) {
+                toast('error', 'Please select a file');
+                return;
+            }
 
             if (type === 'image') {
-                $('#template_file').attr('accept', 'image/*');
-                $('#fileHint').text('Upload JPG or PNG.');
+                normalUpload(this);
             } else {
-                $('#template_file').attr('accept', 'video/mp4');
-                $('#fileHint').text('Upload MP4 video.');
+                startVideoUpload(file);
             }
         });
 
+        /* ---------- IMAGE UPLOAD ---------- */
+        function normalUpload(form) {
+            $.ajax({
+                url: "<?= base_url('Template_manager/storeAssets') ?>",
+                type: "POST",
+                data: new FormData(form),
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                success(res) {
+                    if (res.status === 'success') {
+                        toast('success', res.message);
+                        setTimeout(() => location.href = res.url, 1200);
+                    } else {
+                        toast('error', res.message);
+                    }
+                }
+            });
+        }
 
-        $('#type').trigger('change');
+        /* ---------- VIDEO INIT ---------- */
+        function startVideoUpload(file) {
 
-        // AJAX Submission
-        $('#templateUploadForm').on('submit', function(e) {
-            e.preventDefault();
-            var btn = $(this).find('button[type="submit"]');
+            toast('info', 'Initializing video upload…');
 
             $.ajax({
                 url: "<?= base_url('Template_manager/storeAssets') ?>",
                 type: "POST",
-                data: new FormData(this),
-                dataType: "json",
-                contentType: false,
-                processData: false,
-                beforeSend: function() {
-                    btn.attr('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> <?= translate("processing") ?>...');
+                dataType: 'json',
+                data: {
+                    title: $('input[name="title"]').val(),
+                    type: 'video',
+                    file_size: file.size
                 },
-                success: function(data) {
-                    // console.log("data", data);
-                    if (data.status == 'success') {
-                        $('#templateUploadForm')[0].reset();
-                        Swal.fire({
-                            title: 'Success!',
-                            text: data.message || "Template Uploaded Sucessfully !",
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#3085d6'
-                        }).then((result) => {
-                            if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
-                                window.location.replace(data.url);
-                            }
-                        });
-
-                        setTimeout(function() {
-                            window.location.href = data.url;
-                        }, 3000);
-                    
-                    } else {
-
-                        swal("<?= translate('error') ?>", data.message, "error");
-                        btn.attr('disabled', false).html('<i class="fas fa-upload"></i> <?= translate("upload") ?>');
+                success(res) {
+                    if (res.status !== 'success') {
+                        toast('error', res.message);
+                        return;
                     }
-                },
-                error: function(xhr) {
-                    console.log('Upload error:', xhr.status, xhr.responseText);
-                    swal("<?= translate('error') ?>", "Server connection failed", "error");
-                    btn.attr('disabled', false).html('<i class="fas fa-upload"></i> <?= translate("upload") ?>');
+
+                    progressWrap.show();
+                    uploadChunks(file, res.template_id);
                 }
             });
-        });
+        }
+
+        /* ---------- CHUNK UPLOAD ---------- */
+        function uploadChunks(file, templateId) {
+
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            let currentChunk = 0;
+
+            function sendNextChunk() {
+
+                const start = currentChunk * CHUNK_SIZE;
+                const chunk = file.slice(start, start + CHUNK_SIZE);
+
+                const fd = new FormData();
+                fd.append('chunk', chunk);
+                fd.append('template_id', templateId);
+                fd.append('chunk_index', currentChunk);
+                fd.append('total_chunks', totalChunks);
+
+                $.ajax({
+                    url: "<?= base_url('Template_manager/uploadVideoChunk') ?>",
+                    type: "POST",
+                    data: fd,
+                    contentType: false,
+                    processData: false,
+                    success() {
+                        currentChunk++;
+
+                        const percent = Math.round((currentChunk / totalChunks) * 100);
+                        progressBar
+                            .css('width', percent + '%')
+                            .text(percent + '%');
+
+                        if (currentChunk < totalChunks) {
+                            sendNextChunk();
+                        } else {
+                            toast('success', 'Video uploaded successfully');
+                            setTimeout(() => {
+                                location.href = "<?= base_url('Template_manager') ?>";
+                            }, 1500);
+                        }
+                    },
+                    error() {
+                        toast('error', 'Chunk upload failed');
+                    }
+                });
+            }
+
+            sendNextChunk();
+        }
     });
 </script>

@@ -455,7 +455,7 @@ $config['csrf_cookie_name'] = 'school_cookie_name';
 $config['csrf_expire'] = 7200;
 $config['csrf_regenerate'] = FALSE;
 // $config['csrf_exclude_uris'] = array();
-$config['csrf_exclude_uris'] = array('sendsmsmail/sendWhatsappMessage', 'Api/Auth/login', 'Api/Auth/getStudentDetails', 
+$config['csrf_exclude_uris'] = array('Template_manager/uploadVideoChunk', 'Api/Auth/login', 'Api/Auth/getStudentDetails', 
 'branch/csv_upload', 'Api/Auth/getBooks');
 
 if($config['csrf_protection'] == TRUE && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'],'feespayment/') !== FALSE){

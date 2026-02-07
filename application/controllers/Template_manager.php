@@ -143,40 +143,133 @@ class Template_manager extends Admin_Controller
             exit;
         }
 
-        $result = $this->templateengine_lib->storeTemplate();
+        $type = $this->input->post('type', true);
 
-        // ✅ SUCCESS: insert_id returned
-        if (is_numeric($result) && (int)$result > 0) {
-            $id = (int)$result;
-            $type = $this->input->post('type', true);
+        // IMAGE → old flow stays same
+        if ($type === 'image') {
+            $result = $this->templateengine_lib->storeTemplate();
 
-            $url = ($type === 'image')
-                ? base_url('Template_manager/edit/' . $id)
-                : base_url('Template_manager');
+            if (is_numeric($result)) {
+                echo json_encode([
+                    'status' => 'success',
+                    'url' => base_url('Template_manager/edit/' . $result)
+                ]);
+                exit;
+            }
 
-            echo json_encode([
-                'status'  => 'success',
-                'message' => 'Template Uploaded Successfully!',
-                'url'     => $url
-            ]);
+            echo json_encode(['status' => 'error', 'message' => $result['error'] ?? 'Upload failed']);
             exit;
         }
 
-        // ✅ ERROR returned as array
-        if (is_array($result) && isset($result['error'])) {
-            echo json_encode(['status' => 'error', 'message' => $result['error']]);
+        // VIDEO → create DB record first
+        $fileSize = (int)$this->input->post('file_size');
+
+        $templateId = $this->template_model->saveTemplate([
+            'title' => $this->input->post('title', true),
+            'type' => 'video',
+            'file_path' => null,
+            'size' => $fileSize,
+            'upload_status' => 'uploading',
+            'created_by' => get_loggedin_user_id()
+        ]);
+
+        if (!$templateId) {
+            echo json_encode(['status' => 'error', 'message' => 'DB insert failed']);
             exit;
         }
 
-        // ✅ DB exception returned as string (your saveTemplate try/catch)
-        if (is_string($result) && $result !== '') {
-            echo json_encode(['status' => 'error', 'message' => $result]);
-            exit;
-        }
-
-        echo json_encode(['status' => 'error', 'message' => 'Upload failed']);
+        echo json_encode([
+            'status' => 'success',
+            'template_id' => $templateId
+        ]);
         exit;
     }
+
+
+
+    public function uploadVideoChunk()
+    {
+        $templateId = (int)$this->input->post('template_id');
+        $chunkIndex = (int)$this->input->post('chunk_index');
+        $totalChunks = (int)$this->input->post('total_chunks');
+
+        if (!isset($_FILES['chunk'])) {
+            show_error('Chunk missing');
+        }
+
+        $chunkDir = FCPATH . "uploads/temp_chunks/$templateId/";
+        if (!is_dir($chunkDir)) {
+            mkdir($chunkDir, 0755, true);
+        }
+
+        move_uploaded_file(
+            $_FILES['chunk']['tmp_name'],
+            $chunkDir . $chunkIndex
+        );
+
+        // Last chunk → merge
+        if ($chunkIndex + 1 === $totalChunks) {
+            $this->mergeChunks($templateId, $totalChunks);
+        }
+
+        echo json_encode(['status' => 'ok']);
+    }
+
+
+    private function mergeChunks($templateId, $totalChunks)
+    {
+        $finalDir = FCPATH . 'uploads/template-manager/video/';
+        if (!is_dir($finalDir)) {
+            mkdir($finalDir, 0755, true);
+        }
+
+        $finalName = uniqid('video_') . '.mp4';
+        $finalPath = $finalDir . $finalName;
+
+        $out = fopen($finalPath, 'ab');
+
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $chunk = FCPATH . "uploads/temp_chunks/$templateId/$i";
+            fwrite($out, file_get_contents($chunk));
+            unlink($chunk);
+        }
+
+        fclose($out);
+        rmdir(FCPATH . "uploads/temp_chunks/$templateId");
+
+        $duration = $this->getVideoDuration($finalPath);
+        $size = filesize($finalPath);
+
+        log_message('info', "Video merged: $finalPath (Duration: {$duration}s, Size: {$size} bytes)");
+
+        $this->db->where('id', $templateId)->update('template_assets', [
+            'file_path' => 'uploads/template-manager/video/' . $finalName,
+            'duration' => $duration,
+            'size' => $size,
+            'upload_status' => 'completed'
+        ]);
+    }
+
+    // private function getVideoDuration($path)
+    // {
+    //     $cmd = "ffprobe -v error -show_entries format=duration 
+    //         -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($path);
+    //     return round((float)shell_exec($cmd), 2);
+    // }
+
+    private function getVideoDuration($path)
+    {
+        $ffprobe = 'C:\\ffmpeg\\bin\\ffprobe.exe';
+
+        $cmd = "\"$ffprobe\" -v error -show_entries format=duration "
+            . "-of default=noprint_wrappers=1:nokey=1 "
+            . escapeshellarg($path);
+
+        return round((float)shell_exec($cmd), 2);
+    }
+
+
+
 
     public function edit($id)
     {
