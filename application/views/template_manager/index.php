@@ -131,6 +131,9 @@
                                             <i class="fas fa-pen"></i> Edit
                                         </a>
 
+                                        <?php if (is_superadmin_loggedin()): ?>
+                                           <?php echo btn_delete_ajax('Template_manager/delete/' . $item['id']); ?>
+                                        <?php endif; ?>
                                     </div>
 
                                 </div>

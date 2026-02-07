@@ -51,7 +51,7 @@ $this->data['is_new_design'] = $new_design;
 					</header>
 				<?php else: ?>
 					<header class="page-header-breadcrumb d-flex align-items-center justify-content-between flex-wrap" id="breadcrumbTrail">
-						 
+
 					</header>
 				<?php endif; ?>
 
@@ -75,7 +75,7 @@ $this->data['is_new_design'] = $new_design;
 	}
 	if ($alertclass != ''):
 		$alert_message = $this->session->flashdata('alert-message-' . $alertclass);
-		?>
+	?>
 		<script type="text/javascript">
 			swal({
 				toast: true,
@@ -91,7 +91,6 @@ $this->data['is_new_design'] = $new_design;
 
 	<!-- sweetalert box -->
 	<script type="text/javascript">
-
 		function openSupportModal() {
 			document.getElementById("support-modal").style.display = "block";
 		}
@@ -124,9 +123,9 @@ $this->data['is_new_design'] = $new_design;
 			formData.append("message", message);
 
 			fetch("<?= base_url('support/save') ?>", {
-				method: "POST",
-				body: formData
-			})
+					method: "POST",
+					body: formData
+				})
 				.then(response => response.json())
 				.then(data => {
 					swal({
@@ -170,7 +169,7 @@ $this->data['is_new_design'] = $new_design;
 					$.ajax({
 						url: delete_url,
 						type: "POST",
-						success: function (data) {
+						success: function(data) {
 							swal({
 								title: "<?php echo translate('deleted') ?>",
 								text: "<?php echo translate('information_deleted') ?>",
@@ -183,6 +182,54 @@ $this->data['is_new_design'] = $new_design;
 								if (result.value) {
 									location.reload();
 								}
+							});
+						}
+					});
+				}
+			});
+		}
+
+		// CONFIRM DELETE WITH responseMSG
+		function confirmDeleteAjax(delete_url) {
+			swal({
+				title: "<?php echo translate('are_you_sure') ?>",
+				text: "<?php echo translate('delete_this_information') ?>",
+				type: "warning",
+				showCancelButton: true,
+				confirmButtonClass: "btn btn-default swal2-btn-default",
+				cancelButtonClass: "btn btn-default swal2-btn-default",
+				confirmButtonText: "<?php echo translate('yes_continue') ?>",
+				cancelButtonText: "<?php echo translate('cancel') ?>",
+				buttonsStyling: false,
+				footer: "<?php echo translate('deleted_note') ?>"
+			}).then((result) => {
+				if (result.value) {
+					$.ajax({
+						url: delete_url,
+						type: "POST",
+						dataType: "json", // expecting JSON from responseMsg()
+						success: function(res) {
+							swal({
+								title: res.status ? "<?php echo translate('deleted') ?>" : "<?php echo translate('failed') ?>",
+								text: res.message,
+								type: res.status ? "success" : "error",
+								buttonsStyling: false,
+								showCloseButton: true,
+								focusConfirm: false,
+								confirmButtonClass: "btn btn-default swal2-btn-default"
+							}).then((result) => {
+								if (res.status && result.value) {
+									location.reload();
+								}
+							});
+						},
+						error: function() {
+							swal({
+								title: "<?php echo translate('error') ?>",
+								text: "Something went wrong. Please try again.",
+								type: "error",
+								buttonsStyling: false,
+								confirmButtonClass: "btn btn-default swal2-btn-default"
 							});
 						}
 					});

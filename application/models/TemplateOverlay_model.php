@@ -29,7 +29,25 @@ class TemplateOverlay_model extends MY_Model
 
     public function delete_by_template($template_id)
     {
+        // Start the Transaction
+        $this->db->trans_start();
+
+        // Delete from the first table
         $this->db->where('template_id', $template_id)->delete('template_overlays');
+
+        // Delete from the second table
+        $this->db->where('template_id', $template_id)->delete('template_video_overlays');
+
+        // Complete the transaction
+        $this->db->trans_complete();
+
+        // Check if transaction was successful
+        if ($this->db->trans_status() === FALSE) {
+            log_message('error', "Failed to delete overlays for Template ID: $template_id");
+            return false;
+        }
+
+        return true;
     }
 
     /**

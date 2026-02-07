@@ -290,42 +290,6 @@ class Template_manager extends Admin_Controller
     //     return round((float)shell_exec($cmd), 2);
     // }
 
-
-
-
-    public function edit($id)
-    {
-        $template = $this->template_model->getById($id);
-        if (empty($template)) {
-            show_404();
-        }
-
-        // Only image editor now
-        if ($template['type'] !== 'image') {
-            set_alert('info', 'Video editor will be available soon.');
-            redirect(base_url('template-manager'));
-            return;
-        }
-
-        $overlays = $this->templateOverlay_model->get_by_template($id);
-
-        $this->data['template'] = $template;
-        $this->data['overlays'] = $overlays;
-
-        $this->data['title'] = translate('edit_template');
-        $this->data['sub_page'] = 'template_manager/editor';
-        $this->data['main_menu'] = 'Template_manager';
-        $this->data['headerelements'] = array(
-            'css' => array('css/template_editor.css'),
-            'js'  => array(
-                'vendor/interactjs/interact.min.js',
-            ),
-        );
-
-        $this->load->view('layout/index', $this->data);
-    }
-
-
     public function saveOverlays($template_id)
     {
         $this->output->set_content_type('application/json');
@@ -399,6 +363,71 @@ class Template_manager extends Admin_Controller
             'message' => $ok ? 'Placements saved successfully.' : 'Failed to save overlays.'
         ]);
         exit;
+    }
+
+    public function edit($id)
+    {
+        $template = $this->template_model->getById($id);
+        if (empty($template)) {
+            show_404();
+        }
+
+        // Only image editor now
+        if ($template['type'] !== 'image') {
+            set_alert('info', 'Video editor will be available soon.');
+            redirect(base_url('template-manager'));
+            return;
+        }
+
+        $overlays = $this->templateOverlay_model->get_by_template($id);
+
+        $this->data['template'] = $template;
+        $this->data['overlays'] = $overlays;
+
+        $this->data['title'] = translate('edit_template');
+        $this->data['sub_page'] = 'template_manager/editor';
+        $this->data['main_menu'] = 'Template_manager';
+        $this->data['headerelements'] = array(
+            'css' => array('css/template_editor.css'),
+            'js'  => array(
+                'vendor/interactjs/interact.min.js',
+            ),
+        );
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function delete($id)
+    {
+        $template = $this->template_model->getById($id);
+
+        if (empty($template)) {
+            show_404();
+        }
+
+        $this->db->trans_start();
+
+        // 1. Delete associated overlay records
+        $this->templateOverlay_model->delete_by_template($id);
+
+        // 2. Delete the physical file from the server
+        if (!empty($template->file_path)) {
+            $fullPath = FCPATH . $template->file_path;
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
+        }
+
+     
+        $this->template_model->delete($id);
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            return responseMsg('error', 'Failed to delete template completely.', base_url('Template_manager'));
+        }
+
+        return responseMsg('success', 'Template and files deleted successfully.', base_url('Template_manager'));
     }
 
     public function branch_templates()

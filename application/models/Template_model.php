@@ -52,6 +52,13 @@ class Template_model extends MY_Model
         ])->row_array();
     }
 
+    public function delete($id)
+    {
+        return $this->db->delete($this->table, [
+            $this->primary_key => $id
+        ]);
+    }
+
     /* ---------------------------------------------
         GET all templates
     --------------------------------------------- */
