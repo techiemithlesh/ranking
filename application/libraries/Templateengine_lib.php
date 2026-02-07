@@ -21,6 +21,8 @@ class Templateengine_lib
 
     public function storeTemplate()
     {
+        $this->db->trans_start();
+
         $type = $this->CI->input->post('type');
         $config = [
             'upload_path'   => 'uploads/template-manager/' . $type . '/',
@@ -46,7 +48,7 @@ class Templateengine_lib
             ];
             return $this->CI->template_model->saveTemplate($arrayData);
         } else {
-            // Return the actual upload error so it shows in Swal
+            $this->CI->db->rollback();
             log_message('error', 'Template upload error: ' . json_encode($this->CI->upload->display_errors('', '')));
             return ['error' => $this->CI->upload->display_errors('', '')];
         }

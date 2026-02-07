@@ -105,7 +105,7 @@ $autoload['helper'] = array('url', 'file', 'form', 'security', 'directory', 'gen
 */
 
 
-$autoload['config'] = array('menu');
+$autoload['config'] = array('menu', 'video');
 
 /*
 | -------------------------------------------------------------------

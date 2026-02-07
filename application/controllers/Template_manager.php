@@ -250,23 +250,45 @@ class Template_manager extends Admin_Controller
         ]);
     }
 
-    // private function getVideoDuration($path)
-    // {
-    //     $cmd = "ffprobe -v error -show_entries format=duration 
-    //         -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($path);
-    //     return round((float)shell_exec($cmd), 2);
-    // }
+    private function getFfprobePath()
+    {
+        $os = strtoupper(substr(PHP_OS, 0, 3));
+
+        if ($os === 'WIN') {
+            return config_item('ffprobe')['windows'];
+        }
+
+        return config_item('ffprobe')['linux'];
+    }
+
 
     private function getVideoDuration($path)
     {
-        $ffprobe = 'C:\\ffmpeg\\bin\\ffprobe.exe';
+        $ffprobe = $this->getFfprobePath();
 
-        $cmd = "\"$ffprobe\" -v error -show_entries format=duration "
+        if (!file_exists($ffprobe)) {
+            log_message('error', 'ffprobe not found: ' . $ffprobe);
+            return 0;
+        }
+
+        $cmd = "\"{$ffprobe}\" -v error -show_entries format=duration "
             . "-of default=noprint_wrappers=1:nokey=1 "
             . escapeshellarg($path);
 
         return round((float)shell_exec($cmd), 2);
     }
+
+
+    // private function getVideoDuration($path)
+    // {
+    //     $ffprobe = 'C:\\ffmpeg\\bin\\ffprobe.exe';
+
+    //     $cmd = "\"$ffprobe\" -v error -show_entries format=duration "
+    //         . "-of default=noprint_wrappers=1:nokey=1 "
+    //         . escapeshellarg($path);
+
+    //     return round((float)shell_exec($cmd), 2);
+    // }
 
 
 
