@@ -112,6 +112,8 @@ class Template_manager extends Admin_Controller
         $this->pagination->initialize($config);
 
         $this->data['templateData'] = $rows;
+        // printVar($rows);
+        // die;
         $this->data['pagination_links'] = $this->pagination->create_links();
         $this->data['filters'] = [
             'template_type' => $templateType,
@@ -419,7 +421,7 @@ class Template_manager extends Admin_Controller
         }
 
      
-        $this->template_model->delete($id);
+        $this->template_model->delete_by_template($id);
 
         $this->db->trans_complete();
 

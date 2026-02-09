@@ -127,10 +127,17 @@
                                             <i class="fas fa-download"></i> Download
                                         </a>
 
-                                        <a href="<?= base_url('Template_manager/edit/' . $item['id']) ?>" class="btn btn-primary">
-                                            <i class="fas fa-pen"></i> Edit
-                                        </a>
+                                        <?php if($item['type'] == 'image') : ?>
+                                            <a href="<?= base_url('Template_manager/edit/' . $item['id']) ?>" class="btn btn-info ml-2">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        <?php elseif($item['type'] == 'video') : ?>
+                                            <a href="<?= base_url('Video_editor/index/' . $item['id']) ?>" class="btn btn-info ml-2">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        <?php endif; ?>
 
+                                    
                                         <?php if (is_superadmin_loggedin()): ?>
                                            <?php echo btn_delete_ajax('Template_manager/delete/' . $item['id']); ?>
                                         <?php endif; ?>
