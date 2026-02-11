@@ -90,7 +90,7 @@
             <section class="panel appear-animation" data-appear-animation="<?= $global_config['animations'] ?>"
                 data-appear-animation-delay="100">
                 <header class="panel-heading">
-                    <h4 class="panel-title"><i class="fas fa-images"></i> <?= translate('gallery_list'); ?></h4>
+                    <h4 class="panel-title"><i class="fas fa-images"></i> <?= translate('template_list'); ?></h4>
                 </header>
                 <div class="panel-body mb-md">
                     <div class="row">

@@ -42,10 +42,11 @@ class Video_editor extends Admin_Controller
         $this->data['main_menu'] = 'Template_manager';
 
          $this->data['headerelements'] = array(
-            'css' => array('css/template_editor.css'),
+            'css' => array('css/video_editor.css'),
             'js'  => array(
-                'js/video-editor.js',
+                'vendor/interactjs/interact.min.js',
             ),
+
         );
 
         $this->load->view('layout/index', $this->data);

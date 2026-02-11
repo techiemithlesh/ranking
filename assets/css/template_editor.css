@@ -43,30 +43,7 @@
 
 input[type="color"] {
   padding: 3px;
-  height: 38px; /* Matches standard Bootstrap input height */
+  height: 38px;
 }
 
-/* VIDEO EDITOR */
-#editor-canvas {
-  position: relative;
-  width: 100%;
-  background: #000;
-}
 
-#videoPlayer {
-  width: 100%;
-  display: block;
-}
-
-#overlay-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.overlay-item {
-  position: absolute;
-}
