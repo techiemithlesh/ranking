@@ -281,17 +281,6 @@ class Template_manager extends Admin_Controller
     }
 
 
-    // private function getVideoDuration($path)
-    // {
-    //     $ffprobe = 'C:\\ffmpeg\\bin\\ffprobe.exe';
-
-    //     $cmd = "\"$ffprobe\" -v error -show_entries format=duration "
-    //         . "-of default=noprint_wrappers=1:nokey=1 "
-    //         . escapeshellarg($path);
-
-    //     return round((float)shell_exec($cmd), 2);
-    // }
-
     public function saveOverlays($template_id)
     {
         $this->output->set_content_type('application/json');
@@ -303,8 +292,7 @@ class Template_manager extends Admin_Controller
         }
 
         $raw = $this->input->post('overlays', false);
-        // printVar($raw);
-        // die;
+        
         if (!$raw) {
             echo json_encode(['status' => 'error', 'message' => 'Missing overlays payload']);
             exit;

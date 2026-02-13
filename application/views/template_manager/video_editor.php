@@ -26,51 +26,43 @@
             <!-- RIGHT TOOL PANEL -->
             <div class="col-md-4">
                 <div class="editor-tools">
-
-                    <h5>Add Overlay</h5>
-
-                    <button class="btn btn-sm btn-primary add-overlay" data-type="logo">
-                        ➕ Logo
-                    </button>
-
-                    <button class="btn btn-sm btn-primary add-overlay" data-type="branch_name">
-                        ➕ Branch Name
-                    </button>
-
-                    <button class="btn btn-sm btn-primary add-overlay" data-type="branch_address">
-                        ➕ Branch Address
-                    </button>
-
-                    <button class="btn btn-sm btn-primary add-overlay" data-type="branch_contact">
-                        ➕ Branch Contact
-                    </button>
-
-                    <hr>
-
-                    <hr>
-                    <h5>Text Style</h5>
-
-                    <label>Text Color</label>
-                    <input type="color" id="textColor">
-
-                    <label>Background</label>
-                    <input type="color" id="bgColor">
-
-                    <label>Padding</label>
-                    <input type="range" min="0" max="30" id="padding">
-
-                    <label>Radius</label>
-                    <input type="range" min="0" max="30" id="radius">
-
-
-                    <div id="overlay-settings">
-                        <p class="text-muted">Select an overlay</p>
+                    <h5 class="mb-3"><i class="fas fa-layer-group"></i> Add Overlay</h5>
+                    <div class="row no-gutters">
+                        <div class="col-6 p-1"><button class="btn btn-sm btn-primary add-overlay" data-type="logo">➕ Logo</button></div>
+                        <div class="col-6 p-1"><button class="btn btn-sm btn-primary add-overlay" data-type="branch_name">➕ Name</button></div>
+                        <div class="col-6 p-1"><button class="btn btn-sm btn-primary add-overlay" data-type="branch_address">➕ Address</button></div>
+                        <div class="col-6 p-1"><button class="btn btn-sm btn-primary add-overlay" data-type="branch_contact">➕ Contact</button></div>
                     </div>
 
-                    <button type="button" class="btn btn-success btn-block" id="saveTemplateBtn">
+                    <hr>
+
+                    <h5><i class="fas fa-paint-brush"></i> Text Style</h5>
+                    <div class="style-group">
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Text Color</label>
+                                <input type="color" id="textColor" class="form-control">
+                            </div>
+                            <div class="col-6">
+                                <label>Background</label>
+                                <input type="color" id="bgColor" class="form-control">
+                            </div>
+                        </div>
+
+                        <label class="mt-2">Padding</label>
+                        <input type="range" min="0" max="30" id="padding" class="custom-range">
+
+                        <label class="mt-2">Corner Radius</label>
+                        <input type="range" min="0" max="30" id="radius" class="custom-range">
+                    </div>
+
+                    <div id="overlay-settings" class="style-group">
+                        <p class="text-muted text-center">Select an overlay on the video to edit timing</p>
+                    </div>
+
+                    <button type="button" class="btn btn-success btn-block shadow-sm" data-template-id="<?= $template['id'] ?>" id="saveTemplateBtn">
                         <i class="fas fa-save"></i> <?= translate('save_template') ?>
                     </button>
-
                 </div>
             </div>
 

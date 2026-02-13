@@ -657,6 +657,10 @@ if (!function_exists("responseMsg")) {
             'data' => $data,
         ];
 
+         if (!empty($url)) {
+            $response['url'] = $url;
+        }
+
         echo json_encode($response);
         exit;
     }
