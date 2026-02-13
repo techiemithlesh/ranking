@@ -15,23 +15,11 @@
 
             <!-- VIDEO AREA -->
             <div class="col-md-8">
-                <div id="editor-wrapper" style="position: relative; background: #222; border-radius: 8px; overflow: hidden;">
-
-                    <div id="editor-loader" style="height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
-                        <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
-                        <p>Initialising Video Editor...</p>
-                    </div>
-
-                    <div id="editor-container-main" style="display: none; position: relative;">
-                        <div id="editor-canvas" style="position: relative; display: flex; justify-content: center; align-items: center;">
-                            <video id="videoPlayer" controls style="max-width: 100%; height: auto; display: block;">
-                                <source src="<?= base_url($video['file_path']) ?>" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                            <div id="overlay-layer" style="position: absolute; top: 0; left: 0; z-index: 10;"></div>
-                        </div>
-                    </div>
-
+                <div id="editor-canvas">
+                    <video id="videoPlayer" controls>
+                        <source src="<?= base_url($video['file_path']) ?>" type="video/mp4">
+                    </video>
+                    <div id="overlay-layer"></div>
                 </div>
             </div>
 

@@ -27,42 +27,6 @@ class Template_manager extends Admin_Controller
         }
     }
 
-    // public function index()
-    // {
-    //     $TemplateData = [];
-    //     if ($_POST) {
-    //         $this->form_validation->set_rules('template_type', translate('template_type'), 'trim|required');
-    //         $this->form_validation->set_rules('edit_status', translate('edit_status'), 'trim|required');
-    //         $this->form_validation->set_rules('status', translate('status'), 'trim|required');
-
-    //         if ($this->form_validation->run != false) {
-    //             $templateType = $this->input->post('template_type', true); // 1=pamphlet,2=video
-    //             $editStatus   = $this->input->post('edit_status', true);   // 1 edited, 0 raw
-    //             $status       = $this->input->post('status', true);        // 1 active, 0 inactive
-    //             $TemplateData = $this->Template_model->getTemplatesWithOverlayCount($templateType, $editStatus, $status);
-    //         } else {
-    //             $errors = $this->form_validation->error_array();
-    //             set_alert('error', implode(' ', $errors));
-    //         }
-    //     } else {
-    //         $TemplateData = $this->Template_model->getTemplatesWithOverlayCount('', '', '');
-    //     }
-
-    //     $this->data['templateData'] = $TemplateData;
-    //     $this->data['title'] = translate('Marketing_template_manager');
-    //     $this->data['sub_page'] = 'template_manager/index';
-    //     $this->data['main_menu'] = 'Resources';
-    //     $this->data['headerelements'] = array(
-    //         'css' => array(
-    //             'vendor/dropify/css/dropify.min.css',
-    //         ),
-    //         'js' => array(
-    //             'vendor/dropify/js/dropify.min.js',
-    //         ),
-    //     );
-
-    //     $this->load->view('layout/index', $this->data);
-    // }
 
     public function index()
     {
@@ -397,10 +361,8 @@ class Template_manager extends Admin_Controller
 
         $this->db->trans_start();
 
-        // 1. Delete associated overlay records
         $this->templateOverlay_model->delete_by_template($id);
 
-        // 2. Delete the physical file from the server
         if (!empty($template->file_path)) {
             $fullPath = FCPATH . $template->file_path;
             if (file_exists($fullPath)) {
@@ -410,9 +372,7 @@ class Template_manager extends Admin_Controller
 
      
         $this->template_model->delete_by_template($id);
-
         $this->db->trans_complete();
-
         if ($this->db->trans_status() === FALSE) {
             return responseMsg('error', 'Failed to delete template completely.', base_url('Template_manager'));
         }

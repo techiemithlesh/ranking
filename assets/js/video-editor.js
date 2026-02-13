@@ -2,11 +2,85 @@ document.addEventListener("DOMContentLoaded", () => {
   const video = document.getElementById("videoPlayer");
   const overlayLayer = document.getElementById("overlay-layer");
   const settingsPanel = document.getElementById("overlay-settings");
+  const editorCanvas = document.getElementById("editor-canvas");
+
+  // UI Elements for Loading State
+  const loader = document.getElementById("editor-loader");
+  const mainContainer = document.getElementById("editor-container-main");
 
   let selectedOverlay = null;
   const overlayElements = {};
+  let isInitialized = false;
 
-  /* ---------------- HELPERS ---------------- */
+  // Safety check: If video element is missing, stop the crash
+  if (!video) {
+    console.error("Video element #videoPlayer not found!");
+    if (loader)
+      loader.innerHTML =
+        "<p class='text-danger'>Error: Video element missing.</p>";
+    return;
+  }
+
+  /* ---------------- 1. LAYOUT & ASPECT RATIO FIX ---------------- */
+
+  function initEditor() {
+    if (isInitialized) return;
+
+    // Check if video dimensions are available
+    if (video.videoWidth === 0 || video.readyState < 2) {
+      setTimeout(initEditor, 100);
+      return;
+    }
+
+    // 1. Show the container so we can calculate sizes
+    mainContainer.style.display = "block";
+    loader.style.display = "none";
+
+    // 2. Size the overlay layer to match the video
+    syncOverlayLayerSize();
+
+    // 3. Render existing overlays
+    if (window.overlays && Array.isArray(overlays)) {
+      overlays.forEach((o) => {
+        if (typeof o.settings === "string") o.settings = JSON.parse(o.settings);
+        createOverlayElement(o);
+      });
+    }
+
+    isInitialized = true;
+
+    // Final sync after a short delay for layout stability
+    setTimeout(syncOverlayLayerSize, 100);
+  }
+
+  function syncOverlayLayerSize() {
+    if (!video || !overlayLayer || !editorCanvas) return;
+
+    // Get the actual rendered size of the video inside the canvas
+    const videoRect = video.getBoundingClientRect();
+    const canvasRect = editorCanvas.getBoundingClientRect();
+
+    // Match the overlay layer to the video's exact dimensions
+    overlayLayer.style.width = videoRect.width + "px";
+    overlayLayer.style.height = videoRect.height + "px";
+
+    // Position the layer exactly over the centered video
+    overlayLayer.style.left = videoRect.left - canvasRect.left + "px";
+    overlayLayer.style.top = videoRect.top - canvasRect.top + "px";
+
+    // Ensure layer allows clicks to children but not itself
+    overlayLayer.style.pointerEvents = "none";
+  }
+
+  // TRIGGER INITIALIZATION
+  video.addEventListener("loadedmetadata", initEditor);
+  video.addEventListener("canplay", initEditor);
+  // Fallback in case events already fired
+  if (video.readyState >= 2) initEditor();
+
+  window.addEventListener("resize", syncOverlayLayerSize);
+
+  /* ---------------- 2. OVERLAY MANAGEMENT ---------------- */
 
   function deleteOverlay(id) {
     swal({
@@ -29,9 +103,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function createOverlayElement(o) {
+
     const el = document.createElement("div");
     el.className = "overlay-item";
     el.id = "el_" + o.id;
+    el.style.position = "absolute";
+    el.style.pointerEvents = "auto";
 
     const content = document.createElement("div");
     content.className = "overlay-content";
@@ -40,6 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const delBtn = document.createElement("div");
     delBtn.className = "delete-overlay";
     delBtn.innerHTML = '<i class="fas fa-times"></i>';
+
     delBtn.onclick = (e) => {
       e.stopPropagation();
       deleteOverlay(o.id);
@@ -74,14 +152,26 @@ document.addEventListener("DOMContentLoaded", () => {
     initInteract(el, o);
   }
 
+  /* ---------------- 3. UPDATED INTERACTIVITY (CONSTRAINED) ---------------- */
+
   function initInteract(el, overlay) {
     interact(el)
       .draggable({
+        modifiers: [
+          interact.modifiers.restrictRect({
+            restriction: "parent", // Keeps it inside overlay-layer
+            endOnly: false,
+          }),
+        ],
         listeners: {
           move(event) {
             const rect = overlayLayer.getBoundingClientRect();
+
+            // Update logical coordinates (floats 0-1)
             overlay.x = (parseFloat(overlay.x) || 0) + event.dx / rect.width;
             overlay.y = (parseFloat(overlay.y) || 0) + event.dy / rect.height;
+
+            // Apply CSS
             el.style.left = overlay.x * 100 + "%";
             el.style.top = overlay.y * 100 + "%";
           },
@@ -89,15 +179,25 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .resizable({
         edges: { left: true, right: true, bottom: true, top: true },
+        modifiers: [
+          interact.modifiers.restrictSize({
+            min: { width: 30, height: 20 },
+          }),
+          interact.modifiers.restrictEdges({
+            outer: "parent", // Prevents resizing outside video
+          }),
+        ],
         listeners: {
           move(event) {
             const rect = overlayLayer.getBoundingClientRect();
+
             overlay.width = event.rect.width / rect.width;
             overlay.height = event.rect.height / rect.height;
             overlay.x =
               (parseFloat(overlay.x) || 0) + event.deltaRect.left / rect.width;
             overlay.y =
               (parseFloat(overlay.y) || 0) + event.deltaRect.top / rect.height;
+
             el.style.width = overlay.width * 100 + "%";
             el.style.height = overlay.height * 100 + "%";
             el.style.left = overlay.x * 100 + "%";
@@ -108,10 +208,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function applyPosition(el, o) {
-    el.style.left = parseFloat(o.x) * 100 + "%";
-    el.style.top = parseFloat(o.y) * 100 + "%";
-    el.style.width = parseFloat(o.width) * 100 + "%";
-    el.style.height = parseFloat(o.height) * 100 + "%";
+    el.style.left = (parseFloat(o.x) || 0) * 100 + "%";
+    el.style.top = (parseFloat(o.y) || 0) * 100 + "%";
+    el.style.width = (parseFloat(o.width) || 0.2) * 100 + "%";
+    el.style.height = (parseFloat(o.height) || 0.1) * 100 + "%";
   }
 
   function applyStyles(el, s) {
@@ -121,13 +221,18 @@ document.addEventListener("DOMContentLoaded", () => {
     el.style.padding = (s.padding || 5) + "px";
     el.style.borderRadius = (s.border_radius || 4) + "px";
     el.style.fontSize = (s.font_size || 18) + "px";
+    el.style.display = "flex";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "center";
   }
+
+  /* ---------------- 4. UI SETTINGS PANEL ---------------- */
 
   function selectOverlay(id) {
     selectedOverlay = overlays.find((o) => o.id == id);
     document
       .querySelectorAll(".overlay-item")
-      .forEach((el) => el.classList.remove("selected"));
+      .forEach((item) => item.classList.remove("selected"));
     overlayElements[id]?.classList.add("selected");
     renderSettings();
     bindTextControls(selectedOverlay, overlayElements[id]);
@@ -136,93 +241,81 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderSettings() {
     if (!selectedOverlay) {
       settingsPanel.innerHTML =
-        '<p class="text-muted text-center">Select an overlay</p>';
+        '<p class="text-muted text-center mt-3">Select an overlay to edit</p>';
       return;
     }
 
     settingsPanel.innerHTML = `
-    <div class="style-group p-2 border rounded bg-light mb-3">
-        <h6 class="mb-2" style="font-size: 0.85rem; font-weight: bold;">
-            <i class="fas fa-clock text-muted"></i> Visibility Timing
-        </h6>
-        
-        <div class="row no-gutters align-items-center video-timing-container">
-            <div class="col-6 pr-1">
-                <label class="mb-0 text-muted" style="font-size: 0.7rem;">In</label>
-                <div class="input-group input-group-sm">
-                    <input type="number" step="0.1" class="form-control text-center border-success" 
-                           value="${Number(selectedOverlay.start_time).toFixed(1)}" id="startTime">
-                    <div class="input-group-append">
-                        <button class="btn btn-success btn-sm px-2" 
-                                onclick="setCurrentTime('start')" title="Set Start">Now</button>
+            <div class="style-group p-1 border rounded bg-light mb-1">
+                <h6 class="mb-2" style="font-size: 1.2rem; font-weight: bold;">
+                    <i class="fas fa-clock text-muted"></i> Visibility Timing
+                </h6>
+                <div class="row no-gutters align-items-center video-timing-container">
+                    <div class="col-6 pr-1">
+                        <label class="mb-0 text-muted" style="font-size: 0.9rem;">In</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.1" class="form-control text-center border-success" 
+                                   value="${Number(selectedOverlay.start_time).toFixed(1)}" id="startTime">
+                            <div class="input-group-append">
+                                <button class="btn btn-success px-2" onclick="setCurrentTime('start')">Now</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 pl-1">
+                        <label class="mb-0 text-muted" style="font-size: 0.9rem;">Out</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.1" class="form-control text-center border-danger" 
+                                   value="${Number(selectedOverlay.end_time).toFixed(1)}" id="endTime">
+                            <div class="input-group-append">
+                                <button class="btn btn-danger px-2" onclick="setCurrentTime('end')">Now</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-6 pl-1">
-                <label class="mb-0 text-muted" style="font-size: 0.7rem;">Out</label>
-                <div class="input-group input-group-sm">
-                    <input type="number" step="0.1" class="form-control text-center border-danger" 
-                           value="${Number(selectedOverlay.end_time).toFixed(1)}" id="endTime">
-                    <div class="input-group-append">
-                        <button class="btn btn-danger btn-sm px-2" 
-                                onclick="setCurrentTime('end')" title="Set End">Now</button>
-                    </div>
+            
+            ${
+              selectedOverlay.overlay_type !== "logo"
+                ? `
+            <div class="style-group p-2 border rounded bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="mb-0" style="font-size: 0.85rem; font-weight: bold;">Font Size</h6>
+                    <span class="badge badge-info" id="fontSizeBadge">${selectedOverlay.settings.font_size || 18}px</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="text-center mt-2 border-top pt-1">
-            <small class="text-muted" style="font-size: 0.65rem; font-style: italic;">
-                Tip: Pause video and click "Now" to sync timings.
-            </small>
-        </div>
-    </div>
-    
-    ${
-      selectedOverlay.overlay_type !== "logo"
-        ? `
-    <div class="style-group p-2 border rounded shadow-sm bg-white">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <h6 class="mb-0" style="font-size: 0.85rem; font-weight: bold;">
-                <i class="fas fa-font text-info"></i> Font Size
-            </h6>
-            <span class="badge badge-info" id="fontSizeBadge">${selectedOverlay.settings.font_size || 18}px</span>
-        </div>
-        <input type="range" min="10" max="80" 
-               value="${selectedOverlay.settings.font_size || 18}" 
-               class="custom-range w-100" id="fontSizeRange">
-    </div>`
-        : ""
-    }
-`;
+                <input type="range" min="10" max="80" value="${selectedOverlay.settings.font_size || 18}" 
+                       class="custom-range w-100" id="fontSizeRange">
+            </div>`
+                : ""
+            }
+        `;
 
     document.getElementById("startTime").onchange = (e) => {
-      selectedOverlay.start_time = parseFloat(e.target.value);
+      selectedOverlay.start_time = parseFloat(e.target.value) || 0;
     };
+
     document.getElementById("endTime").onchange = (e) => {
-      selectedOverlay.end_time = parseFloat(e.target.value);
+      selectedOverlay.end_time = parseFloat(e.target.value) || 0;
     };
 
     const fRange = document.getElementById("fontSizeRange");
     if (fRange) {
       fRange.oninput = (e) => {
-        selectedOverlay.settings.font_size = e.target.value;
-        overlayElements[selectedOverlay.id].style.fontSize =
-          e.target.value + "px";
+        const val = e.target.value;
+        selectedOverlay.settings.font_size = val;
+        overlayElements[selectedOverlay.id].style.fontSize = val + "px";
+        document.getElementById("fontSizeBadge").innerText = val + "px";
       };
     }
   }
 
-  // Global helper for the "Now" buttons
   window.setCurrentTime = (type) => {
     if (!selectedOverlay) return;
     const now = video.currentTime;
     if (type === "start") {
-      selectedOverlay.start_time = now;
+      selectedOverlay.start_time = parseFloat(now.toFixed(1));
       document.getElementById("startTime").value = now.toFixed(1);
     } else {
-      selectedOverlay.end_time = now;
+      selectedOverlay.end_time = parseFloat(now.toFixed(1));
       document.getElementById("endTime").value = now.toFixed(1);
     }
   };
@@ -256,7 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  /* ---------------- INIT & EVENTS ---------------- */
+  /* ---------------- 5. INIT & TIMELINE ---------------- */
 
   if (Array.isArray(overlays)) {
     overlays.forEach((o) => {
@@ -270,45 +363,40 @@ document.addEventListener("DOMContentLoaded", () => {
     overlays.forEach((o) => {
       const el = overlayElements[o.id];
       if (!el) return;
-      // Visible if time is within range OR if it is currently being edited
       const isEditing = selectedOverlay && selectedOverlay.id == o.id;
       el.style.display =
-        isEditing || (t >= o.start_time && t <= o.end_time) ? "block" : "none";
+        isEditing || (t >= o.start_time && t <= o.end_time) ? "flex" : "none";
     });
   });
 
   document.querySelectorAll(".add-overlay").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.type;
+    //   console.log("Adding overlay of type:", type);
       const id = "ov_" + Date.now();
-
-      // SMART SNAP: Use current video time as start point
       const startTime = video.currentTime;
-      const duration = 5; // Default 5 seconds visibility
-      const endTime = Math.min(
-        startTime + duration,
-        video.duration || startTime + duration,
-      );
 
       let overlay = {
         id: id,
         overlay_type: type === "logo" ? "logo" : "text",
         settings: {
-          text_key: type !== "logo" ? type : null,
+          text_key: type,
           font_size: 18,
           color: "#ffffff",
           background: "rgba(0,0,0,0.5)",
           padding: 5,
           border_radius: 4,
-          align: "center",
         },
         x: 0.1,
         y: 0.1,
-        width: 0.25,
-        height: 0.1,
-        start_time: startTime,
-        end_time: endTime,
+        width: 0.2,
+        height: 0.08,
+        start_time: parseFloat(startTime.toFixed(1)),
+        end_time: parseFloat((startTime + 5).toFixed(1)),
       };
+
+    //   console.log("New overlay object:", overlay);
+
       overlays.push(overlay);
       createOverlayElement(overlay);
       selectOverlay(id);
@@ -316,41 +404,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-/* ---------------- SAVE DATA ---------------- */
-$("#saveTemplateBtn").on("click", function () {
+/* ---------------- 6. SAVE ---------------- */
+$(document).on("click", "#saveTemplateBtn", function () {
   const btn = $(this);
-  const templateId = $(this).data("template-id");
-
-  btn
-    .prop("disabled", true)
-    .html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-
-  console.log("Saving overlays:", overlays);
-
-  console.log("Final overlays data to be sent:", JSON.stringify(overlays));
-
   $.ajax({
     url: base_url + "Video_editor/save_overlays",
     method: "POST",
     data: {
-      template_id: templateId,
-      overlays: JSON.stringify(overlays), // This saves the whole structure including settings
+      template_id: btn.data("template-id"),
+      overlays: JSON.stringify(overlays),
     },
     dataType: "json",
-    success: function (res) {
-      if (res.status === "success") {
-        swal("Success", res.message, "success");
-      } else {
-        swal("Error", res.message, "error");
-      }
+    success: (res) => {
+      swal(
+        res.status === "success" ? "Success" : "Error",
+        res.message,
+        res.status,
+      );
     },
-    error: function () {
-      swal("Error", "Server connection failed", "error");
-    },
-    complete: function () {
-      btn
-        .prop("disabled", false)
-        .html('<i class="fas fa-save"></i> Save Template');
-    },
+    error: () => swal("Error", "Server connection failed", "error"),
   });
 });

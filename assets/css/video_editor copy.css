@@ -1,28 +1,21 @@
 #editor-canvas {
-  position: relative;
+  position: relative; /* All percentages inside rely on this */
   width: 100%;
-  height: 70vh; /* Fixed height for a consistent editor experience */
-  background: #222; /* Darker background to highlight video edges */
-  border-radius: 8px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 #videoPlayer {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  width: 100%;
   display: block;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
 }
 
 #overlay-layer {
   position: absolute;
-  /* We remove the 100% width/height so JS can resize it to match the video exactly */
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Clicks pass through the empty space */
   z-index: 10;
 }
 
@@ -34,15 +27,6 @@
   cursor: move;
   z-index: 20;
   box-sizing: border-box;
-}
-
-.overlay-content {
-  pointer-events: none;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  width: 100%;
-  height: 100%;
 }
 
 .overlay-item img {
@@ -75,7 +59,23 @@
   width: 100%;
 }
 
+.overlay-item {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 20px;
+}
 
+.overlay-content {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
+  height: 100%;
+}
 
 .delete-overlay {
   position: absolute;
@@ -125,7 +125,7 @@
   display: flex !important;
 }
 
-.video-timing-container {
+.video-timing-container{
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -133,30 +133,30 @@
 
 /* Start (In) styling */
 #startTime {
-  border-right: none;
-  border-color: #28a745 !important;
+    border-right: none;
+    border-color: #28a745 !important;
 }
 .btn-success {
-  background-color: #28a745;
-  border-color: #28a745;
+    background-color: #28a745;
+    border-color: #28a745;
 }
 
 /* End (Out) styling */
 #endTime {
-  border-right: none;
-  border-color: #dc3545 !important;
+    border-right: none;
+    border-color: #dc3545 !important;
 }
 .btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
+    background-color: #dc3545;
+    border-color: #dc3545;
 }
 
 /* General Cleanup */
 .no-gutters {
-  margin-right: 0;
-  margin-left: 0;
+    margin-right: 0;
+    margin-left: 0;
 }
 .no-gutters > [class*="col-"] {
-  padding-right: 2px;
-  padding-left: 2px;
+    padding-right: 2px;
+    padding-left: 2px;
 }
