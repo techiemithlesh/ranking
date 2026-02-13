@@ -75,8 +75,6 @@
   width: 100%;
 }
 
-
-
 .delete-overlay {
   position: absolute;
   top: -10px;
@@ -159,4 +157,23 @@
 .no-gutters > [class*="col-"] {
   padding-right: 2px;
   padding-left: 2px;
+}
+
+.interact-dragging {
+  opacity: 0.8;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000 !important;
+}
+
+/* Better Resize Handles */
+.overlay-item.selected::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid #00c3ff;
+  bottom: -5px;
+  right: -5px;
+  border-radius: 50%;
 }
