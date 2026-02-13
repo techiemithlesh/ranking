@@ -124,3 +124,39 @@
 .overlay-item.selected .delete-overlay {
   display: flex !important;
 }
+
+.video-timing-container{
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Start (In) styling */
+#startTime {
+    border-right: none;
+    border-color: #28a745 !important;
+}
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* End (Out) styling */
+#endTime {
+    border-right: none;
+    border-color: #dc3545 !important;
+}
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* General Cleanup */
+.no-gutters {
+    margin-right: 0;
+    margin-left: 0;
+}
+.no-gutters > [class*="col-"] {
+    padding-right: 2px;
+    padding-left: 2px;
+}

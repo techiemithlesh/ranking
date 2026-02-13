@@ -59,8 +59,6 @@ class Video_editor extends Admin_Controller
             $template_id = $this->input->post('template_id');
             $overlays_data = json_decode($this->input->post('overlays'), true);
 
-            log_message('debug', 'Received overlays data: ' . print_r($overlays_data, true));
-
             if (empty($template_id)) {
                 echo json_encode(['status' => 'error', 'message' => 'Invalid Template ID']);
                 return;
