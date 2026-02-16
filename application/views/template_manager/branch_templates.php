@@ -53,10 +53,16 @@
                                 </h5>
 
                                 <div class="text-right">
-                                    <a href="<?= base_url('Template_manager/preview/' . $tpl['id']) ?>"
-                                        class="btn btn-info btn-sm">
-                                        <i class="fas fa-eye"></i> <?= translate('preview') ?>
-                                    </a>
+                                    <?php if ($tpl['type'] == 'image') : ?>
+                                        <a href="<?= base_url('Template_manager/preview/' . $tpl['id']) ?>" class="btn btn-info ml-2">
+                                            <i class="fas fa-edit"></i> Preview
+                                        </a>
+                                    <?php elseif ($tpl['type'] == 'video') : ?>
+                                        <a href="<?= base_url('Video_editor/preview/' . $tpl['id']) ?>" class="btn btn-info ml-2">
+                                            <i class="fas fa-edit"></i> Preview
+                                        </a>
+                                    <?php endif; ?>
+                                    
                                     <a href="<?= base_url('Template_manager/download/' . $tpl['id']) ?>"
                                         class="btn btn-success btn-sm">
                                         <i class="fas fa-download"></i> <?= translate('download') ?>

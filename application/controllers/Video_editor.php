@@ -47,7 +47,6 @@ class Video_editor extends Admin_Controller
             'js'  => array(
                 'vendor/interactjs/interact.min.js',
             ),
-
         );
 
         $this->load->view('layout/index', $this->data);
@@ -103,5 +102,28 @@ class Video_editor extends Admin_Controller
 
             echo json_encode(['status' => 'success', 'message' => 'Template coordinates updated!']);
         }
+    }
+
+    public function preview($template_id = null)
+    {
+        $template = $this->assetModel->getById($template_id);
+        $overlays = $this->overlayModel->get_by_template($template_id);
+
+
+        $branch = $this->db->select('*')->from('branch')->where('id', get_loggedin_branch_id())->get()->row_array();
+        $branchLogo = get_branch_logo(get_loggedin_branch_id());
+        $this->data['template'] = $template;
+        $this->data['video'] = $template;
+        $this->data['overlays_json'] = json_encode($overlays);
+
+        $this->data['branch'] = $branch;
+        $this->data['branch_logo'] = $branchLogo;
+       
+        $this->data['mode'] = 'preview';
+        $this->data['title'] = translate('preview_template');
+       
+        $this->data['sub_page'] = 'template_manager/video_preview';
+
+        $this->load->view('layout/index', $this->data);
     }
 }

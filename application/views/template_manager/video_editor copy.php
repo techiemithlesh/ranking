@@ -50,20 +50,13 @@
 
                     <h5><i class="fas fa-paint-brush"></i> Text Style</h5>
                     <div class="style-group">
-                        <div class="mb-3">
-                            <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">
-                                <input type="checkbox" id="bgEnabled" style="width: 16px; height: 16px; margin-right: 8px;">
-                                <strong>Enable Background Box</strong>
-                            </label>
-                        </div>
-
                         <div class="row">
                             <div class="col-6">
                                 <label>Text Color</label>
                                 <input type="color" id="textColor" class="form-control">
                             </div>
                             <div class="col-6">
-                                <label>BG Color</label>
+                                <label>Background</label>
                                 <input type="color" id="bgColor" class="form-control">
                             </div>
                         </div>
@@ -75,7 +68,7 @@
                         <input type="range" min="0" max="30" id="radius" class="custom-range">
                     </div>
 
-                    <div id="overlay-settings">
+                    <div id="overlay-settings" class="style-group">
                         <p class="text-muted text-center">Select an overlay on the video to edit timing</p>
                     </div>
 

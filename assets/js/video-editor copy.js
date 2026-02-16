@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const overlayElements = {};
   let isInitialized = false;
 
+  // Safety check: If video element is missing, stop the crash
   if (!video) {
     console.error("Video element #videoPlayer not found!");
     if (loader)
@@ -136,17 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
     el.appendChild(content);
     el.appendChild(delBtn);
 
-    if (!o.settings) o.settings = {};
-
-    if (!o.settings.bg) {
-      o.settings.bg = {
-        enabled: false,
-        color: "#000000",
-        padding: 5,
-        radius: 4,
-      };
-    }
-
     applyPosition(el, o);
     applyStyles(el, o.settings);
 
@@ -234,20 +224,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyStyles(el, s) {
     if (!s) return;
-
     el.style.color = s.color || "#ffffff";
+    el.style.background = s.background || "rgba(0,0,0,0.5)";
+    el.style.padding = (s.padding || 5) + "px";
+    el.style.borderRadius = (s.border_radius || 4) + "px";
     el.style.fontSize = (s.font_size || 18) + "px";
-
-    if (s.bg && s.bg.enabled === true) {
-      el.style.background = s.bg.color || "rgba(0,0,0,0.5)";
-      el.style.padding = (s.bg.padding || 5) + "px";
-      el.style.borderRadius = (s.bg.radius || 4) + "px";
-    } else {
-      el.style.background = "transparent";
-      el.style.padding = "0px";
-      el.style.borderRadius = "0px";
-    }
-
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
@@ -348,56 +329,31 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function bindTextControls(o, el) {
-    if (!o.settings.bg) {
-      o.settings.bg = {
-        enabled: false,
-        color: "#000000",
-        padding: 5,
-        radius: 4,
-      };
-    }
-
-    const bgEnabled = document.getElementById("bgEnabled");
     const colorInp = document.getElementById("textColor");
     const bgInp = document.getElementById("bgColor");
     const padInp = document.getElementById("padding");
     const radInp = document.getElementById("radius");
 
-    // load values
-    bgEnabled.checked = o.settings.bg.enabled === true;
     colorInp.value = o.settings.color || "#ffffff";
-    bgInp.value = o.settings.bg.color || "#000000";
-    padInp.value = o.settings.bg.padding || 5;
-    radInp.value = o.settings.bg.radius || 4;
-
-    function refresh() {
-      applyStyles(el, o.settings);
-    }
-
-    // checkbox controls bg existence
-    bgEnabled.onchange = (e) => {
-      o.settings.bg.enabled = e.target.checked === true;
-      refresh();
-    };
+    bgInp.value = o.settings.background || "#000000";
+    padInp.value = o.settings.padding || 5;
+    radInp.value = o.settings.border_radius || 4;
 
     colorInp.oninput = (e) => {
       o.settings.color = e.target.value;
-      refresh();
+      el.style.color = e.target.value;
     };
-
     bgInp.oninput = (e) => {
-      o.settings.bg.color = e.target.value;
-      refresh();
+      o.settings.background = e.target.value;
+      el.style.background = e.target.value;
     };
-
     padInp.oninput = (e) => {
-      o.settings.bg.padding = parseInt(e.target.value);
-      refresh();
+      o.settings.padding = e.target.value;
+      el.style.padding = e.target.value + "px";
     };
-
     radInp.oninput = (e) => {
-      o.settings.bg.radius = parseInt(e.target.value);
-      refresh();
+      o.settings.border_radius = e.target.value;
+      el.style.borderRadius = e.target.value + "px";
     };
   }
 
@@ -436,11 +392,14 @@ document.addEventListener("DOMContentLoaded", () => {
           font_size: 18,
           color: "#ffffff",
           bg: {
-            enabled: false,
-            color: "#000000",
+            enabled: true,
+            color: "rgba(0,0,0,0.5)",
             padding: 5,
             radius: 4,
           },
+          background: "rgba(0,0,0,0.5)",
+          padding: 5,
+          border_radius: 4,
         },
         x: 0.1,
         y: 0.1,
