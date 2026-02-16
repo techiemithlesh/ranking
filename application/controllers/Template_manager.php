@@ -30,7 +30,6 @@ class Template_manager extends Admin_Controller
 
     public function index()
     {
-
         $templateType = $this->input->get('template_type', true) ?? '';
         $editStatus   = $this->input->get('edit_status', true) ?? '';
         $status       = $this->input->get('status', true) ?? '';
