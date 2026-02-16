@@ -133,18 +133,12 @@
         }
 
         function applyPosition(el, o) {
-
             el.style.left = (parseFloat(o.x) || 0) * 100 + "%";
             el.style.top = (parseFloat(o.y) || 0) * 100 + "%";
-
-            if (o.autoSize) {
-                el.style.width = "auto";
-                el.style.height = "auto";
-            } else {
-                el.style.width = (parseFloat(o.width) || 0.2) * 100 + "%";
-                el.style.height = (parseFloat(o.height) || 0.1) * 100 + "%";
-            }
+            el.style.width = (parseFloat(o.width) || 0.2) * 100 + "%";
+            el.style.height = (parseFloat(o.height) || 0.1) * 100 + "%";
         }
+
 
 
         function applyStyles(el, s) {
