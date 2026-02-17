@@ -93,11 +93,11 @@
             toast: true,
             position: 'top-end',
             type: 'success',
-            title: '<?php echo $alert_message ?>',
+            title: 'Video Upload in Progress !',
             confirmButtonClass: 'btn btn-default',
             buttonsStyling: false,
             timer: 8000
-        })
+        });
 
         $('#type').on('change', function() {
             const hint = $('#fileHint');
