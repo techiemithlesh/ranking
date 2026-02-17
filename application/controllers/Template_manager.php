@@ -156,117 +156,81 @@ class Template_manager extends Admin_Controller
         $chunkIndex = (int)$this->input->post('chunk_index');
         $totalChunks = (int)$this->input->post('total_chunks');
 
-        if (!isset($_FILES['chunk'])) {
-            show_error('Chunk missing');
+        if ($templateId <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid ID']);
+            return;
         }
 
         $chunkDir = FCPATH . "uploads/temp_chunks/$templateId/";
+
+        // Check if directory exists or create it
         if (!is_dir($chunkDir)) {
-            mkdir($chunkDir, 0755, true);
+            if (!mkdir($chunkDir, 0775, true)) {
+                log_message('error', "Failed to create directory: $chunkDir");
+                echo json_encode(['status' => 'error', 'message' => 'Server permission error']);
+                return;
+            }
         }
 
-        move_uploaded_file(
-            $_FILES['chunk']['tmp_name'],
-            $chunkDir . $chunkIndex
-        );
-
-        // Last chunk → merge
-        if ($chunkIndex + 1 === $totalChunks) {
-            $this->mergeChunks($templateId, $totalChunks);
+        $dest = $chunkDir . $chunkIndex;
+        if (move_uploaded_file($_FILES['chunk']['tmp_name'], $dest)) {
+            // Only merge if this is the last chunk AND it successfully moved
+            if ($chunkIndex + 1 === $totalChunks) {
+                $merged = $this->mergeChunks($templateId, $totalChunks);
+                if ($merged) {
+                    echo json_encode(['status' => 'ok']);
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Merge failed']);
+                }
+            } else {
+                echo json_encode(['status' => 'ok']);
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Chunk move failed']);
         }
-
-        echo json_encode(['status' => 'ok']);
-    }
-
-
-    private function mergeChunks_($templateId, $totalChunks)
-    {
-        $finalDir = FCPATH . 'uploads/template-manager/video/';
-        if (!is_dir($finalDir)) {
-            mkdir($finalDir, 0755, true);
-        }
-
-        $finalName = uniqid('video_') . '.mp4';
-        $finalPath = $finalDir . $finalName;
-
-        $out = fopen($finalPath, 'ab');
-
-        for ($i = 0; $i < $totalChunks; $i++) {
-            $chunk = FCPATH . "uploads/temp_chunks/$templateId/$i";
-            fwrite($out, file_get_contents($chunk));
-            unlink($chunk);
-        }
-
-        fclose($out);
-        rmdir(FCPATH . "uploads/temp_chunks/$templateId");
-
-        $duration = $this->getVideoDuration($finalPath);
-        $size = filesize($finalPath);
-
-        log_message('info', "Video merged: $finalPath (Duration: {$duration}s, Size: {$size} bytes)");
-
-        $this->db->where('id', $templateId)->update('template_assets', [
-            'file_path' => 'uploads/template-manager/video/' . $finalName,
-            'duration' => $duration,
-            'size' => $size,
-            'upload_status' => 'completed'
-        ]);
     }
 
     private function mergeChunks($templateId, $totalChunks)
     {
         $finalDir = FCPATH . 'uploads/template-manager/video/';
-        if (!is_dir($finalDir)) {
-            mkdir($finalDir, 0755, true);
-        }
-
         $finalName = uniqid('video_') . '.mp4';
         $finalPath = $finalDir . $finalName;
 
-        // Start Merging
-        $out = fopen($finalPath, 'ab');
+        $out = @fopen($finalPath, 'ab');
+        if (!$out) return false;
+
         for ($i = 0; $i < $totalChunks; $i++) {
-            $chunk = FCPATH . "uploads/temp_chunks/$templateId/$i";
-            if (file_exists($chunk)) {
-                $in = fopen($chunk, "rb");
-                while ($buff = fread($in, 4096)) {
-                    fwrite($out, $buff);
-                }
-                fclose($in);
-                unlink($chunk);
+            $chunkPath = FCPATH . "uploads/temp_chunks/$templateId/$i";
+            if (!file_exists($chunkPath)) {
+                fclose($out);
+                return false; // Stop if a chunk is missing!
             }
+
+            $in = fopen($chunkPath, "rb");
+            while ($buff = fread($in, 4096)) {
+                fwrite($out, $buff);
+            }
+            fclose($in);
+            unlink($chunkPath);
         }
         fclose($out);
-        rmdir(FCPATH . "uploads/temp_chunks/$templateId");
+        @rmdir(FCPATH . "uploads/temp_chunks/$templateId");
 
-        // Get metadata
         $duration = $this->getVideoDuration($finalPath);
         $size = filesize($finalPath);
 
-        // --- DATABASE TRANSACTION START ---
+        // --- DATABASE TRANSACTION ---
         $this->db->trans_start();
 
         $this->db->where('id', $templateId)->update('template_assets', [
-            'file_path'     => 'uploads/template-manager/video/' . $finalName,
-            'duration'      => $duration,
-            'size'          => $size,
-            'upload_status' => 'completed',
-            'updated_at'    => date('Y-m-d H:i:s')
+            'file_path' => 'uploads/template-manager/video/' . $finalName,
+            'duration'  => $duration,
+            'size'      => $size,
+            'upload_status' => 'completed'
         ]);
 
         $this->db->trans_complete();
-        // --- DATABASE TRANSACTION END ---
-
-        if ($this->db->trans_status() === FALSE) {
-            // If DB update failed, delete the physical file so they stay in sync
-            if (file_exists($finalPath)) {
-                unlink($finalPath);
-            }
-            log_message('error', "Transaction failed for Template ID: $templateId. File deleted.");
-            return false;
-        }
-
-        return true;
+        return $this->db->trans_status();
     }
 
     private function getFfprobePath()
