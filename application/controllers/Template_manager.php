@@ -222,6 +222,8 @@ class Template_manager extends Admin_Controller
         // --- DATABASE TRANSACTION ---
         $this->db->trans_start();
 
+        log_message('info', "Attempting to update template ID: $templateId with file path: $finalPath");
+
         $this->db->where('id', $templateId)->update('template_assets', [
             'file_path' => 'uploads/template-manager/video/' . $finalName,
             'duration'  => $duration,
@@ -230,6 +232,7 @@ class Template_manager extends Admin_Controller
         ]);
 
         $this->db->trans_complete();
+        log_message('info', "Database transaction completed with status: " . ($this->db->trans_status() ? 'success' : 'failure'));
         return $this->db->trans_status();
     }
 
@@ -261,6 +264,8 @@ class Template_manager extends Admin_Controller
         $cmd = "\"{$ffprobe}\" -v error -show_entries format=duration "
             . "-of default=noprint_wrappers=1:nokey=1 "
             . escapeshellarg($path);
+        
+        log_message('info', "Running ffprobe command: $cmd");
 
         return round((float)shell_exec($cmd), 2);
     }

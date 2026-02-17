@@ -256,9 +256,9 @@
                                 buttonsStyling: false,
                                 timer: 8000
                             })
-                            setTimeout(() => {
-                                location.href = "<?= base_url('Template_manager') ?>";
-                            }, 1500);
+                            // setTimeout(() => {
+                            //     location.href = "<?= base_url('Template_manager') ?>";
+                            // }, 1500);
                         }
                     },
                     error() {
