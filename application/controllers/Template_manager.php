@@ -150,8 +150,6 @@ class Template_manager extends Admin_Controller
         exit;
     }
 
-
-
     public function uploadVideoChunk()
     {
         $templateId = (int)$this->input->post('template_id');
@@ -217,7 +215,11 @@ class Template_manager extends Admin_Controller
 
     private function getFfprobePath()
     {
+        log_message('info', 'Determining ffprobe path based on OS');
+
         $os = strtoupper(substr(PHP_OS, 0, 3));
+
+        log_message('info', "Detected OS: $os");
 
         if ($os === 'WIN') {
             return config_item('ffprobe')['windows'];

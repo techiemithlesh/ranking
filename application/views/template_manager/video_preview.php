@@ -139,11 +139,8 @@
             el.style.height = (parseFloat(o.height) || 0.1) * 100 + "%";
         }
 
-
-
         function applyStyles(el, s) {
             if (!s) return;
-
             el.style.color = s.color || "#ffffff";
             el.style.fontSize = (s.font_size || 15) + "px";
 

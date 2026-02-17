@@ -87,16 +87,26 @@
         const progressWrap = $('#uploadProgressWrap');
         const progressBar = $('#uploadProgress');
 
-        function toast(type, message) {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: type,
-                title: message,
-                showConfirmButton: false,
-                timer: 8000
-            });
-        }
+
+
+        swal({
+            toast: true,
+            position: 'top-end',
+            type: 'success',
+            title: '<?php echo $alert_message ?>',
+            confirmButtonClass: 'btn btn-default',
+            buttonsStyling: false,
+            timer: 8000
+        })
+
+        $('#type').on('change', function() {
+            const hint = $('#fileHint');
+            if ($(this).val() === 'video') {
+                hint.text('Upload MP4 video.');
+            } else {
+                hint.text('Upload JPG or PNG.');
+            }
+        });
 
         $('#templateUploadForm').on('submit', function(e) {
             e.preventDefault();
@@ -105,7 +115,15 @@
             const file = document.getElementById('template_file').files[0];
 
             if (!file) {
-                toast('error', 'Please select a file');
+                swal({
+                    toast: true,
+                    position: 'top-end',
+                    type: 'error',
+                    title: 'Please select a file to upload.',
+                    confirmButtonClass: 'btn btn-default',
+                    buttonsStyling: false,
+                    timer: 8000
+                })
                 return;
             }
 
@@ -127,10 +145,28 @@
                 processData: false,
                 success(res) {
                     if (res.status === 'success') {
-                        toast('success', res.message);
+                        swal({
+                            toast: true,
+                            position: 'top-end',
+                            type: 'success',
+                            title: res.message,
+                            confirmButtonClass: 'btn btn-default',
+                            buttonsStyling: false,
+                            timer: 8000
+                        })
+
                         setTimeout(() => location.href = res.url, 1200);
                     } else {
-                        toast('error', res.message);
+                        swal({
+                            toast: true,
+                            position: 'top-end',
+                            type: 'error',
+                            title: res.message,
+                            confirmButtonClass: 'btn btn-default',
+                            buttonsStyling: false,
+                            timer: 8000
+                        })
+
                     }
                 }
             });
@@ -139,7 +175,15 @@
         /* ---------- VIDEO INIT ---------- */
         function startVideoUpload(file) {
 
-            toast('info', 'Initializing video upload…');
+            swal({
+                toast: true,
+                position: 'top-end',
+                type: 'info',
+                title: 'Initializing video upload…',
+                confirmButtonClass: 'btn btn-default',
+                buttonsStyling: false,
+            })
+
 
             $.ajax({
                 url: "<?= base_url('Template_manager/storeAssets') ?>",
@@ -152,7 +196,14 @@
                 },
                 success(res) {
                     if (res.status !== 'success') {
-                        toast('error', res.message);
+                        swal({
+                            toast: true,
+                            position: 'top-end',
+                            type: 'success',
+                            title: res.message,
+                            confirmButtonClass: 'btn btn-default',
+                            buttonsStyling: false,
+                        })
                         return;
                     }
 
@@ -196,14 +247,30 @@
                         if (currentChunk < totalChunks) {
                             sendNextChunk();
                         } else {
-                            toast('success', 'Video uploaded successfully');
+                            swal({
+                                toast: true,
+                                position: 'top-end',
+                                type: 'success',
+                                title: 'Video uploaded successfully!',
+                                confirmButtonClass: 'btn btn-default',
+                                buttonsStyling: false,
+                                timer: 8000
+                            })
                             setTimeout(() => {
                                 location.href = "<?= base_url('Template_manager') ?>";
                             }, 1500);
                         }
                     },
                     error() {
-                        toast('error', 'Chunk upload failed');
+                        swal({
+                            toast: true,
+                            position: 'top-end',
+                            type: 'error',
+                            title: 'Error uploading chunk ' + (currentChunk + 1),
+                            confirmButtonClass: 'btn btn-default',
+                            buttonsStyling: false,
+                        })
+                        
                     }
                 });
             }
