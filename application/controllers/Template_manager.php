@@ -179,7 +179,7 @@ class Template_manager extends Admin_Controller
     }
 
 
-    private function mergeChunks($templateId, $totalChunks)
+    private function mergeChunks_($templateId, $totalChunks)
     {
         $finalDir = FCPATH . 'uploads/template-manager/video/';
         if (!is_dir($finalDir)) {
@@ -211,6 +211,62 @@ class Template_manager extends Admin_Controller
             'size' => $size,
             'upload_status' => 'completed'
         ]);
+    }
+
+    private function mergeChunks($templateId, $totalChunks)
+    {
+        $finalDir = FCPATH . 'uploads/template-manager/video/';
+        if (!is_dir($finalDir)) {
+            mkdir($finalDir, 0755, true);
+        }
+
+        $finalName = uniqid('video_') . '.mp4';
+        $finalPath = $finalDir . $finalName;
+
+        // Start Merging
+        $out = fopen($finalPath, 'ab');
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $chunk = FCPATH . "uploads/temp_chunks/$templateId/$i";
+            if (file_exists($chunk)) {
+                $in = fopen($chunk, "rb");
+                while ($buff = fread($in, 4096)) {
+                    fwrite($out, $buff);
+                }
+                fclose($in);
+                unlink($chunk);
+            }
+        }
+        fclose($out);
+        rmdir(FCPATH . "uploads/temp_chunks/$templateId");
+
+        // Get metadata
+        $duration = $this->getVideoDuration($finalPath);
+        $size = filesize($finalPath);
+
+        // --- DATABASE TRANSACTION START ---
+        $this->db->trans_start();
+
+        $this->db->where('id', $templateId)->update('template_assets', [
+            'file_path'     => 'uploads/template-manager/video/' . $finalName,
+            'duration'      => $duration,
+            'size'          => $size,
+            'upload_status' => 'completed',
+            'updated_at'    => date('Y-m-d H:i:s')
+        ]);
+
+        $this->db->trans_complete();
+        // --- DATABASE TRANSACTION END ---
+
+        if ($this->db->trans_status() === FALSE) {
+            // If DB update failed, delete the physical file so they stay in sync
+            if (file_exists($finalPath)) {
+                unlink($finalPath);
+            }
+            log_message('error', "Transaction failed for Template ID: $templateId. File deleted.");
+            return false;
+        }
+
+        return true;
     }
 
     private function getFfprobePath()
@@ -257,7 +313,7 @@ class Template_manager extends Admin_Controller
         }
 
         $raw = $this->input->post('overlays', false);
-        
+
         if (!$raw) {
             echo json_encode(['status' => 'error', 'message' => 'Missing overlays payload']);
             exit;
@@ -371,7 +427,7 @@ class Template_manager extends Admin_Controller
             }
         }
 
-     
+
         $this->template_model->delete_by_template($id);
         $this->db->trans_complete();
         if ($this->db->trans_status() === FALSE) {
