@@ -86,9 +86,6 @@
         const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
         const progressWrap = $('#uploadProgressWrap');
         const progressBar = $('#uploadProgress');
-
-
-
         swal({
             toast: true,
             position: 'top-end',
@@ -256,9 +253,9 @@
                                 buttonsStyling: false,
                                 timer: 8000
                             })
-                            // setTimeout(() => {
-                            //     location.href = "<?= base_url('Template_manager') ?>";
-                            // }, 1500);
+                            setTimeout(() => {
+                                location.href = "<?= base_url('Template_manager') ?>";
+                            }, 1500);
                         }
                     },
                     error() {
