@@ -472,6 +472,8 @@ class Template_manager extends Admin_Controller
 
     public function download($template_id)
     {
+        log_message('info', "Download requested for template ID: $template_id");
+
         if (!is_loggedin()) {
             show_404();
         }
@@ -506,7 +508,7 @@ class Template_manager extends Admin_Controller
             $branchLogoUrl,
             $overlays,
             $template['title'],
-            $branchTextMap // 👈 NEW
+            $branchTextMap
         );
     }
 }

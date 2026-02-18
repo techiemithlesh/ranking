@@ -62,11 +62,18 @@
                                             <i class="fas fa-edit"></i> Preview
                                         </a>
                                     <?php endif; ?>
-                                    
-                                    <a href="<?= base_url('Template_manager/download/' . $tpl['id']) ?>"
-                                        class="btn btn-success btn-sm">
-                                        <i class="fas fa-download"></i> <?= translate('download') ?>
-                                    </a>
+
+                                    <?php if ($tpl['type'] == 'image') : ?>
+                                        <a href="<?= base_url('Template_manager/download/' . $tpl['id']) ?>"
+                                            class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> <?= translate('download') ?>
+                                        </a>
+                                    <?php elseif ($tpl['type'] == 'video'): ?>
+                                        <a href="<?= base_url('Video_editor/download/' . $tpl['id']) ?>"
+                                            class="btn btn-success btn-sm">
+                                            <i class="fas fa-download"></i> <?= translate('download') ?>
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
 
                             </div>

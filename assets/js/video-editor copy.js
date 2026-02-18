@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function createOverlayElement1(o) {
+  function createOverlayElement(o) {
     const el = document.createElement("div");
     el.className = "overlay-item";
     el.id = "el_" + o.id;
@@ -160,67 +160,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initInteract(el, o);
   }
-
-  function createOverlayElement(o) {
-        // Ensure values from DB are strictly numbers
-        o.x = parseFloat(o.x) || 0;
-        o.y = parseFloat(o.y) || 0;
-        o.width = parseFloat(o.width) || 0.2;
-        o.height = parseFloat(o.height) || 0.1;
-
-        const el = document.createElement("div");
-        el.className = "overlay-item";
-        el.id = "el_" + o.id;
-        el.style.position = "absolute";
-        el.style.pointerEvents = "auto";
-
-        const content = document.createElement("div");
-        content.className = "overlay-content";
-        content.style.pointerEvents = "none";
-        content.style.width = "100%";
-        content.style.height = "100%";
-
-        const delBtn = document.createElement("div");
-        delBtn.className = "delete-overlay";
-        delBtn.innerHTML = '<i class="fas fa-times"></i>';
-        delBtn.onclick = (e) => { e.stopPropagation(); deleteOverlay(o.id); };
-
-        if (o.overlay_type === "logo") {
-            const img = document.createElement("img");
-            img.src = (typeof DEMO_LOGO !== 'undefined') ? DEMO_LOGO : ''; 
-            img.style.width = "100%";
-            img.style.height = "100%";
-            img.style.objectFit = "contain";
-            content.appendChild(img);
-        } else {
-            const textKey = o.settings?.text_key || o.variable || "text";
-            content.innerText = `{{${textKey}}}`;
-        }
-
-        el.appendChild(content);
-        el.appendChild(delBtn);
-
-        if (!o.settings) o.settings = {};
-        if (!o.settings.bg) {
-            o.settings.bg = { enabled: false, color: "#000000", padding: 5, radius: 4 };
-        }
-
-        applyPosition(el, o);
-        applyStyles(el, o.settings);
-
-        overlayLayer.appendChild(el);
-        overlayElements[o.id] = el;
-
-        el.addEventListener("mousedown", (e) => {
-            e.stopPropagation();
-            selectOverlay(o.id);
-        });
-
-        // Use requestAnimationFrame to ensure the element is painted before attaching interact
-        requestAnimationFrame(() => {
-            initInteract(el, o);
-        });
-    }
 
   /* ---------------- 3. UPDATED INTERACTIVITY (CONSTRAINED) ---------------- */
 

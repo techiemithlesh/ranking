@@ -123,23 +123,33 @@
 
                                     </div>
                                     <div class="card-footer text-right">
-                                        <a href="<?= $filePath ?>" class="btn btn-primary text-right" download target="_blank">
-                                            <i class="fas fa-download"></i> Download
-                                        </a>
 
-                                        <?php if($item['type'] == 'image') : ?>
+                                        <?php if ($item['type'] === 'video') : ?>
+                                            <a href="<?= base_url('Video_editor/download/' . $item['id']) ?>"
+                                                class="btn btn-success mt-3">
+                                                <i class="fas fa-download"></i> Download Personalised Video
+                                            </a>
+                                        <?php elseif ($item['type'] == 'image') : ?>
+                                            <a href="<?= $filePath ?>" class="btn btn-primary text-right" download target="_blank">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        <?php endif; ?>
+
+
+
+                                        <?php if ($item['type'] == 'image') : ?>
                                             <a href="<?= base_url('Template_manager/edit/' . $item['id']) ?>" class="btn btn-info ml-2">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                        <?php elseif($item['type'] == 'video') : ?>
+                                        <?php elseif ($item['type'] == 'video') : ?>
                                             <a href="<?= base_url('Video_editor/index/' . $item['id']) ?>" class="btn btn-info ml-2">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
                                         <?php endif; ?>
 
-                                    
+
                                         <?php if (is_superadmin_loggedin()): ?>
-                                           <?php echo btn_delete_ajax('Template_manager/delete/' . $item['id']); ?>
+                                            <?php echo btn_delete_ajax('Template_manager/delete/' . $item['id']); ?>
                                         <?php endif; ?>
                                     </div>
 

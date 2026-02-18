@@ -118,12 +118,164 @@ class Video_editor extends Admin_Controller
 
         $this->data['branch'] = $branch;
         $this->data['branch_logo'] = $branchLogo;
-       
+
         $this->data['mode'] = 'preview';
         $this->data['title'] = translate('preview_template');
-       
+
         $this->data['sub_page'] = 'template_manager/video_preview';
 
         $this->load->view('layout/index', $this->data);
+    }
+
+    public function download($template_id)
+    {
+        $template = $this->assetModel->getById($template_id);
+        $overlays = $this->overlayModel->get_by_template($template_id);
+
+        /* IMPORTANT: render in timeline order */
+        usort($overlays, function ($a, $b) {
+            return $a['start_time'] <=> $b['start_time'];
+        });
+
+        $branch = $this->db->where('id', get_loggedin_branch_id())->get('branch')->row_array();
+
+        $branchTextMap = [
+            'branch_name'    => $branch['name'],
+            'branch_address' => $branch['address'],
+            'branch_contact' => $branch['mobileno']
+        ];
+
+        $logoUrl = get_branch_logo(get_loggedin_branch_id());
+
+        $inputVideo = FCPATH . ltrim($template['file_path'], '/');
+        // $logoPath   = FCPATH . ltrim(parse_url($logoUrl, PHP_URL_PATH), '/');
+
+        $logoPath = $this->toFilePath($logoUrl);
+
+        log_message('info', 'logoPath: ' . $logoPath);
+
+        $outputDir = FCPATH . 'uploads/generated/';
+        if (!is_dir($outputDir)) mkdir($outputDir, 0777, true);
+
+        // filename with branch name
+        $safeBranch = preg_replace('/[^A-Za-z0-9]/', '_', $branch['name']);
+        $outputVideo = $outputDir . $safeBranch . '_' . time() . '.mp4';
+
+        $filters = [];
+        $current = "[0:v]";
+        $index = 1;
+
+        foreach ($overlays as $ov) {
+
+            $settings = json_decode($ov['settings'], true) ?? [];
+
+            $start = floatval($ov['start_time']);
+            $end   = floatval($ov['end_time']);
+
+            $x = "W*{$ov['x']}";
+            $y = "H*{$ov['y']}";
+
+            /* ================= TEXT ================= */
+            if ($ov['overlay_type'] === 'text') {
+
+                $textKey = $settings['text_key'] ?? '';
+                $text = $branchTextMap[$textKey] ?? '';
+                if ($text == '') continue;
+
+                // escape text for ffmpeg
+                $text = str_replace(["\\", ":", "'", "\n"], ["\\\\", "\\:", "\\'", "\\n"], $text);
+
+                $fontSize = intval($settings['font_size'] ?? 18);
+                $color = ltrim($settings['color'] ?? '#ffffff', '#');
+
+                $draw = "drawtext=text='{$text}':fontsize={$fontSize}:fontcolor={$color}:x={$x}:y={$y}:enable='between(t,$start,$end)'";
+
+                if (!empty($settings['bg']['enabled'])) {
+                    $bgColor = ltrim($settings['bg']['color'] ?? '#000000', '#');
+                    $pad     = intval($settings['bg']['padding'] ?? 5);
+
+                    $draw .= ":box=1:boxcolor={$bgColor}@0.7:boxborderw={$pad}";
+                }
+
+                $next = "[v{$index}]";
+                $filters[] = "{$current}{$draw}{$next}";
+                $current = $next;
+                $index++;
+            }
+
+            /* ================= LOGO ================= */
+            if ($ov['overlay_type'] === 'logo' && file_exists($logoPath)) {
+
+                $ffmpegLogo = $this->ffmpegPath($logoPath);
+
+                $wRatio = floatval($ov['width']);
+                $hRatio = floatval($ov['height']);
+
+                // Step 1: load logo
+                $filters[] = "movie='{$ffmpegLogo}'[logo{$index}]";
+
+                // Step 2: scale logo relative to video (CORRECT METHOD)
+                $filters[] = "[logo{$index}]{$current}scale2ref=w=iw*{$wRatio}:h=ih*{$hRatio}[logoScaled{$index}][base{$index}]";
+
+                // Step 3: overlay
+                $next = "[v{$index}]";
+                $filters[] = "[base{$index}][logoScaled{$index}]overlay={$x}:{$y}:enable='between(t,$start,$end)'{$next}";
+
+                $current = $next;
+                $index++;
+            }
+        }
+
+        $filterComplex = implode(';', $filters);
+
+        $cmd = "ffmpeg -y -i \"$inputVideo\" -filter_complex \"$filterComplex\" -map \"$current\" -map 0:a? -preset veryfast \"$outputVideo\" 2>&1";
+
+        exec($cmd, $out, $code);
+
+        if (!file_exists($outputVideo)) {
+            echo "<pre>";
+            print_r($out);
+            exit;
+        }
+
+        header('Content-Type: video/mp4');
+        header('Content-Disposition: attachment; filename="' . basename($outputVideo) . '"');
+        header('Content-Length: ' . filesize($outputVideo));
+        readfile($outputVideo);
+        exit;
+    }
+
+    private function toFilePath($path)
+    {
+        if (!$path) return null;
+
+        // If full URL → remove domain
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $path = parse_url($path, PHP_URL_PATH);
+        }
+
+        // Normalize slashes
+        $path = str_replace('\\', '/', $path);
+
+        // Remove base folder duplication
+        $baseFolder = basename(FCPATH); // futurecampus
+
+        if (strpos($path, '/' . $baseFolder . '/') === 0) {
+            $path = substr($path, strlen('/' . $baseFolder));
+        }
+
+        // Final absolute path
+        return rtrim(FCPATH, '/\\') . '/' . ltrim($path, '/');
+    }
+
+    private function ffmpegPath($path)
+    {
+        // normalize slashes
+        $path = str_replace('\\', '/', $path);
+
+        // escape colon for filter_complex
+        $path = str_replace(':', '\\:', $path);
+
+        return $path;
     }
 }
