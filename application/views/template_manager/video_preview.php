@@ -53,29 +53,28 @@
         color: #fff;
         box-sizing: border-box;
 
-        display: flex;
+        display: inline-flex;
+        /* IMPORTANT */
         align-items: center;
         justify-content: center;
         text-align: center;
 
-        white-space: pre-wrap;
-        /* allow wrapping */
-        word-break: break-word;
-        /* prevent overflow */
-        overflow: hidden;
-        /* simulate real render */
+        white-space: nowrap;
+        /* match ffmpeg */
     }
 
 
 
+
     .overlay-content {
+        display: inline-flex;
         width: 100%;
         height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        white-space: pre;
+        white-space: nowrap;
         line-height: 1.2;
         box-sizing: border-box;
         word-break: normal;
@@ -154,9 +153,11 @@
                 el.style.borderRadius = "0px";
             }
 
-            el.style.display = "flex";
+            el.style.display = "inline-flex";
             el.style.alignItems = "center";
             el.style.justifyContent = "center";
+            el.style.width = "auto";
+            el.style.height = "auto";
         }
 
         /* ---------------- CREATE OVERLAYS ---------------- */
