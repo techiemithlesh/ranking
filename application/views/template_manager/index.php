@@ -127,7 +127,7 @@
                                         <?php if ($item['type'] === 'video') : ?>
                                             <a href="<?= base_url('Video_editor/download/' . $item['id']) ?>"
                                                 class="btn btn-success mt-3">
-                                                <i class="fas fa-download"></i> Download Personalised Video
+                                                <i class="fas fa-download"></i> Download
                                             </a>
                                         <?php elseif ($item['type'] == 'image') : ?>
                                             <a href="<?= $filePath ?>" class="btn btn-primary text-right" download target="_blank">

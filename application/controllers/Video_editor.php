@@ -210,7 +210,7 @@ class Video_editor extends Admin_Controller
 
                 $wRatio = floatval($ov['width']);
                 $hRatio = floatval($ov['height']);
-
+    
                 // Step 1: load logo
                 $filters[] = "movie='{$ffmpegLogo}'[logo{$index}]";
 
