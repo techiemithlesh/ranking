@@ -147,19 +147,35 @@ class Video_editor extends Admin_Controller
 
         $logoUrl = get_branch_logo(get_loggedin_branch_id());
 
-        $inputVideo = FCPATH . ltrim($template['file_path'], '/');
-        // $logoPath   = FCPATH . ltrim(parse_url($logoUrl, PHP_URL_PATH), '/');
-
-        $logoPath = $this->toFilePath($logoUrl);
-
-        log_message('info', 'logoPath: ' . $logoPath);
+        /* ---------- RENDER CACHE ---------- */
+        /* ---------- CACHE HASH ---------- */
+        $hash = $this->renderHash($template, $overlays, $branch, $logoUrl);
 
         $outputDir = FCPATH . 'uploads/generated/';
         if (!is_dir($outputDir)) mkdir($outputDir, 0777, true);
 
-        // filename with branch name
-        $safeBranch = preg_replace('/[^A-Za-z0-9]/', '_', $branch['name']);
-        $outputVideo = $outputDir . $safeBranch . '_' . time() . '.mp4';
+        $outputVideo = $outputDir . $hash . '.mp4';
+
+        // already rendered → direct download
+        if (file_exists($outputVideo)) {
+
+            header('Content-Type: video/mp4');
+            header('Content-Disposition: attachment; filename="' . $branch['name'] . '_template.mp4"');
+            header('Content-Length: ' . filesize($outputVideo));
+            readfile($outputVideo);
+            exit;
+        }
+
+
+        // If another process is rendering → wait & serve when done
+        $inputVideo = FCPATH . ltrim($template['file_path'], '/');
+
+        $logoPath = $this->toFilePath($logoUrl);
+
+        $outputDir = FCPATH . 'uploads/generated/';
+        if (!is_dir($outputDir)) mkdir($outputDir, 0777, true);
+
+
 
         $filters = [];
         $current = "[0:v]";
@@ -210,7 +226,7 @@ class Video_editor extends Admin_Controller
 
                 $wRatio = floatval($ov['width']);
                 $hRatio = floatval($ov['height']);
-    
+
                 // Step 1: load logo
                 $filters[] = "movie='{$ffmpegLogo}'[logo{$index}]";
 
@@ -277,5 +293,20 @@ class Video_editor extends Admin_Controller
         $path = str_replace(':', '\\:', $path);
 
         return $path;
+    }
+
+
+    private function renderHash($template, $overlays, $branch, $logoUrl)
+    {
+        return sha1(json_encode([
+            'template' => $template['file_path'],
+            'branch' => [
+                $branch['name'],
+                $branch['address'],
+                $branch['mobileno'],
+                $logoUrl
+            ],
+            'overlays' => $overlays
+        ]));
     }
 }
