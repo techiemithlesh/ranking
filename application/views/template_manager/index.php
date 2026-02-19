@@ -12,7 +12,6 @@
                 </div>
             </header>
 
-
             <form method="get" action="<?= base_url('Template_manager') ?>" class="validate">
                 <div class="panel-body">
                     <div class="row mb-sm">
@@ -84,6 +83,7 @@
                     </div>
                 </footer>
             </form>
+            
         </section>
 
         <?php if (isset($templateData) && !empty($templateData)): ?>
@@ -172,7 +172,6 @@
         <?php endif; ?>
     </div>
 </div>
-
 
 
 

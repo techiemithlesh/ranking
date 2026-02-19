@@ -64,21 +64,184 @@
                                     <?php endif; ?>
 
                                     <?php if ($tpl['type'] == 'image') : ?>
-                                        <a href="<?= base_url('Template_manager/download/' . $tpl['id']) ?>"
-                                            class="btn btn-success btn-sm">
+                                        <a href="#"
+                                            data-url="<?= base_url('Template_manager/download/' . $tpl['id']) ?>"
+                                            class="btn btn-success btn-sm startRender">
                                             <i class="fas fa-download"></i> <?= translate('download') ?>
                                         </a>
+
                                     <?php elseif ($tpl['type'] == 'video'): ?>
-                                        <a href="<?= base_url('Video_editor/download/' . $tpl['id']) ?>"
-                                            class="btn btn-success btn-sm">
+                                        <a href="#"
+                                            data-url="<?= base_url('Video_editor/download/' . $tpl['id']) ?>"
+                                            class="btn btn-success btn-sm startRender">
                                             <i class="fas fa-download"></i> <?= translate('download') ?>
                                         </a>
+
                                     <?php endif; ?>
                                 </div>
 
                             </div>
                         </div>
-                    </div> <?php endforeach; ?>
-            </div> <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
+
+<!-- GENERATING OVERLAY -->
+<div id="renderOverlay">
+    <div class="render-box">
+        <div class="spinner"></div>
+        <h3 id="renderTitle">Preparing template...</h3>
+        <p class="small text-muted">Personalising with your branch details</p>
+
+        <div class="progressFake">
+            <div class="bar"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #renderOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+    }
+
+    .render-box {
+        width: 360px;
+        background: #111;
+        color: #fff;
+        padding: 30px;
+        border-radius: 14px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(255, 255, 255, .2);
+        border-top: 4px solid #00d4ff;
+        border-radius: 50%;
+        margin: auto;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .progressFake {
+        margin-top: 20px;
+        height: 6px;
+        background: rgba(255, 255, 255, .1);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .progressFake .bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #00d4ff, #6a5cff);
+        animation: fakeProgress 14s ease-in-out forwards;
+    }
+
+    @keyframes fakeProgress {
+        0% {
+            width: 5%
+        }
+
+        25% {
+            width: 30%
+        }
+
+        50% {
+            width: 55%
+        }
+
+        75% {
+            width: 80%
+        }
+
+        100% {
+            width: 95%
+        }
+    }
+</style>
+
+<script>
+    const renderMessages = [
+        "Preparing template...",
+        "Applying branch branding...",
+        "Rendering video...",
+        "Optimising quality...",
+        "Finalising export..."
+    ];
+
+    document.querySelectorAll(".startRender").forEach(btn => {
+        btn.addEventListener("click", function(e) {
+            e.preventDefault();
+            startRender(this.dataset.url);
+        });
+    });
+
+    function startRender(url) {
+        const overlay = document.getElementById("renderOverlay");
+        const title = document.getElementById("renderTitle");
+
+        overlay.style.display = "flex";
+
+        let i = 0;
+        const msgLoop = setInterval(() => {
+            title.innerText = renderMessages[i % renderMessages.length];
+            i++;
+        }, 2200);
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error("Server error");
+                return response.blob().then(blob => ({
+                    blob,
+                    response
+                }));
+            })
+            .then(({
+                blob,
+                response
+            }) => {
+                console.log("File ready for download.");
+
+                clearInterval(msgLoop);
+
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+
+                // read filename from header
+                let filename = "template.mp4";
+                const cd = response.headers.get("Content-Disposition");
+                if (cd && cd.includes("filename="))
+                    filename = cd.split("filename=")[1].replace(/"/g, '');
+
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                overlay.style.display = "none";
+            })
+            .catch(error => {
+                overlay.style.display = "none";
+                console.error("Failed to download file.", error);
+                alert("Failed to generate file. Try again.");
+            });
+    }
+</script>
