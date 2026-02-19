@@ -4,6 +4,11 @@
             <h4 class="panel-title">
                 <?= translate('preview_template') ?> : <?= html_escape($template['title']) ?>
             </h4>
+            <?php if ($template['type'] === 'video'): ?>
+                <a href="<?= base_url('Video_editor/download/' . $template['id']) ?>" class="btn btn-success btn-sm">
+                    <i class="fa fa-video"></i> <?= translate('Download') ?>
+                </a>
+            <?php endif; ?>
             <a href="<?= base_url('Template_manager') ?>" class="btn btn-default btn-sm">
                 <i class="fas fa-arrow-left"></i> <?= translate('back') ?>
             </a>
@@ -62,9 +67,6 @@
         white-space: nowrap;
         /* match ffmpeg */
     }
-
-
-
 
     .overlay-content {
         display: inline-flex;
