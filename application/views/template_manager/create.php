@@ -5,7 +5,7 @@
             <header class="panel-heading">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <h4 class="panel-title" style="margin:0;"><?= translate('create_template') ?></h4>
-                    <a href="<?= base_url('TemplateManager') ?>" class="btn btn-default btn-sm">
+                    <a href="<?= base_url('Template_manager') ?>" class="btn btn-default btn-sm">
                         <i class="fas fa-arrow-left"></i> <?= translate('back') ?>
                     </a>
                 </div>
