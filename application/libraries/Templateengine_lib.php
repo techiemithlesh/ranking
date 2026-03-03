@@ -19,9 +19,9 @@ class Templateengine_lib
         return ['template' => $template, 'overlays' => $overlays];
     }
 
-    public function storeTemplate()
+    public function storeTemplate_()
     {
-        $this->db->trans_start();
+        $this->CI->db->trans_start();
 
         $type = $this->CI->input->post('type');
         $config = [
@@ -46,10 +46,53 @@ class Templateengine_lib
                 'upload_status' => 'completed',
                 'created_by' => get_loggedin_user_id()
             ];
+            log_message('info', 'Template uploaded: ' . json_encode($arrayData));
+            log_message('info', 'Upload data: ' . $this->CI->template_model->saveTemplate($arrayData));
             return $this->CI->template_model->saveTemplate($arrayData);
         } else {
             $this->CI->db->rollback();
             log_message('error', 'Template upload error: ' . json_encode($this->CI->upload->display_errors('', '')));
+            return ['error' => $this->CI->upload->display_errors('', '')];
+        }
+    }
+
+    public function storeTemplate()
+    {
+        $this->CI->db->trans_start(); // Start Transaction
+
+        $type = $this->CI->input->post('type');
+        $config = [
+            'upload_path'   => './uploads/template-manager/' . $type . '/', // Added ./ for path safety
+            'allowed_types' => ($type == 'image' ? 'jpg|jpeg|png' : 'mp4'),
+            'encrypt_name'  => true
+        ];
+
+        if (!is_dir($config['upload_path'])) {
+            mkdir($config['upload_path'], 0755, true);
+        }
+
+        $this->CI->load->library('upload');
+        $this->CI->upload->initialize($config);
+
+        if ($this->CI->upload->do_upload('template_file')) {
+            $uploadData = $this->CI->upload->data();
+            $arrayData = [
+                'title'         => $this->CI->input->post('title', true),
+                'type'          => $type,
+                'file_path'     => $config['upload_path'] . $uploadData['file_name'],
+                'upload_status' => 'completed',
+                'created_by'    => get_loggedin_user_id()
+            ];
+
+            // Perform the insert
+            $insertId = $this->CI->template_model->saveTemplate($arrayData);
+
+            $this->CI->db->trans_complete(); // Commit the transaction
+
+            log_message('info', 'Template uploaded successfully ID: ' . $insertId);
+            return $insertId;
+        } else {
+            $this->CI->db->trans_rollback(); // Rollback on upload failure
             return ['error' => $this->CI->upload->display_errors('', '')];
         }
     }
