@@ -109,6 +109,9 @@ class Video_editor extends Admin_Controller
         $template = $this->assetModel->getById($template_id);
         $overlays = $this->overlayModel->get_by_template($template_id);
 
+        usort($overlays, function ($a, $b) {
+            return $a['start_time'] <=> $b['start_time'];
+        });
 
         $branch = $this->db->select('*')->from('branch')->where('id', get_loggedin_branch_id())->get()->row_array();
         $branchLogo = get_branch_logo(get_loggedin_branch_id());

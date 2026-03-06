@@ -46,6 +46,9 @@
 <!-- FOR DRAG AND DROP (MINI EDITOR) -->
 <!-- <script src="<?= base_url('assets/vendor/interactjs/interact.min.js') ?>"></script> -->
 
+<!-- FOR DROPIFY -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Dropify/0.2.2/js/dropify.min.js"></script>
+
 <!-- FOR NEW DESIGN -->
 <script type="text/javascript">
 	jQuery.extend(jQuery.validator.messages, {

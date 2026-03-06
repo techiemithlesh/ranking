@@ -50,15 +50,20 @@ class School_settings extends Admin_Controller
         }
         $this->data['branchID'] = $branchID;
         $this->data['school'] = $this->school_model->get('branch', array('id' => $branchID), true);
+        // printVar(  $this->data['school']);
+        // die;
         $this->data['title'] = translate('school_settings');
         $this->data['sub_page'] = 'school_settings/school';
         $this->data['main_menu'] = 'school_m';
         $this->load->view('layout/index', $this->data);
     }
 
-    public function updateBranch(){
+    public function updateBranch()
+    {
         $branchID = $this->school_model->getBranchID();
-        $this->form_validation->set_rules('branch_name', translate('branch_name'), 'trim|required|callback_unique_branchname');
+
+        // Pass branch_id to the callback so it can exclude self from unique check
+        $this->form_validation->set_rules('branch_name', translate('branch_name'), 'trim|required|callback_unique_branchname[' . $branchID . ']');
         $this->form_validation->set_rules('school_name', translate('school_name'), 'trim|required');
         $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
         $this->form_validation->set_rules('currency', translate('currency'), 'trim|required');
@@ -66,17 +71,26 @@ class School_settings extends Admin_Controller
 
         if ($this->form_validation->run() == true) {
             $post = $this->input->post();
-            $post['brance_id'] = $branchID;
-            $this->school_model->branchUpdate($post);
-            $message = translate('the_configuration_has_been_updated');
-            $array = array('status' => 'success', 'message' => $message);
+            $post['branch_id'] = $branchID;
+
+            // log_message('debug', 'FILES at updateBranch: ' . print_r($_FILES, true));
+            // log_message('debug', 'Updating branch with data: ' . print_r($post, true));
+
+            $result = $this->school_model->branchUpdate($post);
+
+            if (isset($result['error'])) {
+                $array = array('status' => 'fail', 'error' => $result['error']);
+            } else {
+                $message = translate('the_configuration_has_been_updated');
+                $array = array('status' => 'success', 'message' => $message);
+            }
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'error' => $error);
         }
+
         echo json_encode($array);
         exit();
-
     }
 
     public function unique_branchname($name)
@@ -244,7 +258,7 @@ class School_settings extends Admin_Controller
     public function razorpay_save()
     {
         if (!get_permission('payment_settings', 'is_add')) {
-           ajax_access_denied();
+            ajax_access_denied();
         }
 
         $branchID = $this->school_model->getBranchID();
@@ -277,7 +291,7 @@ class School_settings extends Admin_Controller
     public function payment_active()
     {
         if (!get_permission('payment_settings', 'is_add')) {
-           ajax_access_denied();
+            ajax_access_denied();
         }
 
         $branchID = $this->school_model->getBranchID();
@@ -331,11 +345,11 @@ class School_settings extends Admin_Controller
         $branchID = $this->school_model->getBranchID();
         $providerID = $this->input->post('sms_service_provider');
         $this->db->where('branch_id', $branchID)->update('sms_credential', array('is_active' => 0));
-        $this->db->where(array('sms_api_id' => $providerID,'branch_id' => $branchID))->update('sms_credential', array('is_active' => 1));
+        $this->db->where(array('sms_api_id' => $providerID, 'branch_id' => $branchID))->update('sms_credential', array('is_active' => 1));
         if ($this->db->affected_rows() > 0) {
-           $message = translate('information_has_been_saved_successfully'); 
-        }else{
-            $message = translate("SMS configuration not found"); 
+            $message = translate('information_has_been_saved_successfully');
+        } else {
+            $message = translate("SMS configuration not found");
         }
         $array = array('status' => 'success', 'message' => $message);
         echo json_encode($array);
@@ -365,7 +379,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_credential', $arrayTwilio);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_credential', $arrayTwilio);  
+                $this->db->update('sms_credential', $arrayTwilio);
             }
             $message = translate('information_has_been_saved_successfully');
             $array = array('status' => 'success', 'message' => $message);
@@ -402,7 +416,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_credential', $arrayTwilio);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_credential', $arrayTwilio);  
+                $this->db->update('sms_credential', $arrayTwilio);
             }
             $message = translate('information_has_been_saved_successfully');
             $array = array('status' => 'success', 'message' => $message);
@@ -435,7 +449,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_credential', $arrayTwilio);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_credential', $arrayTwilio);  
+                $this->db->update('sms_credential', $arrayTwilio);
             }
             $message = translate('information_has_been_saved_successfully');
             $array = array('status' => 'success', 'message' => $message);
@@ -468,7 +482,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_credential', $arrayTwilio);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_credential', $arrayTwilio);  
+                $this->db->update('sms_credential', $arrayTwilio);
             }
             $message = translate('information_has_been_saved_successfully');
             $array = array('status' => 'success', 'message' => $message);
@@ -503,7 +517,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_credential', $arrayTwilio);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_credential', $arrayTwilio);  
+                $this->db->update('sms_credential', $arrayTwilio);
             }
             $message = translate('information_has_been_saved_successfully');
             $array = array('status' => 'success', 'message' => $message);
@@ -554,7 +568,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('sms_template_details', $arrayTemplate);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('sms_template_details', $arrayTemplate);  
+                $this->db->update('sms_template_details', $arrayTemplate);
             }
             $message = translate('the_configuration_has_been_updated');
             $array = array('status' => 'success', 'message' => $message);
@@ -607,18 +621,18 @@ class School_settings extends Admin_Controller
             $this->form_validation->set_rules('smtp_port', 'SMTP Port', 'trim|required');
             $this->form_validation->set_rules('smtp_encryption', 'Email Encryption', 'trim|required');
         }
-        if($this->form_validation->run() !== false) {
+        if ($this->form_validation->run() !== false) {
             $arrayConfig = array(
-                'email' => $this->input->post('email'), 
-                'protocol' => $protocol, 
-                'branch_id' => $branchID, 
+                'email' => $this->input->post('email'),
+                'protocol' => $protocol,
+                'branch_id' => $branchID,
             );
             if ($protocol == 'smtp') {
-                $arrayConfig['smtp_host'] = $this->input->post("smtp_host"); 
-                $arrayConfig['smtp_user'] = $this->input->post("smtp_user"); 
-                $arrayConfig['smtp_pass'] = $this->input->post("smtp_pass"); 
-                $arrayConfig['smtp_port'] = $this->input->post("smtp_port"); 
-                $arrayConfig['smtp_encryption'] = $this->input->post("smtp_encryption"); 
+                $arrayConfig['smtp_host'] = $this->input->post("smtp_host");
+                $arrayConfig['smtp_user'] = $this->input->post("smtp_user");
+                $arrayConfig['smtp_pass'] = $this->input->post("smtp_pass");
+                $arrayConfig['smtp_port'] = $this->input->post("smtp_port");
+                $arrayConfig['smtp_encryption'] = $this->input->post("smtp_encryption");
             }
             $this->db->where('branch_id', $branchID);
             $q = $this->db->get('email_config');
@@ -626,7 +640,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('email_config', $arrayConfig);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('email_config', $arrayConfig);  
+                $this->db->update('email_config', $arrayConfig);
             }
             $message = translate('the_configuration_has_been_updated');
             $array = array('status' => 'success', 'message' => $message);
@@ -685,7 +699,7 @@ class School_settings extends Admin_Controller
                 $this->db->insert('email_templates_details', $arrayTemplate);
             } else {
                 $this->db->where('id', $q->row()->id);
-                $this->db->update('email_templates_details', $arrayTemplate);  
+                $this->db->update('email_templates_details', $arrayTemplate);
             }
             $message = translate('the_configuration_has_been_updated');
             $array = array('status' => 'success', 'message' => $message);
@@ -729,7 +743,7 @@ class School_settings extends Admin_Controller
             if (isset($_POST['status'])) {
                 $array['status'] = 1;
                 $array['deposit'] = $this->input->post('deposit');
-                $array['expense'] = $this->input->post('expense'); 
+                $array['expense'] = $this->input->post('expense');
             } else {
                 $array['status'] = 0;
             }
@@ -741,9 +755,9 @@ class School_settings extends Admin_Controller
                 $this->db->update('transactions_links', $array);
             } else {
                 $this->db->insert('transactions_links', $array);
-            }  
-            
-            $array = array('status' => 'success' , 'message' => translate('information_has_been_saved_successfully'));
+            }
+
+            $array = array('status' => 'success', 'message' => translate('information_has_been_saved_successfully'));
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'error' => $error);
@@ -788,13 +802,12 @@ class School_settings extends Admin_Controller
                 $this->db->update('live_class_config', $array);
             } else {
                 $this->db->insert('live_class_config', $array);
-            }  
-            $array = array('status' => 'success' , 'message' => translate('information_has_been_saved_successfully'));
+            }
+            $array = array('status' => 'success', 'message' => translate('information_has_been_saved_successfully'));
         } else {
             $error = $this->form_validation->error_array();
             $array = array('status' => 'fail', 'error' => $error);
         }
         echo json_encode($array);
     }
-
 }

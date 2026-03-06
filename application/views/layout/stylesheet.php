@@ -19,3 +19,6 @@
 <script src="<?php echo base_url('assets/vendor/jquery/jquery.min.js');?>"></script>
 <script src="<?php echo base_url('assets/vendor/jquery-ui/jquery-ui.min.js');?>"></script>
 <script src="<?php echo base_url('assets/vendor/modernizr/modernizr.js');?>"></script>
+
+<!-- DROP JS -->
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Dropify/0.2.2/css/dropify.min.css" />

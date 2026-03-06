@@ -25,7 +25,7 @@
                             $count = 1;
                             $branchs = $this->db->get('branch')->result();
                             foreach ($branchs as $row):
-                                ?>
+                            ?>
                                 <tr>
                                     <td><?php echo $count++; ?></td>
                                     <td>
@@ -90,9 +90,9 @@
                             <label class="col-md-3 control-label"><?= translate('email') ?> <span
                                     class="required">*</span></label>
                             <div class="col-md-6">
-                                
-                            <input type="email" class="form-control" name="email" value="<?= $school['email'] ?>"
-                            <?= is_admin_loggedin() && !is_superadmin_loggedin() ? 'readonly' : '' ?> />
+
+                                <input type="email" class="form-control" name="email" value="<?= $school['email'] ?>"
+                                    <?= is_admin_loggedin() && !is_superadmin_loggedin() ? 'readonly' : '' ?> />
                                 <span class="error"></span>
                             </div>
                         </div>
@@ -141,21 +141,13 @@
                             </div>
                         </div>
 
-                        <?php
-                        $session_logo = $this->session->userdata('branch_logo');
-                        $default_logo = !empty($session_logo) ? base_url($session_logo) : (!empty($school['logo']) ? base_url($school['logo']) : base_url('uploads/app_image/logo-small.png'));
-                        ?>
 
                         <!-- Logo Upload -->
                         <div class="form-group">
                             <label class="col-md-3 control-label"><?= translate('logo') ?>(100x120 px)</label>
                             <div class="col-md-6 mb-md">
-                                <?php if (!empty($session_logo)) { ?>
-                                    <img src="<?= base_url($session_logo) ?>" alt="Branch Logo" width="100" height="120"
-                                        class="mb-2" />
-                                <?php } ?>
                                 <input type="file" name="logo" class="dropify" accept="image/*" data-height="200"
-                                    data-default-file="<?= $default_logo ?>" />
+                                    data-default-file="<?= !empty($school['logo']) ? base_url($school['logo']) : '' ?>" />
                                 <small class="text-muted d-block mt-1">
                                     Please upload a square image (100x120 px) for best results.
                                 </small>
@@ -181,21 +173,26 @@
 <?php } ?>
 
 <script type="text/javascript">
-    $(document).ready(function () {
+    $(document).ready(function() {
 
+        $('.dropify').dropify();
 
-        $('.frm-submit-school-update').submit(function (e) {
+        $('.frm-submit-school-update').submit(function(e) {
             e.preventDefault();
 
             var formData = new FormData(this);
 
+
             for (let pair of formData.entries()) {
                 if (pair[1] instanceof File) {
-                    console.log(pair[0] + ": " + pair[1].name); // Log file name instead of [object File]
+                    console.log(pair[0] + ": " + pair[1].name);
                 } else {
                     console.log(pair[0] + ": " + pair[1]);
                 }
             }
+
+            // console.log("Submitting school update form with branch_id: <?= $branchID ?>");
+            // console.log("FormData contents:", formData);
 
             var submitButton = $(this).find("button[type='submit']");
             submitButton.prop('disabled', true).html("<i class='fas fa-spinner fa-spin'></i> Processing");
@@ -207,18 +204,37 @@
                 processData: false,
                 contentType: false,
                 dataType: "json",
-                success: function (response) {
+                success: function(response) {
+                    console.log("Update result", response);
                     if (response.status == "success") {
-                        alert("School settings updated successfully!");
-                        location.reload();
+                        swal({
+                            title: response.status ? "Success!" : "Error!",
+                            text: response.message,
+                            icon: response.status ? "success" : "error",
+                            button: "OK",
+                        }).then(() => {
+                            if (response.status) {
+                                window.location.reload();
+                            }
+                        });
                     } else {
-                        alert("Error updating school settings. Please check your inputs.");
+                        swal({
+                            title: "Error!",
+                            text: response.message || "An error occurred while updating. Please try again.",
+                            icon: "error",
+                            button: "OK",
+                        });
                     }
                 },
-                error: function () {
-                    alert("Something went wrong. Please try again.");
+                error: function() {
+                    swal({
+                        title: "Error!",
+                        text: "An error occurred while updating. Please try again.",
+                        icon: "error",
+                        button: "OK",
+                    });
                 },
-                complete: function () {
+                complete: function() {
                     submitButton.prop('disabled', false).html("<i class='fas fa-plus-circle'></i> <?= translate('save'); ?>");
                 }
             });
