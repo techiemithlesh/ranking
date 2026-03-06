@@ -70,6 +70,7 @@
                     <?= $this->app_lib->generateCSRF() ?>
                     <div class="panel-body">
                         <div class="form-group mt-md">
+                            <input type="hidden" name="branch_id" value="<?= $branchID ?>" />
                             <label class="col-md-3 control-label"><?= translate('branch_name') ?> <span
                                     class="required">*</span></label>
                             <div class="col-md-6">

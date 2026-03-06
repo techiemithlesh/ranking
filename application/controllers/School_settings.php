@@ -19,13 +19,18 @@ class School_settings extends Admin_Controller
         $this->load->model('school_model');
     }
 
-    public function index()
+    public function index($branchID = '')
     {
         if (!get_permission('school_settings', 'is_view')) {
             access_denied();
         }
 
-        $branchID = $this->school_model->getBranchID();
+        if (is_superadmin_loggedin()) {
+            $branchID = $this->input->get('branch_id');
+        } else {
+            $branchID = $this->school_model->getBranchID();
+        }
+
         if ($_POST) {
             if (!get_permission('school_settings', 'is_edit')) {
                 ajax_access_denied();
@@ -37,7 +42,7 @@ class School_settings extends Admin_Controller
             $this->form_validation->set_rules('currency_symbol', translate('currency_symbol'), 'trim|required');
             if ($this->form_validation->run() == true) {
                 $post = $this->input->post();
-                $post['brance_id'] = $branchID;
+                $post['branch_id'] = $branchID;
                 $this->school_model->branchUpdate($post);
                 $message = translate('the_configuration_has_been_updated');
                 $array = array('status' => 'success', 'message' => $message);
@@ -58,12 +63,19 @@ class School_settings extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
+
+
     public function updateBranch()
     {
-        $branchID = $this->school_model->getBranchID();
+        if (is_superadmin_loggedin()) {
+            $branchID = $this->input->post('branch_id'); // ✅ from hidden POST field
+        } else {
+            $branchID = $this->school_model->getBranchID();
+        }
+        log_message('debug', 'Branch ID in updateBranch: ' . $branchID);
 
-        // Pass branch_id to the callback so it can exclude self from unique check
-        $this->form_validation->set_rules('branch_name', translate('branch_name'), 'trim|required|callback_unique_branchname[' . $branchID . ']');
+        // ✅ No parameter needed — callback fetches branch_id internally
+        $this->form_validation->set_rules('branch_name', translate('branch_name'), 'trim|required|callback_unique_branchname');
         $this->form_validation->set_rules('school_name', translate('school_name'), 'trim|required');
         $this->form_validation->set_rules('email', translate('email'), 'trim|required|valid_email');
         $this->form_validation->set_rules('currency', translate('currency'), 'trim|required');
@@ -72,9 +84,6 @@ class School_settings extends Admin_Controller
         if ($this->form_validation->run() == true) {
             $post = $this->input->post();
             $post['branch_id'] = $branchID;
-
-            // log_message('debug', 'FILES at updateBranch: ' . print_r($_FILES, true));
-            // log_message('debug', 'Updating branch with data: ' . print_r($post, true));
 
             $result = $this->school_model->branchUpdate($post);
 
@@ -95,14 +104,24 @@ class School_settings extends Admin_Controller
 
     public function unique_branchname($name)
     {
-        $branchID = $this->school_model->getBranchID();
+        if (is_superadmin_loggedin()) {
+            $branchID = $this->input->post('branch_id'); // ✅ from hidden POST field
+        } else {
+            $branchID = $this->school_model->getBranchID();
+        }
+
+        log_message('debug', 'unique_branchname check — name: ' . $name . ' | excluding branch_id: ' . $branchID);
+
         $this->db->where_not_in('id', $branchID);
         $this->db->where('name', $name);
-        $name = $this->db->get('branch')->num_rows();
-        if ($name == 0) {
+        $count = $this->db->get('branch')->num_rows();
+
+        log_message('debug', 'unique_branchname count: ' . $count);
+
+        if ($count == 0) {
             return true;
         } else {
-            $this->form_validation->set_message("unique_branchname", translate('already_taken'));
+            $this->form_validation->set_message('unique_branchname', translate('already_taken'));
             return false;
         }
     }
