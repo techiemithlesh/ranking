@@ -362,6 +362,7 @@ class Template_manager extends Admin_Controller
 
         $this->data['template'] = $template;
         $this->data['overlays'] = $overlays;
+
         $this->data['title'] = translate('edit_template');
         $this->data['sub_page'] = 'template_manager/editor';
         $this->data['main_menu'] = 'Template_manager';
