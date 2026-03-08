@@ -10,6 +10,13 @@
   border-style: solid;
 }
 
+.hello{
+  position: absolute;
+  border: 2px dashed #0d6efd;
+  background: rgba(13, 110, 253, 0.08);
+  box-sizing: border-box;
+}
+
 .overlay-box .demo {
   width: 100%;
   height: 100%;
