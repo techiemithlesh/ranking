@@ -31,6 +31,7 @@
     width: 100%; height: 100%;
     display: flex; align-items: center;
     pointer-events: none; overflow: hidden; word-break: break-word;
+    white-space: normal;
 }
 /* Safe area */
 .safe-area {
@@ -130,14 +131,13 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 }
 #previewStage {
     position: relative; display: inline-block;
-    /* clean — no dashes, no handles */
 }
 #previewStage img.preview-base {
     display: block; max-width: 100%; height: auto;
 }
 .preview-box {
     position: absolute; box-sizing: border-box;
-    pointer-events: none; /* preview = no interaction */
+    pointer-events: none;
 }
 .preview-box.type-logo {
     background: transparent !important; padding: 0 !important; border-radius: 0 !important;
@@ -146,10 +146,21 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 .preview-box.type-text .text-inner {
     width:100%; height:100%; display:flex; align-items:center;
     overflow:hidden; word-break:break-word; pointer-events:none;
+    white-space: normal;
 }
 #previewModalFooter {
     background: #222; padding: 10px 18px;
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+
+/* ── AUTO-FIT hint badge ── */
+.autofit-badge {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    background: #e8f4fd; color: #0d6efd;
+    border: 1px solid #b8d9f5; border-radius: 10px;
+    padding: 2px 8px; margin-top: 4px;
+    letter-spacing: .3px;
 }
 </style>
 
@@ -176,7 +187,6 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
                 <!-- Toolbar -->
                 <div style="margin-bottom:8px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
-                    <!-- Add buttons -->
                     <button id="btnAdd" class="btn btn-primary btn-sm">
                         <i class="fas fa-plus"></i> Add Logo
                     </button>
@@ -341,17 +351,19 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 </div>
             </div>
 
-            <!-- TEXT TOOLS -->
+            <!-- TEXT TOOLS — font size slider REMOVED, auto-fit handles sizing -->
             <div id="textTools" style="display:none;">
                 <div class="section-title">Text</div>
 
-                <div class="form-group">
-                    <label>Font Size</label>
-                    <div class="range-row">
-                        <input type="range" id="fontSize" min="8" max="120" step="1">
-                        <small id="fontSizeVal">18px</small>
+                <!-- AUTO-FIT notice — replaces the old font size slider -->
+                <div style="margin-bottom:10px;">
+                    <span class="autofit-badge">✦ Font size auto-fits to box</span>
+                    <div style="font-size:11px;color:#888;margin-top:4px;">
+                        Resize the text box on canvas to control how large the text appears.
+                        Shorter text = larger font. Longer text = smaller font. Always fills the box.
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label>Text Color</label>
                     <input type="color" id="textColor">
@@ -496,9 +508,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     const imgShadow      = document.getElementById('imgShadow');
     const imgFilter      = document.getElementById('imgFilter');
 
-    // Text controls
-    const fontSize       = document.getElementById('fontSize');
-    const fontSizeVal    = document.getElementById('fontSizeVal');
+    // Text controls (NO fontSize/fontSizeVal — removed for auto-fit)
     const textColor      = document.getElementById('textColor');
     const lineHeight     = document.getElementById('lineHeight');
     const lineHeightVal  = document.getElementById('lineHeightVal');
@@ -529,15 +539,14 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     let selectedIndex = -1;
     let safeAreaEl    = null;
     let panelOpen     = false;
-    let isDirty       = false;  // unsaved changes flag
+    let isDirty       = false;
 
     /* ── UNDO/REDO HISTORY ── */
-    let history     = [];   // stack of JSON snapshots
-    let historyPos  = -1;   // current position in stack
+    let history    = [];
+    let historyPos = -1;
     const MAX_HISTORY = 50;
 
     function snapshot() {
-        // trim forward history on new action
         history = history.slice(0, historyPos + 1);
         history.push(JSON.stringify(overlays));
         if (history.length > MAX_HISTORY) history.shift();
@@ -567,6 +576,27 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     /* ── UTILS ── */
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 
+    /* ── AUTO-FIT TEXT ──────────────────────────────────────────
+       Starts at maxFontPx (85% of box height) and decrements 1px
+       until the text no longer overflows the box.
+       Called via requestAnimationFrame after the element is in DOM.
+
+       @param {HTMLElement} el   - the .text-inner div
+       @param {number}      boxW - available width  (box - padding*2)
+       @param {number}      boxH - available height (box - padding*2)
+    ── */
+    function autoFitText(el, boxW, boxH) {
+        const MIN = 6;
+        const MAX = Math.max(MIN, Math.floor(boxH * 0.85));
+        let size = MAX;
+        el.style.fontSize = size + 'px';
+        // shrink until content fits both dimensions
+        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
+            size--;
+            el.style.fontSize = size + 'px';
+        }
+    }
+
     /* ── NORMALIZE ── */
     function normalizeSettings(ov) {
         ov.overlay_type = ov.overlay_type || 'logo';
@@ -581,10 +611,11 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             }, ov.settings);
         } else {
             const existingBg = ov.settings.bg || {};
-            ov.settings.bg = Object.assign({ enabled:true, color:'#ffffff', padding:12, radius:16 }, existingBg);
+            ov.settings.bg = Object.assign({ enabled: true, color: '#ffffff', padding: 12, radius: 16 }, existingBg);
+            // font_size intentionally NOT in defaults — auto-fit handles sizing
             ov.settings = Object.assign({
-                text_key:'branch_name', font_size:18, color:'#000000',
-                align:'center', line_height:1.2, weight:'normal'
+                text_key: 'branch_name', color: '#000000',
+                align: 'center', line_height: 1.2, weight: 'normal'
             }, ov.settings);
         }
         return ov;
@@ -593,7 +624,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     function defaultOverlay() {
         return normalizeSettings({
             overlay_type: 'logo',
-            x:0.05, y:0.05, width:0.20, height:0.20, settings:{}
+            x: 0.05, y: 0.05, width: 0.20, height: 0.20, settings: {}
         });
     }
 
@@ -605,9 +636,9 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             safeAreaEl.className = 'safe-area';
             overlayLayer.appendChild(safeAreaEl);
         }
-        const m=0.05, W=overlayLayer.clientWidth, H=overlayLayer.clientHeight;
+        const m = 0.05, W = overlayLayer.clientWidth, H = overlayLayer.clientHeight;
         Object.assign(safeAreaEl.style, {
-            left:W*m+'px', top:H*m+'px', width:W*(1-m*2)+'px', height:H*(1-m*2)+'px'
+            left: W*m+'px', top: H*m+'px', width: W*(1-m*2)+'px', height: H*(1-m*2)+'px'
         });
     }
 
@@ -615,9 +646,9 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     function initOverlays() {
         overlays = overlays.map(o => {
             let s = {};
-            try { s = typeof o.settings==='string' ? JSON.parse(o.settings) : (o.settings||{}); } catch(e){}
+            try { s = typeof o.settings === 'string' ? JSON.parse(o.settings) : (o.settings || {}); } catch(e) {}
             return normalizeSettings({
-                overlay_type: o.overlay_type||'logo',
+                overlay_type: o.overlay_type || 'logo',
                 x:      parseFloat(o.x)      || 0.05,
                 y:      parseFloat(o.y)      || 0.05,
                 width:  parseFloat(o.width)  || 0.20,
@@ -628,22 +659,22 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         });
         if (!overlays.length) overlays.push(defaultOverlay());
         if (selectedIndex < 0) selectedIndex = 0;
-        snapshot(); // initial snapshot
-        isDirty = false; // not dirty on load
+        snapshot();
+        isDirty = false;
     }
 
     /* ── APPLY IMAGE STYLES on <img> directly ── */
     function applyImgStyles(img, s) {
-        img.style.borderRadius = s.radius + 'px';
-        img.style.opacity      = s.opacity;
-        img.style.objectFit    = s.objectFit;
-        img.style.boxShadow    = s.shadow;
-        img.style.filter       = s.filter;
-        img.style.border       = (+s.borderWidth > 0)
+        img.style.borderRadius  = s.radius + 'px';
+        img.style.opacity       = s.opacity;
+        img.style.objectFit     = s.objectFit;
+        img.style.boxShadow     = s.shadow;
+        img.style.filter        = s.filter;
+        img.style.border        = (+s.borderWidth > 0)
             ? `${s.borderWidth}px ${s.borderStyle} ${s.borderColor}` : 'none';
-        img.style.width  = '100%';
-        img.style.height = '100%';
-        img.style.display = 'block';
+        img.style.width         = '100%';
+        img.style.height        = '100%';
+        img.style.display       = 'block';
         img.style.pointerEvents = 'none';
     }
 
@@ -665,10 +696,9 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             const pw = ov.width  * W;
             const ph = ov.height * H;
 
-            /* ── sidebar list item with editable label ── */
+            /* ── sidebar list item ── */
             const li = document.createElement('div');
             li.className = 'list-item' + (i === selectedIndex ? ' active' : '');
-            li.style.zIndex = overlays.length - i; // visual stacking order hint
 
             const icon = document.createElement('span');
             icon.textContent = ov.overlay_type === 'logo' ? '🖼️' : '✏️';
@@ -684,8 +714,8 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 if (nameInput.value.trim()) { ov.label = nameInput.value.trim(); }
                 else nameInput.value = ov.label;
             };
-            nameInput.onkeydown = e => { if (e.key==='Enter') nameInput.blur(); };
-            nameInput.onclick   = () => { if (nameInput.readOnly) { selectedIndex=i; openPanel(); render(); } };
+            nameInput.onkeydown = e => { if (e.key === 'Enter') nameInput.blur(); };
+            nameInput.onclick   = () => { if (nameInput.readOnly) { selectedIndex = i; openPanel(); render(); } };
 
             li.appendChild(icon);
             li.appendChild(nameInput);
@@ -693,33 +723,41 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
             /* ── overlay box ── */
             const box = document.createElement('div');
-            box.className = `overlay-box type-${ov.overlay_type}` + (i===selectedIndex ? ' selected' : '');
+            box.className = `overlay-box type-${ov.overlay_type}` + (i === selectedIndex ? ' selected' : '');
             box.style.zIndex = i + 1;
-            Object.assign(box.style, { left:px+'px', top:py+'px', width:pw+'px', height:ph+'px' });
+            Object.assign(box.style, { left: px+'px', top: py+'px', width: pw+'px', height: ph+'px' });
 
             if (ov.overlay_type === 'text') {
                 const bg = ov.settings.bg;
+                const pad = bg.enabled ? bg.padding : 0;
                 Object.assign(box.style, {
                     background:   bg.enabled ? bg.color : 'transparent',
-                    borderRadius: bg.radius   + 'px',
-                    padding:      bg.padding  + 'px'
+                    borderRadius: bg.radius  + 'px',
+                    padding:      pad        + 'px'
                 });
+
                 const t = document.createElement('div');
                 t.className = 'text-inner';
                 Object.assign(t.style, {
-                    justifyContent: ov.settings.align==='left'  ? 'flex-start' :
-                                    ov.settings.align==='right' ? 'flex-end'   : 'center',
+                    justifyContent: ov.settings.align === 'left'  ? 'flex-start' :
+                                    ov.settings.align === 'right' ? 'flex-end'   : 'center',
                     textAlign:  ov.settings.align,
-                    fontSize:   ov.settings.font_size + 'px',
                     color:      ov.settings.color,
                     lineHeight: String(ov.settings.line_height),
-                    fontWeight: String(ov.settings.weight)
+                    fontWeight: String(ov.settings.weight),
+                    // font-size intentionally NOT set here — autoFitText() sets it below
                 });
                 t.textContent =
-                    ov.settings.text_key==='branch_address' ? '{{BRANCH_ADDRESS}}' :
-                    ov.settings.text_key==='branch_contact' ? '{{BRANCH_CONTACT}}' :
+                    ov.settings.text_key === 'branch_address' ? '{{BRANCH_ADDRESS}}' :
+                    ov.settings.text_key === 'branch_contact' ? '{{BRANCH_CONTACT}}' :
                     '{{BRANCH_NAME}}';
                 box.appendChild(t);
+
+                // AUTO-FIT: run after box is in DOM so scrollWidth/Height are measurable
+                const innerW = pw - pad * 2;
+                const innerH = ph - pad * 2;
+                requestAnimationFrame(() => autoFitText(t, innerW, innerH));
+
             } else {
                 const img = document.createElement('img');
                 img.src = demoLogo;
@@ -737,12 +775,14 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 if (!ptrMoved) {
                     selectedIndex = i;
                     openPanel();
-                    listEl.querySelectorAll('.list-item').forEach((l,idx) => l.classList.toggle('active', idx===i));
-                    overlayLayer.querySelectorAll('.overlay-box').forEach((b,idx) => b.classList.toggle('selected', idx===i));
+                    listEl.querySelectorAll('.list-item').forEach((l, idx) => l.classList.toggle('active', idx === i));
+                    overlayLayer.querySelectorAll('.overlay-box').forEach((b, idx) => b.classList.toggle('selected', idx === i));
                 }
             });
 
-            const minSize = ov.overlay_type==='text' ? 40+(ov.settings.bg.padding*2) : 20;
+            const minSize = ov.overlay_type === 'text'
+                ? 40 + ((ov.settings.bg.enabled ? ov.settings.bg.padding : 0) * 2)
+                : 20;
 
             interact(box)
                 .draggable({
@@ -757,16 +797,16 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                             ov.y = newPy / cH;
                             box.style.left = newPx + 'px';
                             box.style.top  = newPy + 'px';
-                            if (selectedIndex!==i) {
+                            if (selectedIndex !== i) {
                                 selectedIndex = i;
-                                listEl.querySelectorAll('.list-item').forEach((l,idx)=>l.classList.toggle('active',idx===i));
+                                listEl.querySelectorAll('.list-item').forEach((l, idx) => l.classList.toggle('active', idx === i));
                             }
                         },
                         end() { snapshot(); }
                     }
                 })
                 .resizable({
-                    edges: { left:true, right:true, bottom:true, top:true },
+                    edges: { left: true, right: true, bottom: true, top: true },
                     listeners: {
                         start() { ptrMoved = true; },
                         move(e) {
@@ -776,12 +816,18 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                             const newPh = clamp(e.rect.height, minSize, cH);
                             const newPx = clamp(e.rect.left - overlayLayer.getBoundingClientRect().left, 0, cW - newPw);
                             const newPy = clamp(e.rect.top  - overlayLayer.getBoundingClientRect().top,  0, cH - newPh);
-                            ov.x = newPx/cW; ov.y = newPy/cH;
-                            ov.width = newPw/cW; ov.height = newPh/cH;
+                            ov.x = newPx / cW; ov.y = newPy / cH;
+                            ov.width = newPw / cW; ov.height = newPh / cH;
                             Object.assign(box.style, {
-                                left:newPx+'px', top:newPy+'px', width:newPw+'px', height:newPh+'px'
+                                left: newPx+'px', top: newPy+'px', width: newPw+'px', height: newPh+'px'
                             });
-                            if (selectedIndex!==i) selectedIndex=i;
+                            // live re-fit text while resizing
+                            if (ov.overlay_type === 'text') {
+                                const t   = box.querySelector('.text-inner');
+                                const pad = ov.settings.bg.enabled ? ov.settings.bg.padding : 0;
+                                if (t) autoFitText(t, newPw - pad*2, newPh - pad*2);
+                            }
+                            if (selectedIndex !== i) selectedIndex = i;
                         },
                         end() { snapshot(); }
                     }
@@ -791,11 +837,8 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         if (panelOpen && overlays[selectedIndex]) loadSettings();
     }
 
-    /* ── PREVIEW RENDER — clean, no borders/handles ── */
+    /* ── PREVIEW RENDER — clean, no borders/handles, auto-fit text ── */
     function renderPreview() {
-        const previewStage = document.getElementById('previewStage');
-
-        // sync preview overlay layer size to preview image
         previewOverlayLayer.style.width  = previewBaseImg.clientWidth  + 'px';
         previewOverlayLayer.style.height = previewBaseImg.clientHeight + 'px';
         previewOverlayLayer.innerHTML    = '';
@@ -811,58 +854,66 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
             const box = document.createElement('div');
             box.className = `preview-box type-${ov.overlay_type}`;
-            Object.assign(box.style, { left:px+'px', top:py+'px', width:pw+'px', height:ph+'px' });
+            Object.assign(box.style, { left: px+'px', top: py+'px', width: pw+'px', height: ph+'px' });
 
             if (ov.overlay_type === 'text') {
-                const bg = ov.settings.bg;
+                const bg  = ov.settings.bg;
+                const pad = bg.enabled ? bg.padding : 0;
                 Object.assign(box.style, {
                     background:   bg.enabled ? bg.color : 'transparent',
-                    borderRadius: bg.radius   + 'px',
-                    padding:      bg.padding  + 'px'
+                    borderRadius: bg.radius  + 'px',
+                    padding:      pad        + 'px'
                 });
+
                 const t = document.createElement('div');
                 t.className = 'text-inner';
                 Object.assign(t.style, {
-                    justifyContent: ov.settings.align==='left'  ? 'flex-start' :
-                                    ov.settings.align==='right' ? 'flex-end'   : 'center',
+                    justifyContent: ov.settings.align === 'left'  ? 'flex-start' :
+                                    ov.settings.align === 'right' ? 'flex-end'   : 'center',
                     textAlign:  ov.settings.align,
-                    // scale font proportionally to preview image size vs edit canvas size
-                    fontSize:   Math.round(ov.settings.font_size * (W / overlayLayer.clientWidth)) + 'px',
                     color:      ov.settings.color,
                     lineHeight: String(ov.settings.line_height),
-                    fontWeight: String(ov.settings.weight)
+                    fontWeight: String(ov.settings.weight),
+                    // font-size set by autoFitText below
                 });
                 t.textContent =
-                    ov.settings.text_key==='branch_address' ? '{{BRANCH_ADDRESS}}' :
-                    ov.settings.text_key==='branch_contact' ? '{{BRANCH_CONTACT}}' :
+                    ov.settings.text_key === 'branch_address' ? '{{BRANCH_ADDRESS}}' :
+                    ov.settings.text_key === 'branch_contact' ? '{{BRANCH_CONTACT}}' :
                     '{{BRANCH_NAME}}';
                 box.appendChild(t);
+
+                previewOverlayLayer.appendChild(box);
+
+                // AUTO-FIT in preview — same logic, different box dimensions
+                const innerW = pw - pad * 2;
+                const innerH = ph - pad * 2;
+                requestAnimationFrame(() => autoFitText(t, innerW, innerH));
+
             } else {
-                const img = document.createElement('img');
-                img.src = demoLogo;
-                // same styles but scaled border
-                const s = ov.settings;
+                const img   = document.createElement('img');
+                const s     = ov.settings;
                 const scale = W / overlayLayer.clientWidth;
+                img.src = demoLogo;
                 img.style.borderRadius = s.radius + 'px';
                 img.style.opacity      = s.opacity;
                 img.style.objectFit    = s.objectFit;
                 img.style.boxShadow    = s.shadow;
                 img.style.filter       = s.filter;
                 img.style.border       = (+s.borderWidth > 0)
-                    ? `${Math.round(s.borderWidth*scale)}px ${s.borderStyle} ${s.borderColor}` : 'none';
-                img.style.width  = '100%';
-                img.style.height = '100%';
-                img.style.display = 'block';
+                    ? `${Math.round(s.borderWidth * scale)}px ${s.borderStyle} ${s.borderColor}` : 'none';
+                img.style.width        = '100%';
+                img.style.height       = '100%';
+                img.style.display      = 'block';
                 box.appendChild(img);
+
+                previewOverlayLayer.appendChild(box);
             }
-            previewOverlayLayer.appendChild(box);
         });
     }
 
     /* ── RESIZE OBSERVER — ZOOM FIX ──
-       When browser zoom (Ctrl+/-) changes baseImg.clientWidth,
-       ResizeObserver fires → overlayLayer size syncs → render()
-       reads fresh W/H → all ratio-based positions auto-correct.
+       Fires on any browser zoom or window resize.
+       Ratios survive because we re-render from stored ratios, not px.
     */
     new ResizeObserver(() => {
         overlayLayer.style.width  = baseImg.clientWidth  + 'px';
@@ -877,44 +928,43 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         floatPanel.classList.add('show');
         const ov = overlays[selectedIndex];
         fpTitle.textContent     = `${ov.label} (${ov.overlay_type})`;
-        logoTools.style.display = ov.overlay_type==='logo' ? 'block' : 'none';
-        textTools.style.display = ov.overlay_type==='text' ? 'block' : 'none';
+        logoTools.style.display = ov.overlay_type === 'logo' ? 'block' : 'none';
+        textTools.style.display = ov.overlay_type === 'text' ? 'block' : 'none';
         loadSettings();
     }
-    function closePanel() { panelOpen=false; floatPanel.classList.remove('show'); }
+    function closePanel() { panelOpen = false; floatPanel.classList.remove('show'); }
     fpClose.onclick = closePanel;
 
     /* ── LOAD SETTINGS ── */
     function loadSettings() {
         const ov = overlays[selectedIndex];
         if (!ov) return;
-        if (ov.overlay_type==='logo') {
+        if (ov.overlay_type === 'logo') {
             const s = ov.settings;
-            imgRadius.value        = s.radius;
-            imgRadiusVal.innerText = s.radius+'px';
-            imgOpacity.value       = s.opacity;
-            imgOpacityVal.innerText = Math.round(s.opacity*100)+'%';
-            imgObjectFit.value     = s.objectFit;
-            imgBorderWidth.value   = s.borderWidth;
-            imgBorderColor.value   = s.borderColor;
-            imgBorderStyle.value   = s.borderStyle;
-            imgShadow.value        = s.shadow;
-            imgFilter.value        = s.filter;
+            imgRadius.value         = s.radius;
+            imgRadiusVal.innerText  = s.radius + 'px';
+            imgOpacity.value        = s.opacity;
+            imgOpacityVal.innerText = Math.round(s.opacity * 100) + '%';
+            imgObjectFit.value      = s.objectFit;
+            imgBorderWidth.value    = s.borderWidth;
+            imgBorderColor.value    = s.borderColor;
+            imgBorderStyle.value    = s.borderStyle;
+            imgShadow.value         = s.shadow;
+            imgFilter.value         = s.filter;
         } else {
-            const s=ov.settings, bg=s.bg;
-            fontSize.value         = s.font_size;
-            fontSizeVal.innerText  = s.font_size+'px';
-            textColor.value        = s.color;
-            lineHeight.value       = s.line_height;
+            const s = ov.settings, bg = s.bg;
+            // NO font_size to load — auto-fit handles it
+            textColor.value         = s.color;
+            lineHeight.value        = s.line_height;
             lineHeightVal.innerText = s.line_height;
-            fontWeight.value       = s.weight;
-            bgEnabled.value        = bg.enabled?'1':'0';
-            bgColor.value          = bg.color;
-            bgPadding.value        = bg.padding;
-            bgRadius.value         = bg.radius;
-            bgOptions.style.display = bg.enabled?'block':'none';
+            fontWeight.value        = s.weight;
+            bgEnabled.value         = bg.enabled ? '1' : '0';
+            bgColor.value           = bg.color;
+            bgPadding.value         = bg.padding;
+            bgRadius.value          = bg.radius;
+            bgOptions.style.display = bg.enabled ? 'block' : 'none';
             document.querySelectorAll('.align-btn').forEach(b =>
-                b.classList.toggle('act', b.dataset.align===s.align));
+                b.classList.toggle('act', b.dataset.align === s.align));
         }
     }
 
@@ -940,109 +990,110 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     }
     function syncLogoAndSnapshot() { syncLogoSettings(); snapshot(); }
 
-    imgRadius.oninput = () => { imgRadiusVal.innerText = imgRadius.value+'px'; syncLogoSettings(); };
+    imgRadius.oninput  = () => { imgRadiusVal.innerText = imgRadius.value + 'px'; syncLogoSettings(); };
     imgRadius.onchange = snapshot;
-    imgOpacity.oninput = () => { imgOpacityVal.innerText = Math.round(+imgOpacity.value*100)+'%'; syncLogoSettings(); };
+    imgOpacity.oninput  = () => { imgOpacityVal.innerText = Math.round(+imgOpacity.value * 100) + '%'; syncLogoSettings(); };
     imgOpacity.onchange = snapshot;
     [imgObjectFit, imgBorderWidth, imgBorderColor, imgBorderStyle, imgShadow, imgFilter]
         .forEach(el => { el.oninput = syncLogoSettings; el.onchange = syncLogoAndSnapshot; });
 
     /* ── TEXT CONTROLS ── */
-    function textChange(fn) { return () => { if(!overlays[selectedIndex]) return; fn(); render(); snapshot(); }; }
-
-    fontSize.oninput = () => {
-        if(!overlays[selectedIndex]) return;
-        overlays[selectedIndex].settings.font_size = +fontSize.value;
-        fontSizeVal.innerText = fontSize.value+'px';
+    textColor.oninput  = () => {
+        if (!overlays[selectedIndex]) return;
+        overlays[selectedIndex].settings.color = textColor.value;
         render();
-    };
-    fontSize.onchange = snapshot;
-
-    textColor.oninput = () => {
-        if(!overlays[selectedIndex]) return;
-        overlays[selectedIndex].settings.color = textColor.value; render();
     };
     textColor.onchange = snapshot;
 
     lineHeight.oninput = () => {
-        if(!overlays[selectedIndex]) return;
+        if (!overlays[selectedIndex]) return;
         overlays[selectedIndex].settings.line_height = +lineHeight.value;
-        lineHeightVal.innerText = lineHeight.value; render();
+        lineHeightVal.innerText = lineHeight.value;
+        render();
     };
     lineHeight.onchange = snapshot;
 
-    fontWeight.onchange = textChange(() => { overlays[selectedIndex].settings.weight = fontWeight.value; });
+    fontWeight.onchange = () => {
+        if (!overlays[selectedIndex]) return;
+        overlays[selectedIndex].settings.weight = fontWeight.value;
+        render();
+        snapshot();
+    };
 
     document.querySelectorAll('.align-btn').forEach(b => b.onclick = () => {
-        if(!overlays[selectedIndex]) return;
+        if (!overlays[selectedIndex]) return;
         overlays[selectedIndex].settings.align = b.dataset.align;
-        document.querySelectorAll('.align-btn').forEach(x=>x.classList.toggle('act',x===b));
-        render(); snapshot();
+        document.querySelectorAll('.align-btn').forEach(x => x.classList.toggle('act', x === b));
+        render();
+        snapshot();
     });
 
     bgEnabled.onchange = () => {
-        if(!overlays[selectedIndex]) return;
-        overlays[selectedIndex].settings.bg.enabled = bgEnabled.value==='1';
-        bgOptions.style.display = bgEnabled.value==='1'?'block':'none';
-        render(); snapshot();
+        if (!overlays[selectedIndex]) return;
+        overlays[selectedIndex].settings.bg.enabled = bgEnabled.value === '1';
+        bgOptions.style.display = bgEnabled.value === '1' ? 'block' : 'none';
+        render();
+        snapshot();
     };
-    bgColor.oninput   = () => { if(overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.color   = bgColor.value;    render(); } };
+    bgColor.oninput   = () => { if (overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.color   = bgColor.value;    render(); } };
     bgColor.onchange  = snapshot;
-    bgPadding.oninput = () => { if(overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.padding = +bgPadding.value; render(); } };
+    bgPadding.oninput = () => { if (overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.padding = +bgPadding.value; render(); } };
     bgPadding.onchange = snapshot;
-    bgRadius.oninput  = () => { if(overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.radius  = +bgRadius.value;  render(); } };
+    bgRadius.oninput  = () => { if (overlays[selectedIndex]) { overlays[selectedIndex].settings.bg.radius  = +bgRadius.value;  render(); } };
     bgRadius.onchange = snapshot;
 
     /* ── LAYER BUTTONS ── */
     btnAdd.onclick = () => {
         overlays.push(defaultOverlay());
-        selectedIndex = overlays.length-1;
+        selectedIndex = overlays.length - 1;
         snapshot(); render(); openPanel();
     };
     btnAddText.onclick = e => {
         const r = e.target.getBoundingClientRect();
-        Object.assign(textPicker.style, { display:'block', left:r.left+'px', top:(r.bottom+6)+'px' });
+        Object.assign(textPicker.style, { display: 'block', left: r.left+'px', top: (r.bottom+6)+'px' });
     };
-    textPickerCancel.onclick  = () => { textPicker.style.display='none'; };
+    textPickerCancel.onclick  = () => { textPicker.style.display = 'none'; };
     textPickerConfirm.onclick = () => {
         overlays.push(normalizeSettings({
-            overlay_type:'text', x:0.10, y:0.10, width:0.40, height:0.08,
-            settings:{ text_key:textPickerSelect.value }
+            overlay_type: 'text', x: 0.10, y: 0.10, width: 0.40, height: 0.08,
+            settings: { text_key: textPickerSelect.value }
         }));
-        selectedIndex = overlays.length-1;
-        textPicker.style.display='none';
+        selectedIndex = overlays.length - 1;
+        textPicker.style.display = 'none';
         snapshot(); render(); openPanel();
     };
     document.addEventListener('click', e => {
-        if(!textPicker.contains(e.target) && e.target!==btnAddText)
-            textPicker.style.display='none';
+        if (!textPicker.contains(e.target) && e.target !== btnAddText)
+            textPicker.style.display = 'none';
     });
 
     btnUp.onclick = () => {
-        if(selectedIndex<=0) return;
-        [overlays[selectedIndex-1],overlays[selectedIndex]]=[overlays[selectedIndex],overlays[selectedIndex-1]];
-        selectedIndex--; snapshot(); render();
+        if (selectedIndex <= 0) return;
+        [overlays[selectedIndex-1], overlays[selectedIndex]] = [overlays[selectedIndex], overlays[selectedIndex-1]];
+        selectedIndex--;
+        snapshot(); render();
     };
     btnDown.onclick = () => {
-        if(selectedIndex>=overlays.length-1) return;
-        [overlays[selectedIndex+1],overlays[selectedIndex]]=[overlays[selectedIndex],overlays[selectedIndex+1]];
-        selectedIndex++; snapshot(); render();
+        if (selectedIndex >= overlays.length - 1) return;
+        [overlays[selectedIndex+1], overlays[selectedIndex]] = [overlays[selectedIndex], overlays[selectedIndex+1]];
+        selectedIndex++;
+        snapshot(); render();
     };
     btnDelete.onclick = () => {
-        if(!overlays.length) return;
+        if (!overlays.length) return;
         overlays.splice(selectedIndex, 1);
-        selectedIndex = Math.max(0, selectedIndex-1);
-        if(!overlays.length) { selectedIndex=-1; closePanel(); }
+        selectedIndex = Math.max(0, selectedIndex - 1);
+        if (!overlays.length) { selectedIndex = -1; closePanel(); }
         snapshot(); render();
     };
     btnDuplicate.onclick = () => {
-        if(!overlays[selectedIndex]) return;
+        if (!overlays[selectedIndex]) return;
         const clone = JSON.parse(JSON.stringify(overlays[selectedIndex]));
-        clone.x = Math.min(clone.x+0.03, 0.92);
-        clone.y = Math.min(clone.y+0.03, 0.92);
+        clone.x     = Math.min(clone.x + 0.03, 0.92);
+        clone.y     = Math.min(clone.y + 0.03, 0.92);
         clone.label = clone.label + ' (copy)';
         overlays.push(clone);
-        selectedIndex = overlays.length-1;
+        selectedIndex = overlays.length - 1;
         snapshot(); render(); openPanel();
     };
 
@@ -1053,7 +1104,6 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     /* ── PREVIEW ── */
     btnPreview.onclick = () => {
         previewModal.classList.add('open');
-        // wait for modal layout then render
         requestAnimationFrame(() => {
             previewOverlayLayer.style.width  = previewBaseImg.clientWidth  + 'px';
             previewOverlayLayer.style.height = previewBaseImg.clientHeight + 'px';
@@ -1064,7 +1114,6 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     previewModal.addEventListener('click', e => {
         if (e.target === previewModal) previewModal.classList.remove('open');
     });
-    // re-render preview when preview image loads
     previewBaseImg.onload = () => {
         previewOverlayLayer.style.width  = previewBaseImg.clientWidth  + 'px';
         previewOverlayLayer.style.height = previewBaseImg.clientHeight + 'px';
@@ -1072,58 +1121,51 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
     /* ── KEYBOARD SHORTCUTS ── */
     document.addEventListener('keydown', e => {
-        // ignore if typing in an input
-        if (['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
-
-        if (e.ctrlKey && e.key==='z') { e.preventDefault(); undo(); }
-        if (e.ctrlKey && e.key==='y') { e.preventDefault(); redo(); }
-        if (e.key==='Delete' || e.key==='Backspace') {
-            if (selectedIndex>=0 && overlays.length) {
-                overlays.splice(selectedIndex,1);
-                selectedIndex = Math.max(0, selectedIndex-1);
-                if(!overlays.length) { selectedIndex=-1; closePanel(); }
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+        if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (selectedIndex >= 0 && overlays.length) {
+                overlays.splice(selectedIndex, 1);
+                selectedIndex = Math.max(0, selectedIndex - 1);
+                if (!overlays.length) { selectedIndex = -1; closePanel(); }
                 snapshot(); render();
             }
         }
-        if (e.key==='Escape') closePanel();
+        if (e.key === 'Escape') closePanel();
     });
 
     /* ── UNSAVED CHANGES WARNING ── */
     window.addEventListener('beforeunload', e => {
-        if (isDirty) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Leave anyway?';
-        }
+        if (isDirty) { e.preventDefault(); e.returnValue = 'You have unsaved changes. Leave anyway?'; }
     });
     btnBack.addEventListener('click', e => {
-        if (isDirty && !confirm('You have unsaved changes. Leave without saving?')) {
-            e.preventDefault();
-        }
+        if (isDirty && !confirm('You have unsaved changes. Leave without saving?')) e.preventDefault();
     });
 
     /* ── SAVE ── */
     document.getElementById('btnSave').onclick = () => {
         const payload = overlays.map(o => ({
             overlay_type: o.overlay_type,
-            x:o.x, y:o.y, width:o.width, height:o.height,
+            x: o.x, y: o.y, width: o.width, height: o.height,
             label: o.label,
-            settings: o.settings
+            settings: o.settings   // font_size no longer in settings
         }));
         const fd = new FormData();
         fd.append('overlays', JSON.stringify(payload));
         fd.append("<?= $this->security->get_csrf_token_name(); ?>", "<?= $this->security->get_csrf_hash(); ?>");
-        fetch(saveUrl, { method:'POST', body:fd })
+        fetch(saveUrl, { method: 'POST', body: fd })
             .then(r => r.json())
             .then(j => {
-                if (j.status==='success') {
+                if (j.status === 'success') {
                     isDirty = false;
                     msg.innerHTML = '<span style="color:green">✅ Saved</span>';
                 } else {
                     msg.innerHTML = '<span style="color:red">❌ ' + j.message + '</span>';
                 }
-                setTimeout(() => msg.innerHTML='', 3000);
+                setTimeout(() => msg.innerHTML = '', 3000);
             })
-            .catch(() => msg.innerHTML='<span style="color:red">❌ Save failed</span>');
+            .catch(() => msg.innerHTML = '<span style="color:red">❌ Save failed</span>');
     };
 
     /* ── BOOT ── */
