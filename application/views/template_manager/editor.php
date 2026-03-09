@@ -1,172 +1,4 @@
-<!-- ============================================================
-     STYLES
-     ============================================================ -->
-<style>
-/* ── CANVAS ── */
-#stage { position: relative; display: inline-block; user-select: none; }
 
-.overlay-box {
-    position: absolute;
-    box-sizing: border-box;
-    cursor: move;
-    background: transparent;
-}
-/* Edit mode: dashed blue border */
-.edit-mode .overlay-box        { border: 2px dashed rgba(13,110,253,0.5); }
-.edit-mode .overlay-box.selected {
-    border: 2px solid #0d6efd;
-    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
-}
-/* Logo wrapper: invisible, styles on <img> */
-.overlay-box.type-logo {
-    background: transparent !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-}
-.overlay-box.type-logo img {
-    display: block; width: 100%; height: 100%; pointer-events: none;
-}
-/* Text inner */
-.overlay-box.type-text .text-inner {
-    width: 100%; height: 100%;
-    display: flex; align-items: center;
-    pointer-events: none; overflow: hidden; word-break: break-word;
-    white-space: normal;
-}
-/* Safe area */
-.safe-area {
-    position: absolute;
-    border: 2px dashed rgba(255,0,0,0.4);
-    pointer-events: none; z-index: 0;
-}
-/* Resize handle indicator */
-.edit-mode .overlay-box.selected::after {
-    content: '';
-    position: absolute; right: -5px; bottom: -5px;
-    width: 10px; height: 10px;
-    background: #0d6efd; border-radius: 2px;
-    cursor: se-resize;
-}
-
-/* ── LAYER LIST ── */
-.list-item {
-    padding: 7px 10px; border-bottom: 1px solid #eee;
-    cursor: pointer; font-size: 13px;
-    display: flex; align-items: center; gap: 6px;
-}
-.list-item:hover  { background: #f5f5f5; }
-.list-item.active { background: #eef5ff; font-weight: 600; }
-.list-item .layer-name { flex: 1; outline: none; border: none; background: transparent;
-    font-size: 13px; cursor: pointer; }
-.list-item .layer-name:focus { background: #fff; border-bottom: 1px solid #0d6efd; cursor: text; }
-
-/* ── FLOATING SETTINGS PANEL ── */
-#floatPanel {
-    display: none;
-    position: fixed; top: 80px; right: 20px;
-    width: 285px; max-height: calc(100vh - 100px);
-    overflow-y: auto; background: #fff;
-    border: 1px solid #ddd; border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-    z-index: 9998;
-}
-#floatPanel.show { display: block; animation: fpSlide .15s ease; }
-@keyframes fpSlide {
-    from { opacity:0; transform:translateX(16px); }
-    to   { opacity:1; transform:translateX(0); }
-}
-.fp-header {
-    background: #0d6efd; color: #fff;
-    padding: 10px 14px; border-radius: 7px 7px 0 0;
-    display: flex; align-items: center; justify-content: space-between;
-    font-weight: 600; font-size: 13px; position: sticky; top: 0; z-index: 1;
-}
-.fp-close { cursor:pointer; font-size:16px; color:#fff; background:none; border:none; padding:0; line-height:1; }
-.fp-body  { padding: 12px 14px; }
-.fp-body .form-group { margin-bottom: 10px; }
-.fp-body label { font-size:12px; font-weight:600; color:#555; margin-bottom:3px; display:block; }
-.fp-body .form-control { font-size:13px; padding:5px 8px; height:32px; }
-.fp-body hr { margin:10px 0; border-color:#eee; }
-.section-title { font-size:11px; font-weight:700; text-transform:uppercase;
-    color:#999; letter-spacing:.5px; margin:10px 0 6px; }
-.range-row { display:flex; align-items:center; gap:8px; }
-.range-row input[type="range"] { flex:1; }
-.range-row small { min-width:38px; text-align:right; font-size:12px; color:#666; }
-.align-btn { min-width:58px !important; }
-.align-btn.act { background:#0d6efd !important; color:#fff !important; border-color:#0d6efd !important; }
-input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; border-radius:4px; }
-
-/* ── UNDO/REDO TOOLBAR ── */
-#historyBar { display:flex; gap:4px; align-items:center; }
-#historyBar button:disabled { opacity:.4; cursor:not-allowed; }
-
-/* ── KEYBOARD HINT ── */
-.kbd-hint { font-size:11px; color:#aaa; margin-top:4px; }
-.kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc;
-    border-radius:3px; padding:1px 5px; font-size:11px; font-family:monospace; }
-
-/* ── PREVIEW MODAL ── */
-#previewModal {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75); z-index: 99999;
-    align-items: center; justify-content: center;
-}
-#previewModal.open { display: flex; animation: fadeIn .2s ease; }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-#previewModalInner {
-    background: #1a1a1a; border-radius: 10px;
-    max-width: 92vw; max-height: 92vh;
-    display: flex; flex-direction: column;
-    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-}
-#previewModalHeader {
-    background: #222; color: #fff; padding: 12px 18px;
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 14px; font-weight: 600; flex-shrink: 0;
-}
-#previewModalBody {
-    overflow: auto; padding: 20px;
-    display: flex; align-items: center; justify-content: center;
-    flex: 1;
-}
-#previewStage {
-    position: relative; display: inline-block;
-}
-#previewStage img.preview-base {
-    display: block; max-width: 100%; height: auto;
-}
-.preview-box {
-    position: absolute; box-sizing: border-box;
-    pointer-events: none;
-}
-.preview-box.type-logo {
-    background: transparent !important; padding: 0 !important; border-radius: 0 !important;
-}
-.preview-box.type-logo img { display:block; width:100%; height:100%; }
-.preview-box.type-text .text-inner {
-    width:100%; height:100%; display:flex; align-items:center;
-    overflow:hidden; word-break:break-word; pointer-events:none;
-    white-space: normal;
-}
-#previewModalFooter {
-    background: #222; padding: 10px 18px;
-    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-}
-
-/* ── AUTO-FIT hint badge ── */
-.autofit-badge {
-    display: inline-block;
-    font-size: 10px; font-weight: 600;
-    background: #e8f4fd; color: #0d6efd;
-    border: 1px solid #b8d9f5; border-radius: 10px;
-    padding: 2px 8px; margin-top: 4px;
-    letter-spacing: .3px;
-}
-</style>
-
-<!-- ============================================================
-     HTML
-     ============================================================ -->
 <section class="panel">
     <header class="panel-heading">
         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -234,7 +66,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                         <img id="baseImg"
                             src="<?= base_url($template['file_path']) ?>"
                             style="display:block;max-width:100%;height:auto;">
-                        <div id="overlayLayer" style="position:absolute;left:0;top:0;overflow:hidden;"></div>
+                        <div id="overlayLayer" style="position:absolute;left:0;top:0;overflow:visible;"></div>
                     </div>
                 </div>
 
@@ -421,23 +253,21 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         </div>
     </div>
 
-    <!-- ── TEXT PICKER ── -->
-    <div id="textPicker" style="display:none;position:fixed;z-index:9999;
-        background:#fff;border:1px solid #ddd;border-radius:6px;
-        padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:190px;">
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;font-weight:600;">Text type</label>
-            <select id="textPickerSelect" class="form-control">
-                <option value="branch_name">Branch Name</option>
-                <option value="branch_address">Branch Address</option>
-                <option value="branch_contact">Branch Contact</option>
-            </select>
-        </div>
-        <button class="btn btn-primary btn-xs" id="textPickerConfirm">Add</button>
-        <button class="btn btn-default btn-xs" id="textPickerCancel" style="margin-left:4px;">Cancel</button>
-    </div>
-
 </section>
+
+<!-- ── TEXT PICKER — outside section/panel to avoid stacking context issues ── -->
+<div id="textPicker" style="display:none;position:fixed;z-index:99999;
+    background:#fff;border:1px solid #ccc;border-radius:8px;
+    padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);min-width:200px;">
+    <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px;">Text type</div>
+    <select id="textPickerSelect" class="form-control" style="margin-bottom:10px;">
+        <option value="branch_name">Branch Name</option>
+        <option value="branch_address">Branch Address</option>
+        <option value="branch_contact">Branch Contact</option>
+    </select>
+    <button class="btn btn-primary btn-xs" id="textPickerConfirm">Add</button>
+    <button class="btn btn-default btn-xs" id="textPickerCancel" style="margin-left:6px;">Cancel</button>
+</div>
 
 <!-- ── PREVIEW MODAL ── -->
 <div id="previewModal">
@@ -461,10 +291,6 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     </div>
 </div>
 
-
-<!-- ============================================================
-     JAVASCRIPT
-     ============================================================ -->
 <script>
 (function () {
 
@@ -611,7 +437,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             }, ov.settings);
         } else {
             const existingBg = ov.settings.bg || {};
-            ov.settings.bg = Object.assign({ enabled: true, color: '#ffffff', padding: 12, radius: 16 }, existingBg);
+            ov.settings.bg = Object.assign({ enabled: true, color: '#ffffff', padding: 0, radius: 0 }, existingBg);
             // font_size intentionally NOT in defaults — auto-fit handles sizing
             ov.settings = Object.assign({
                 text_key: 'branch_name', color: '#000000',
@@ -724,7 +550,13 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             /* ── overlay box ── */
             const box = document.createElement('div');
             box.className = `overlay-box type-${ov.overlay_type}` + (i === selectedIndex ? ' selected' : '');
-            box.style.zIndex = i + 1;
+            // Smaller boxes get higher z-index so pointer events reach them first
+            // when a large box overlaps them. Selected box gets an extra boost.
+            const boxArea = ov.width * ov.height;
+            // Invert: smaller area → higher z. Scale to keep values reasonable.
+            const areaZ   = Math.round(1000 / Math.max(boxArea, 0.0001));
+            const selectZ = (i === selectedIndex) ? 2000 : 0;
+            box.style.zIndex = areaZ + selectZ;
             Object.assign(box.style, { left: px+'px', top: py+'px', width: pw+'px', height: ph+'px' });
 
             if (ov.overlay_type === 'text') {
@@ -765,29 +597,29 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 box.appendChild(img);
             }
 
-            overlayLayer.appendChild(box);
-
-            /* ── Click canvas box → select + open panel ── */
-            let ptrMoved = false;
-            box.addEventListener('pointerdown', () => { ptrMoved = false; });
-            box.addEventListener('pointermove', () => { ptrMoved = true;  });
-            box.addEventListener('pointerup',   () => {
-                if (!ptrMoved) {
-                    selectedIndex = i;
-                    openPanel();
-                    listEl.querySelectorAll('.list-item').forEach((l, idx) => l.classList.toggle('active', idx === i));
-                    overlayLayer.querySelectorAll('.overlay-box').forEach((b, idx) => b.classList.toggle('selected', idx === i));
-                }
+            /* ── Inject 8 resize handles + 1 move handle into every box ──
+               They are always 14px and positioned outside the box boundary,
+               so they remain visible and grabbable even on a tiny box.
+               CSS hides them unless box has .selected class.
+            */
+            ['nw','n','ne','e','se','s','sw','w'].forEach(pos => {
+                const h = document.createElement('div');
+                h.className = `box-handle ${pos}`;
+                box.appendChild(h);
             });
 
-            const minSize = ov.overlay_type === 'text'
-                ? 40 + ((ov.settings.bg.enabled ? ov.settings.bg.padding : 0) * 2)
-                : 20;
+            overlayLayer.appendChild(box);
+
+            /* ── Per-box click: select this box on tap (not drag) ── */
+            box.dataset.idx = i; // store index for event delegation
+            box.style.pointerEvents = (i === selectedIndex) ? 'auto' : 'none';
+            // Handles always receive pointer events for selection click
+            box.querySelectorAll('.box-handle').forEach(h => h.style.pointerEvents = 'none');
 
             interact(box)
                 .draggable({
+                    inertia: false,
                     listeners: {
-                        start() { ptrMoved = true; },
                         move(e) {
                             const cW = overlayLayer.clientWidth;
                             const cH = overlayLayer.clientHeight;
@@ -797,10 +629,6 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                             ov.y = newPy / cH;
                             box.style.left = newPx + 'px';
                             box.style.top  = newPy + 'px';
-                            if (selectedIndex !== i) {
-                                selectedIndex = i;
-                                listEl.querySelectorAll('.list-item').forEach((l, idx) => l.classList.toggle('active', idx === i));
-                            }
                         },
                         end() { snapshot(); }
                     }
@@ -808,31 +636,93 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 .resizable({
                     edges: { left: true, right: true, bottom: true, top: true },
                     listeners: {
-                        start() { ptrMoved = true; },
                         move(e) {
+                            /* Use e.deltaRect (change per edge) NOT e.rect (absolute viewport).
+                               e.rect is viewport-relative and breaks when page is scrolled.
+                               e.deltaRect gives the delta of each edge this frame — immune
+                               to scroll, reflow, zoom, or any layout changes mid-resize. */
                             const cW = overlayLayer.clientWidth;
                             const cH = overlayLayer.clientHeight;
-                            const newPw = clamp(e.rect.width,  minSize, cW);
-                            const newPh = clamp(e.rect.height, minSize, cH);
-                            const newPx = clamp(e.rect.left - overlayLayer.getBoundingClientRect().left, 0, cW - newPw);
-                            const newPy = clamp(e.rect.top  - overlayLayer.getBoundingClientRect().top,  0, cH - newPh);
+                            const d  = e.deltaRect;
+
+                            let px = ov.x      * cW;
+                            let py = ov.y      * cH;
+                            let pw = ov.width  * cW;
+                            let ph = ov.height * cH;
+
+                            const newPx = clamp(px + d.left,             0, cW - 1);
+                            const newPy = clamp(py + d.top,              0, cH - 1);
+                            const newPw = clamp(pw - d.left + d.right,   1, cW);
+                            const newPh = clamp(ph - d.top  + d.bottom,  1, cH);
+
                             ov.x = newPx / cW; ov.y = newPy / cH;
                             ov.width = newPw / cW; ov.height = newPh / cH;
                             Object.assign(box.style, {
                                 left: newPx+'px', top: newPy+'px', width: newPw+'px', height: newPh+'px'
                             });
-                            // live re-fit text while resizing
                             if (ov.overlay_type === 'text') {
                                 const t   = box.querySelector('.text-inner');
                                 const pad = ov.settings.bg.enabled ? ov.settings.bg.padding : 0;
                                 if (t) autoFitText(t, newPw - pad*2, newPh - pad*2);
                             }
-                            if (selectedIndex !== i) selectedIndex = i;
                         },
                         end() { snapshot(); }
                     }
                 });
         });
+
+        /* ── Selection via overlayLayer pointerdown ──
+           Use pointerdown (not pointerup) so selection happens BEFORE
+           interact.js decides what to drag.
+           Finds the SMALLEST box under the cursor — always the right target.
+        */
+        if (overlayLayer._selHandler) {
+            overlayLayer.removeEventListener('pointerdown', overlayLayer._selHandler);
+        }
+        overlayLayer._selHandler = function(e) {
+            // Ignore if clicking a handle (those are on the selected box)
+            if (e.target.classList.contains('box-handle')) return;
+            if (e.target.classList.contains('safe-area'))  return;
+
+            const layerRect = overlayLayer.getBoundingClientRect();
+            const cx = e.clientX - layerRect.left;
+            const cy = e.clientY - layerRect.top;
+
+            let bestIdx  = -1;
+            let bestArea = Infinity;
+
+            overlays.forEach((ov, idx) => {
+                const bx = ov.x      * overlayLayer.clientWidth;
+                const by = ov.y      * overlayLayer.clientHeight;
+                const bw = ov.width  * overlayLayer.clientWidth;
+                const bh = ov.height * overlayLayer.clientHeight;
+                const margin = 6;
+                if (cx >= bx - margin && cx <= bx + bw + margin &&
+                    cy >= by - margin && cy <= by + bh + margin) {
+                    const area = bw * bh;
+                    if (area < bestArea) { bestArea = area; bestIdx = idx; }
+                }
+            });
+
+            if (bestIdx === -1 || bestIdx === selectedIndex) return;
+
+            selectedIndex = bestIdx;
+
+            // Update UI
+            listEl.querySelectorAll('.list-item').forEach((l, idx) =>
+                l.classList.toggle('active', idx === bestIdx));
+
+            // KEY: set pointer-events — only selected box gets interact
+            overlayLayer.querySelectorAll('.overlay-box').forEach((b, idx) => {
+                b.classList.toggle('selected', idx === bestIdx);
+                const area = overlays[idx].width * overlays[idx].height;
+                b.style.zIndex       = Math.round(1000 / Math.max(area, 0.0001)) + (idx === bestIdx ? 2000 : 0);
+                b.style.pointerEvents = idx === bestIdx ? 'auto' : 'none';
+            });
+
+            openPanel();
+        };
+        overlayLayer.addEventListener('pointerdown', overlayLayer._selHandler);
 
         if (panelOpen && overlays[selectedIndex]) loadSettings();
     }
@@ -1049,8 +939,19 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         snapshot(); render(); openPanel();
     };
     btnAddText.onclick = e => {
-        const r = e.target.getBoundingClientRect();
-        Object.assign(textPicker.style, { display: 'block', left: r.left+'px', top: (r.bottom+6)+'px' });
+        // Use the button's bounding rect for position.
+        // position:fixed so no scroll offset needed, but ensure it doesn't
+        // go offscreen by clamping to viewport.
+        const r   = e.target.getBoundingClientRect();
+        const pW  = 200; // picker min-width
+        const top = r.bottom + 6;
+        const left = Math.min(r.left, window.innerWidth - pW - 10);
+        Object.assign(textPicker.style, {
+            display: 'block',
+            left: left + 'px',
+            top:  top  + 'px'
+        });
+        e.stopPropagation(); // prevent immediate close from document click handler
     };
     textPickerCancel.onclick  = () => { textPicker.style.display = 'none'; };
     textPickerConfirm.onclick = () => {
