@@ -264,7 +264,7 @@ class Template_manager extends Admin_Controller
         $cmd = "\"{$ffprobe}\" -v error -show_entries format=duration "
             . "-of default=noprint_wrappers=1:nokey=1 "
             . escapeshellarg($path);
-        
+
         log_message('info', "Running ffprobe command: $cmd");
 
         return round((float)shell_exec($cmd), 2);
@@ -470,8 +470,6 @@ class Template_manager extends Admin_Controller
 
     public function download($template_id)
     {
-        log_message('info', "Download requested for template ID: $template_id");
-
         if (!is_loggedin()) {
             show_404();
         }
@@ -496,8 +494,8 @@ class Template_manager extends Admin_Controller
         }
 
         $branchTextMap = [
-            'branch_name'    => $branch['name'] ?? '',
-            'branch_address' => $branch['address'] ?? '',
+            'branch_name'    => $branch['name']     ?? '',
+            'branch_address' => $branch['address']  ?? '',
             'branch_contact' => $branch['mobileno'] ?? '',
         ];
 
