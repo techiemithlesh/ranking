@@ -278,7 +278,8 @@ class Templateengine_lib
             : $this->fontRegular;
 
         if (file_exists($fontFile)) {
-            /* TTF: binary search for largest fitting font size */
+            /* TTF: binary search for largest fitting font size.
+             * Pass raw pixel dimensions — autoFitFontSize applies px→pt correction. */
             $fontSize = $this->autoFitFontSize(
                 $text,
                 $w,
@@ -286,7 +287,7 @@ class Templateengine_lib
                 $fontFile,
                 $lineHeight,
                 6,
-                min(300, (int)($h * 0.9))
+                300
             );
             $this->drawTTFText(
                 $img,
@@ -307,7 +308,19 @@ class Templateengine_lib
         }
     }
 
-    /* Binary search: largest integer font size where wrapped text fits w×h */
+    /* Binary search: largest integer font size where wrapped text fits w×h.
+     *
+     * CRITICAL — pt vs px correction:
+     * imagettftext/imagettfbbox take font size in POINTS (72pt = 1 inch).
+     * Browsers measure in CSS pixels at 96 dpi → 1 CSS px = 0.75 pt.
+     * imagettfbbox(size=50) returns bbox coords measured in pixels,
+     * but imagettftext(size=50) RENDERS at 50pt = 66.7px on a 96dpi display.
+     * Without correction GD renders text ~1.33× bigger than browser preview.
+     *
+     * Fix: multiply the pixel box dimensions by 0.75 (px→pt) before searching.
+     * The binary search finds a point-size that fits inside a point-sized box,
+     * so the rendered output matches the browser proportionally.
+     */
     private function autoFitFontSize(
         $text,
         $maxW,
@@ -317,17 +330,21 @@ class Templateengine_lib
         $minSize = 6,
         $maxSize = 200
     ) {
+        // Convert pixel box → point box (1 CSS px = 0.75 pt at 96 dpi)
+        $ptW = (int) floor($maxW * 0.75);
+        $ptH = (int) floor($maxH * 0.75);
+        $hi  = min($maxSize, $ptH);   // never search above box height
+
         $lo = $minSize;
-        $hi = $maxSize;
         $best = $minSize;
         while ($lo <= $hi) {
             $mid = (int)(($lo + $hi) / 2);
-            [$tw, $th] = $this->measureWrappedText($text, $mid, $fontFile, $maxW, $lineHeightMult);
-            if ($tw <= $maxW && $th <= $maxH) {
+            [$tw, $th] = $this->measureWrappedText($text, $mid, $fontFile, $ptW, $lineHeightMult);
+            if ($tw <= $ptW && $th <= $ptH) {
                 $best = $mid;
                 $lo = $mid + 1;
             } else {
-                $hi = $mid - 1;
+                $hi  = $mid - 1;
             }
         }
         return $best;
@@ -380,7 +397,13 @@ class Templateengine_lib
     }
 
     /* Render TTF text with alignment + vertical centering.
-       Uses same bbox-based lineH as measureWrappedText for consistency. */
+     *
+     * $w and $h are in PIXELS (natural image space).
+     * $fontSize is in POINTS (from autoFitFontSize, already pt-corrected).
+     * wrapText and bbox measurements use ptW (0.75×w) for consistency
+     * with how autoFitFontSize found the size.
+     * imagettftext coordinates (x, y, tx) are in pixels — correct.
+     */
     private function drawTTFText(
         $img,
         $text,
@@ -394,17 +417,18 @@ class Templateengine_lib
         $align = 'center',
         $lineHeightMult = 1.2
     ) {
-        $lines = $this->wrapText($text, $fontSize, $fontFile, $w);
+        // Wrap using the same ptW used during font-size search
+        $ptW   = (int) floor($w * 0.75);
+        $lines = $this->wrapText($text, $fontSize, $fontFile, $ptW);
 
-        // Measure actual line height via bbox (same as measureWrappedText)
+        // Measure actual line height via bbox
         $sampleBox = imagettfbbox($fontSize, 0, $fontFile, 'Ag');
         $bboxH     = abs($sampleBox[1] - $sampleBox[7]);
-        $lineH     = (int)ceil($bboxH * $lineHeightMult);
+        $lineH     = (int) ceil($bboxH * $lineHeightMult);
         $totalH    = count($lines) * $lineH;
 
-        // Vertical center: offset by ascender (distance from baseline to top)
-        // bbox[7] is the top-left Y (negative = above baseline)
-        $ascender = abs($sampleBox[7]); // distance from baseline to top of glyph
+        // Vertical center within pixel box
+        $ascender = abs($sampleBox[7]);
         $startY   = $y + max(0, (int)(($h - $totalH) / 2)) + $ascender;
 
         foreach ($lines as $i => $ln) {
