@@ -87,7 +87,7 @@
                                 <label style="font-size:12px;">Color</label>
                                 <input type="color" id="logoBorderColor" value="#ffffff" class="form-control form-control-sm">
                             </div>
-                            <div class="col-6">
+                            <!-- <div class="col-6">
                                 <label style="font-size:12px;">Style</label>
                                 <select id="logoBorderStyle" class="form-control form-control-sm">
                                     <option value="solid">Solid</option>
@@ -95,11 +95,11 @@
                                     <option value="dotted">Dotted</option>
                                     <option value="double">Double</option>
                                 </select>
-                            </div>
+                            </div> -->
                         </div>
 
                         <hr class="my-2">
-                        <strong style="font-size:12px;">Effects</strong>
+                        <!-- <strong style="font-size:12px;">Effects</strong>
                         <div class="form-group mt-1">
                             <label style="font-size:12px;">Box Shadow</label>
                             <select id="logoShadow" class="form-control form-control-sm">
@@ -121,7 +121,7 @@
                                 <option value="blur(2px)">Blur</option>
                                 <option value="drop-shadow(2px 4px 6px black)">Drop Shadow</option>
                             </select>
-                        </div>
+                        </div> -->
                     </div>
 
                     <!-- ── TEXT STYLE SECTION ── -->
