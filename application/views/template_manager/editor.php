@@ -1,4 +1,206 @@
+<!-- ============================================================
+     STYLES
+     ============================================================ -->
+<style>
+/* ── CANVAS ── */
+#stage { position: relative; display: inline-block; user-select: none; }
 
+.overlay-box {
+    position: absolute;
+    box-sizing: border-box;
+    cursor: move;
+    background: transparent;
+    overflow: visible; /* handles must poke outside the box boundary */
+}
+/* Edit mode: dashed blue border */
+.edit-mode .overlay-box        { border: 2px dashed rgba(13,110,253,0.5); }
+.edit-mode .overlay-box.selected {
+    border: 2px solid #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+}
+/* Logo wrapper: invisible, styles on <img> */
+.overlay-box.type-logo {
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+.overlay-box.type-logo img {
+    display: block; width: 100%; height: 100%; pointer-events: none;
+}
+/* Text inner */
+.overlay-box.type-text .text-inner {
+    width: 100%; height: 100%;
+    display: flex; align-items: center;
+    pointer-events: none; overflow: hidden; word-break: break-word;
+    white-space: normal;
+}
+/* Safe area */
+.safe-area {
+    position: absolute;
+    border: 2px dashed rgba(255,0,0,0.4);
+    pointer-events: none; z-index: 0;
+}
+/* ── RESIZE / DRAG HANDLES ──
+   Always rendered as real DOM elements (not ::after) so they are
+   visible and grabbable even when the box is 1px × 1px.
+   Positioned OUTSIDE the box boundary so they never get clipped.
+*/
+.box-handle {
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #0d6efd;
+    border: 2px solid #fff;
+    border-radius: 3px;
+    z-index: 9999;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    /* keep handles on top of everything */
+    pointer-events: none; /* interact.js uses the box itself */
+}
+/* Corner positions — centered on the corner point */
+.box-handle.nw { top:-7px;  left:-7px;  cursor:nw-resize; }
+.box-handle.ne { top:-7px;  right:-7px; cursor:ne-resize; }
+.box-handle.sw { bottom:-7px; left:-7px;  cursor:sw-resize; }
+.box-handle.se { bottom:-7px; right:-7px; cursor:se-resize; }
+/* Edge midpoint positions */
+.box-handle.n  { top:-7px;    left:50%; transform:translateX(-50%); cursor:n-resize; }
+.box-handle.s  { bottom:-7px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+.box-handle.w  { left:-7px;   top:50%;  transform:translateY(-50%); cursor:w-resize; }
+.box-handle.e  { right:-7px;  top:50%;  transform:translateY(-50%); cursor:e-resize; }
+/* Only show handles on selected box */
+.overlay-box .box-handle { display: none; }
+.overlay-box.selected .box-handle { display: block; }
+/* Drag-move cursor indicator — top-center */
+.box-handle.move {
+    background: #fff;
+    border: 2px solid #0d6efd;
+    border-radius: 50%;
+    cursor: move;
+    top: -7px; left: 50%; transform: translateX(-50%);
+    width: 16px; height: 16px;
+    display: none; /* shown only on selected, overridden below */
+    font-size: 9px; line-height: 12px; text-align: center; color: #0d6efd;
+}
+.overlay-box.selected .box-handle.move { display: block; }
+
+/* ── LAYER LIST ── */
+.list-item {
+    padding: 7px 10px; border-bottom: 1px solid #eee;
+    cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+}
+.list-item:hover  { background: #f5f5f5; }
+.list-item.active { background: #eef5ff; font-weight: 600; }
+.list-item .layer-name { flex: 1; outline: none; border: none; background: transparent;
+    font-size: 13px; cursor: pointer; }
+.list-item .layer-name:focus { background: #fff; border-bottom: 1px solid #0d6efd; cursor: text; }
+
+/* ── FLOATING SETTINGS PANEL ── */
+#floatPanel {
+    display: none;
+    position: fixed; top: 80px; right: 20px;
+    width: 285px; max-height: calc(100vh - 100px);
+    overflow-y: auto; background: #fff;
+    border: 1px solid #ddd; border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    z-index: 9998;
+}
+#floatPanel.show { display: block; animation: fpSlide .15s ease; }
+@keyframes fpSlide {
+    from { opacity:0; transform:translateX(16px); }
+    to   { opacity:1; transform:translateX(0); }
+}
+.fp-header {
+    background: #0d6efd; color: #fff;
+    padding: 10px 14px; border-radius: 7px 7px 0 0;
+    display: flex; align-items: center; justify-content: space-between;
+    font-weight: 600; font-size: 13px; position: sticky; top: 0; z-index: 1;
+}
+.fp-close { cursor:pointer; font-size:16px; color:#fff; background:none; border:none; padding:0; line-height:1; }
+.fp-body  { padding: 12px 14px; }
+.fp-body .form-group { margin-bottom: 10px; }
+.fp-body label { font-size:12px; font-weight:600; color:#555; margin-bottom:3px; display:block; }
+.fp-body .form-control { font-size:13px; padding:5px 8px; height:32px; }
+.fp-body hr { margin:10px 0; border-color:#eee; }
+.section-title { font-size:11px; font-weight:700; text-transform:uppercase;
+    color:#999; letter-spacing:.5px; margin:10px 0 6px; }
+.range-row { display:flex; align-items:center; gap:8px; }
+.range-row input[type="range"] { flex:1; }
+.range-row small { min-width:38px; text-align:right; font-size:12px; color:#666; }
+.align-btn { min-width:58px !important; }
+.align-btn.act { background:#0d6efd !important; color:#fff !important; border-color:#0d6efd !important; }
+input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; border-radius:4px; }
+
+/* ── UNDO/REDO TOOLBAR ── */
+#historyBar { display:flex; gap:4px; align-items:center; }
+#historyBar button:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ── KEYBOARD HINT ── */
+.kbd-hint { font-size:11px; color:#aaa; margin-top:4px; }
+.kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc;
+    border-radius:3px; padding:1px 5px; font-size:11px; font-family:monospace; }
+
+/* ── PREVIEW MODAL ── */
+#previewModal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 99999;
+    align-items: center; justify-content: center;
+}
+#previewModal.open { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+#previewModalInner {
+    background: #1a1a1a; border-radius: 10px;
+    max-width: 92vw; max-height: 92vh;
+    display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+#previewModalHeader {
+    background: #222; color: #fff; padding: 12px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+}
+#previewModalBody {
+    overflow: auto; padding: 20px;
+    display: flex; align-items: center; justify-content: center;
+    flex: 1;
+}
+#previewStage {
+    position: relative; display: inline-block;
+}
+#previewStage img.preview-base {
+    display: block; max-width: 100%; height: auto;
+}
+.preview-box {
+    position: absolute; box-sizing: border-box;
+    pointer-events: none;
+}
+.preview-box.type-logo {
+    background: transparent !important; padding: 0 !important; border-radius: 0 !important;
+}
+.preview-box.type-logo img { display:block; width:100%; height:100%; }
+.preview-box.type-text .text-inner {
+    width:100%; height:100%; display:flex; align-items:center;
+    overflow:hidden; word-break:break-word; pointer-events:none;
+    white-space: normal;
+}
+#previewModalFooter {
+    background: #222; padding: 10px 18px;
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+
+/* ── AUTO-FIT hint badge ── */
+.autofit-badge {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    background: #e8f4fd; color: #0d6efd;
+    border: 1px solid #b8d9f5; border-radius: 10px;
+    padding: 2px 8px; margin-top: 4px;
+    letter-spacing: .3px;
+}
+</style>
+
+<!-- ============================================================
+     HTML
+     ============================================================ -->
 <section class="panel">
     <header class="panel-heading">
         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -291,6 +493,10 @@
     </div>
 </div>
 
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
 <script>
 (function () {
 
@@ -412,12 +618,20 @@
        @param {number}      boxH - available height (box - padding*2)
     ── */
     function autoFitText(el, boxW, boxH) {
-        const MIN = 6;
-        const MAX = Math.max(MIN, Math.floor(boxH * 0.85));
+        const MIN  = 6;
+        // GD wraps at 0.75 × box width (pt/px correction).
+        // Constrain element width to match so line breaks are identical.
+        const wrapW = Math.floor(boxW * 0.75);
+        el.style.maxWidth   = wrapW + 'px';
+        el.style.width      = wrapW + 'px';
+        el.style.whiteSpace = 'normal';
+        el.style.wordBreak  = 'break-word';
+        el.style.overflow   = 'hidden';
+
+        const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
         let size = MAX;
         el.style.fontSize = size + 'px';
-        // shrink until content fits both dimensions
-        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
+        while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
             size--;
             el.style.fontSize = size + 'px';
         }
@@ -579,10 +793,16 @@
                     fontWeight: String(ov.settings.weight),
                     // font-size intentionally NOT set here — autoFitText() sets it below
                 });
+                // Use realistic-length sample text so autoFitText finds the
+                // same approximate font size that GD will use with real branch data.
+                // Short placeholders like '{{BRANCH_NAME}}' auto-fit much larger
+                // than real text, making the editor canvas misleading.
                 t.textContent =
-                    ov.settings.text_key === 'branch_address' ? '{{BRANCH_ADDRESS}}' :
-                    ov.settings.text_key === 'branch_contact' ? '{{BRANCH_CONTACT}}' :
-                    '{{BRANCH_NAME}}';
+                    ov.settings.text_key === 'branch_address'
+                        ? 'Sample Branch Address, City, State - 000000'
+                    : ov.settings.text_key === 'branch_contact'
+                        ? '0000000000'
+                    : 'Sample Branch Name';
                 box.appendChild(t);
 
                 // AUTO-FIT: run after box is in DOM so scrollWidth/Height are measurable
@@ -591,8 +811,14 @@
                 requestAnimationFrame(() => autoFitText(t, innerW, innerH));
 
             } else {
+                // Logo placeholder — show a clear "LOGO" box so super admin
+                // can see the exact position/size without needing a real logo file
                 const img = document.createElement('img');
                 img.src = demoLogo;
+                img.onerror = function() {
+                    // Fallback: SVG placeholder if logo file missing
+                    this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8f0fe' rx='8'/%3E%3Crect x='2' y='2' width='196' height='196' fill='none' stroke='%234285f4' stroke-width='2' stroke-dasharray='6 3' rx='6'/%3E%3Ctext x='100' y='90' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%234285f4'%3ELOGO%3C/text%3E%3Ctext x='100' y='120' text-anchor='middle' font-family='Arial' font-size='13' fill='%23888'%3EBranch logo here%3C/text%3E%3C/svg%3E";
+                };
                 applyImgStyles(img, ov.settings);
                 box.appendChild(img);
             }
@@ -767,14 +993,16 @@
                     // font-size set by autoFitText below
                 });
                 t.textContent =
-                    ov.settings.text_key === 'branch_address' ? '{{BRANCH_ADDRESS}}' :
-                    ov.settings.text_key === 'branch_contact' ? '{{BRANCH_CONTACT}}' :
-                    '{{BRANCH_NAME}}';
+                    ov.settings.text_key === 'branch_address'
+                        ? 'Sample Branch Address, City, State - 000000'
+                    : ov.settings.text_key === 'branch_contact'
+                        ? '0000000000'
+                    : 'Sample Branch Name';
                 box.appendChild(t);
 
                 previewOverlayLayer.appendChild(box);
 
-                // AUTO-FIT in preview — same logic, different box dimensions
+                // AUTO-FIT in preview
                 const innerW = pw - pad * 2;
                 const innerH = ph - pad * 2;
                 requestAnimationFrame(() => autoFitText(t, innerW, innerH));
@@ -784,6 +1012,9 @@
                 const s     = ov.settings;
                 const scale = W / overlayLayer.clientWidth;
                 img.src = demoLogo;
+                img.onerror = function() {
+                    this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8f0fe' rx='8'/%3E%3Crect x='2' y='2' width='196' height='196' fill='none' stroke='%234285f4' stroke-width='2' stroke-dasharray='6 3' rx='6'/%3E%3Ctext x='100' y='90' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%234285f4'%3ELOGO%3C/text%3E%3Ctext x='100' y='120' text-anchor='middle' font-family='Arial' font-size='13' fill='%23888'%3EBranch logo here%3C/text%3E%3C/svg%3E";
+                };
                 img.style.borderRadius = s.radius + 'px';
                 img.style.opacity      = s.opacity;
                 img.style.objectFit    = s.objectFit;

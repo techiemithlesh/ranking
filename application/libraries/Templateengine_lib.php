@@ -265,6 +265,11 @@ class Templateengine_lib
        ================================================================ */
     private function drawText($img, $text, $x, $y, $w, $h, $settings)
     {
+        // Normalise whitespace — collapses \n \r \t to single spaces
+        // (wrapText handles forced \n breaks; drawTTFText cleans further)
+        $text = trim(preg_replace('/\s+/', ' ', $text));
+        if ($text === '') return;
+
         $colorHex   = $settings['color']       ?? '#000000';
         $align      = $settings['align']       ?? 'center';
         $lineHeight = (float)($settings['line_height'] ?? 1.2);
@@ -308,18 +313,25 @@ class Templateengine_lib
         }
     }
 
-    /* Binary search: largest integer font size where wrapped text fits w×h.
+    /* Binary search: largest integer font size (in POINTS) where wrapped text fits w×h.
      *
-     * CRITICAL — pt vs px correction:
-     * imagettftext/imagettfbbox take font size in POINTS (72pt = 1 inch).
-     * Browsers measure in CSS pixels at 96 dpi → 1 CSS px = 0.75 pt.
-     * imagettfbbox(size=50) returns bbox coords measured in pixels,
-     * but imagettftext(size=50) RENDERS at 50pt = 66.7px on a 96dpi display.
-     * Without correction GD renders text ~1.33× bigger than browser preview.
+     * UNIT MODEL (all corrections in one place):
      *
-     * Fix: multiply the pixel box dimensions by 0.75 (px→pt) before searching.
-     * The binary search finds a point-size that fits inside a point-sized box,
-     * so the rendered output matches the browser proportionally.
+     * Input $maxW, $maxH  — natural image PIXELS
+     * Font size units      — POINTS (what imagettftext takes)
+     * measureWrappedText   — returns [widthPx, heightPx] where:
+     *     widthPx  = bbox width at given pt size (GD returns px for bbox)
+     *     heightPx = fontSize_pt * (96/72) * lineHeightMult  ← matches browser
+     *
+     * Width constraint:
+     *   bbox width (px) compared against $maxW * 0.75
+     *   because imagettfbbox width at Npt ≈ N * charRatio px (72dpi)
+     *   but browser sees N * charRatio * (96/72) CSS px — so scale down by 0.75
+     *
+     * Height constraint:
+     *   measureWrappedText now returns height in RENDERED pixels (96dpi scale)
+     *   compare against $maxH directly (natural image pixels)
+     *   No 0.75 needed for height — the formula already accounts for 96/72
      */
     private function autoFitFontSize(
         $text,
@@ -330,17 +342,18 @@ class Templateengine_lib
         $minSize = 6,
         $maxSize = 200
     ) {
-        // Convert pixel box → point box (1 CSS px = 0.75 pt at 96 dpi)
+        // Width: compare bbox px against 0.75*maxW (pt/px correction for horizontal)
         $ptW = (int) floor($maxW * 0.75);
-        $ptH = (int) floor($maxH * 0.75);
-        $hi  = min($maxSize, $ptH);   // never search above box height
+        // Height: measureWrappedText returns rendered px (already 96/72 corrected)
+        //   compare against maxH directly
+        $hi  = min($maxSize, $maxH);
 
         $lo = $minSize;
         $best = $minSize;
         while ($lo <= $hi) {
             $mid = (int)(($lo + $hi) / 2);
             [$tw, $th] = $this->measureWrappedText($text, $mid, $fontFile, $ptW, $lineHeightMult);
-            if ($tw <= $ptW && $th <= $ptH) {
+            if ($tw <= $ptW && $th <= $maxH) {
                 $best = $mid;
                 $lo = $mid + 1;
             } else {
@@ -351,49 +364,77 @@ class Templateengine_lib
     }
 
     /* Returns [totalWidth, totalHeight] for text wrapped at given font size.
-       Uses actual bbox height (not fontSize*lineHeight) so GD font size
-       matches browser auto-fit proportionally. */
+     *
+     * LINE HEIGHT MATCHING BROWSER:
+     * Browser scrollHeight per line = fontSize_css * cssLineHeight
+     *   where fontSize_css = fontSize_pt * (96/72)  [pt to CSS px]
+     *   so per-line height = fontSize_pt * (96/72) * cssLineHeight
+     *                      = fontSize_pt * 1.333 * cssLineHeight
+     *
+     * Old approach used bboxH * lineHeightMult where bboxH ≈ fontSize * 0.72
+     *   → lineH = fontSize * 0.72 * 1.2 = fontSize * 0.864
+     * Browser: lineH = fontSize * 1.333 * 1.2 = fontSize * 1.6
+     * Ratio = 1.6 / 0.864 = 1.85 → GD packed 85% more text per box
+     *   → found larger fonts → download text bigger than preview
+     *
+     * Fix: use fontSize * (96/72) * lineHeightMult for lineH
+     *   This exactly mirrors what the browser renders.
+     */
     private function measureWrappedText($text, $fontSize, $fontFile, $maxW, $lineHeightMult = 1.2)
     {
+        // Same normalisation as wrapText — must count the same lines
+        $text  = preg_replace('/\r\n|\r|\n/', ' ', $text);
+        $text  = preg_replace('/\s+/', ' ', trim($text));
+
         $lines    = $this->wrapText($text, $fontSize, $fontFile, $maxW);
         $maxLineW = 0;
-        $maxLineH = 0;
 
+        // Measure max line width via bbox
         foreach ($lines as $line) {
             $box = imagettfbbox($fontSize, 0, $fontFile, $line ?: 'Ag');
             $lw  = abs($box[4] - $box[0]);
-            // Actual rendered height = ascender + descender from bbox
-            $lh  = abs($box[1] - $box[7]);
             if ($lw > $maxLineW) $maxLineW = $lw;
-            if ($lh > $maxLineH) $maxLineH = $lh;
         }
 
-        // Line spacing = actual bbox height * lineHeightMult
-        // This matches browser behaviour much more closely than fontSize*lineHeight
-        $lineH  = (int)ceil($maxLineH * $lineHeightMult);
+        // Line height matches browser: fontSize_pt * (96/72) * cssLineHeight
+        $lineH  = (int) ceil($fontSize * (96.0 / 72.0) * $lineHeightMult);
         $totalH = count($lines) * $lineH;
 
         return [$maxLineW, $totalH];
     }
 
-    /* Word-wrap text into lines that fit maxW at given font size */
+    /* Word-wrap text into lines that fit maxW at given font size.
+     * Newlines in $text are treated as forced line breaks.
+     * Normalises \r\n and \r to \n first.
+     */
     private function wrapText($text, $fontSize, $fontFile, $maxW)
     {
-        $words = explode(' ', $text);
-        $lines = [];
-        $line = '';
-        foreach ($words as $word) {
-            $test = $line === '' ? $word : $line . ' ' . $word;
-            $box  = imagettfbbox($fontSize, 0, $fontFile, $test);
-            if (abs($box[4] - $box[0]) > $maxW && $line !== '') {
-                $lines[] = $line;
-                $line    = $word;
-            } else {
-                $line = $test;
+        // Normalise line endings and collapse extra spaces
+        $text = preg_replace('/\r\n|\r/', "\n", $text);
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+
+        $lines       = [];
+        $paragraphs  = explode("\n", $text);   // respect forced breaks
+
+        foreach ($paragraphs as $para) {
+            $para  = trim($para);
+            $words = explode(' ', $para);
+            $line  = '';
+            foreach ($words as $word) {
+                if ($word === '') continue;
+                $test = $line === '' ? $word : $line . ' ' . $word;
+                $box  = imagettfbbox($fontSize, 0, $fontFile, $test);
+                if (abs($box[4] - $box[0]) > $maxW && $line !== '') {
+                    $lines[] = $line;
+                    $line    = $word;
+                } else {
+                    $line = $test;
+                }
             }
+            if ($line !== '') $lines[] = $line;
         }
-        if ($line !== '') $lines[] = $line;
-        return $lines;
+
+        return $lines ?: [''];
     }
 
     /* Render TTF text with alignment + vertical centering.
@@ -403,6 +444,9 @@ class Templateengine_lib
      * wrapText and bbox measurements use ptW (0.75×w) for consistency
      * with how autoFitFontSize found the size.
      * imagettftext coordinates (x, y, tx) are in pixels — correct.
+     *
+     * lineH uses fontSize*(96/72)*lineHeightMult to match browser scrollHeight.
+     * ascender is also scaled *(96/72) so vertical centering is correct.
      */
     private function drawTTFText(
         $img,
@@ -417,19 +461,24 @@ class Templateengine_lib
         $align = 'center',
         $lineHeightMult = 1.2
     ) {
+        // Normalise newlines → spaces so wrapText handles them cleanly
+        $text = preg_replace('/\r\n|\r|\n/', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', trim($text));
+
         // Wrap using the same ptW used during font-size search
         $ptW   = (int) floor($w * 0.75);
         $lines = $this->wrapText($text, $fontSize, $fontFile, $ptW);
 
-        // Measure actual line height via bbox
-        $sampleBox = imagettfbbox($fontSize, 0, $fontFile, 'Ag');
-        $bboxH     = abs($sampleBox[1] - $sampleBox[7]);
-        $lineH     = (int) ceil($bboxH * $lineHeightMult);
-        $totalH    = count($lines) * $lineH;
+        // Line height: matches browser exactly (fontSize_pt * 96/72 * cssLineHeight)
+        $lineH  = (int) ceil($fontSize * (96.0 / 72.0) * $lineHeightMult);
+        $totalH = count($lines) * $lineH;
 
-        // Vertical center within pixel box
-        $ascender = abs($sampleBox[7]);
-        $startY   = $y + max(0, (int)(($h - $totalH) / 2)) + $ascender;
+        // Vertical center within pixel box.
+        // imagettfbbox returns coords at 72 dpi (pt ≈ px at 72dpi).
+        // ascender must be scaled to rendered (96dpi) pixel space.
+        $sampleBox = imagettfbbox($fontSize, 0, $fontFile, 'Ag');
+        $ascender  = (int) ceil(abs($sampleBox[7]) * (96.0 / 72.0));
+        $startY    = $y + max(0, (int)(($h - $totalH) / 2)) + $ascender;
 
         foreach ($lines as $i => $ln) {
             $box = imagettfbbox($fontSize, 0, $fontFile, $ln);

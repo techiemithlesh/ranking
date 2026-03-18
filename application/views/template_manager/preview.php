@@ -209,17 +209,21 @@
     ── */
     function autoFitText(el, boxW, boxH) {
         const MIN  = 6;
-        // Wide-short boxes (e.g. branch name bar) need a large starting size.
-        // Tall-narrow boxes are covered by boxH * 0.85.
-        // Taking the max handles both cases correctly.
-        const MAX  = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
-        let   size = MAX;
-        el.style.fontSize   = size + 'px';
+        // GD wraps text at 0.75 × box width (pt/px correction).
+        // We constrain the element to the same width so the browser
+        // produces the same line breaks and line count as GD.
+        const wrapW = Math.floor(boxW * 0.75);
+        el.style.maxWidth   = wrapW + 'px';
+        el.style.width      = wrapW + 'px';
         el.style.whiteSpace = 'normal';
         el.style.wordBreak  = 'break-word';
+        el.style.overflow   = 'hidden';
 
-        // Shrink until text fits without overflowing in either dimension
-        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
+        const MAX  = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
+        let   size = MAX;
+        el.style.fontSize = size + 'px';
+
+        while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
             size--;
             el.style.fontSize = size + 'px';
         }

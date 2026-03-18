@@ -24,19 +24,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function autoFitText(el, boxW, boxH) {
     if (!el || boxW <= 0 || boxH <= 0) return;
     const MIN = 8;
-    // GD wraps at 0.75 × box width (pt/px correction).
-    // Constrain element width to match so line breaks are identical.
-    const wrapW = Math.floor(boxW * 0.75);
-    el.style.maxWidth   = wrapW + "px";
-    el.style.width      = wrapW + "px";
+    // Start large enough for both wide-short AND tall-narrow boxes
+    const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
+    let size  = MAX;
+
+    el.style.fontSize   = size + "px";
     el.style.whiteSpace = "normal";
     el.style.wordBreak  = "break-word";
     el.style.overflow   = "hidden";
 
-    const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
-    let size  = MAX;
-    el.style.fontSize = size + "px";
-    while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
+    while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
       size--;
       el.style.fontSize = size + "px";
     }
