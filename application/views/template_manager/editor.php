@@ -618,28 +618,19 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
        @param {number}      boxH - available height (box - padding*2)
     ── */
     function autoFitText(el, boxW, boxH) {
-        const MIN   = 6;
-        const wrapW = Math.floor(boxW * 0.75);
-
+        const MIN = 6;
+        const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
+        let size  = MAX;
+        el.style.width      = '100%';
+        el.style.maxWidth   = '';
         el.style.whiteSpace = 'normal';
         el.style.wordBreak  = 'break-word';
         el.style.overflow   = 'hidden';
-
-        // Measure phase: constrain width to match GD's ptW wrap width
-        el.style.width    = wrapW + 'px';
-        el.style.maxWidth = wrapW + 'px';
-
-        const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
-        let size  = MAX;
-        el.style.fontSize = size + 'px';
-        while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
+        el.style.fontSize   = size + 'px';
+        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
             size--;
             el.style.fontSize = size + 'px';
         }
-
-        // Restore phase: fill full box visually
-        el.style.width    = '100%';
-        el.style.maxWidth = '';
     }
 
     /* ── NORMALIZE ── */
