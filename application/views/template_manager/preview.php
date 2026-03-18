@@ -208,22 +208,18 @@
        @param {number}      boxH - inner height (box height - padding*2)
     ── */
     function autoFitText(el, boxW, boxH) {
-        const MIN  = 6;
-        // GD wraps text at 0.75 × box width (pt/px correction).
-        // We constrain the element to the same width so the browser
-        // produces the same line breaks and line count as GD.
-        const wrapW = Math.floor(boxW * 0.75);
-        el.style.maxWidth   = wrapW + 'px';
-        el.style.width      = wrapW + 'px';
+        const MIN = 6;
+        const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
+        let size  = MAX;
+        // Set explicit px width so scrollWidth measures exactly boxW
+        // (width:100% inherits the padded parent width and breaks measurement)
+        el.style.width      = boxW + 'px';
+        el.style.maxWidth   = boxW + 'px';
         el.style.whiteSpace = 'normal';
         el.style.wordBreak  = 'break-word';
         el.style.overflow   = 'hidden';
-
-        const MAX  = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
-        let   size = MAX;
-        el.style.fontSize = size + 'px';
-
-        while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
+        el.style.fontSize   = size + 'px';
+        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
             size--;
             el.style.fontSize = size + 'px';
         }
