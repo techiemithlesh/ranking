@@ -1,4 +1,7 @@
 <style>
+/* Load OpenSans to match GD renderer font */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
+
 /* ── PREVIEW STAGE ── */
 #stage {
     display: inline-block;
@@ -42,6 +45,7 @@
     overflow: hidden;
     word-break: break-word;
     white-space: normal;
+    font-family: 'Open Sans', sans-serif;
     /* font-size set by autoFitText() in JS — not in PHP */
 }
 
@@ -141,18 +145,23 @@
                     : 'border:none;';
                 $imgStyle = "display:block;width:100%;height:100%;"
                     . "object-fit:{$imgObjectFit};"
+                    . "object-position:center;"
                     . "border-radius:{$imgRadius}px;"
                     . "opacity:{$imgOpacity};"
                     . "box-shadow:{$imgShadow};"
                     . "filter:{$imgFilter};"
+                    . "background:transparent;"
                     . $imgBorderCss;
 
                 /* ── text inner style — font-size NOT set here, autoFitText() sets it after layout ── */
+                $fontFamily = ($weight === 'bold' || $weight === '600' || $weight === '800')
+                    ? "'Open Sans', sans-serif" : "'Open Sans', sans-serif";
                 $textInnerStyle = "justify-content:{$justifyContent};"
                     . "text-align:{$align};"
                     . "color:{$color};"
                     . "line-height:{$lineHeight};"
                     . "font-weight:{$weight};"
+                    . "font-family:{$fontFamily};"
                     . "white-space:normal;";
                 ?>
 
