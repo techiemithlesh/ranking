@@ -185,21 +185,37 @@ class Templateengine_lib
     {
         $logo = new Imagick($logoPath);
         $logo->setImageFormat('png');
+
+        // Remove white background for JPEG logos (common for branch logos)
+        // by converting to PNG with alpha channel
+        $logo->setImageBackgroundColor(new ImagickPixel('transparent'));
+
+        // Enable alpha channel on logo
+        if (!$logo->getImageAlphaChannel()) {
+            $logo->setImageAlphaChannel(Imagick::ALPHACHANNEL_SET);
+        }
+
         $srcW = $logo->getImageWidth();
         $srcH = $logo->getImageHeight();
 
         [$dstX, $dstY, $dstW, $dstH] = $this->calcObjectFit($objectFit, $srcW, $srcH, $w, $h);
         $logo->resizeImage($dstW, $dstH, Imagick::FILTER_LANCZOS, 1);
 
+        // Create transparent canvas with alpha channel explicitly enabled
         $canvas = new Imagick();
-        $canvas->newImage($w, $h, new ImagickPixel('transparent'));
+        $canvas->newImage($w, $h, new ImagickPixel('none'));
         $canvas->setImageFormat('png');
+        $canvas->setImageAlphaChannel(Imagick::ALPHACHANNEL_SET);
+        $canvas->setImageBackgroundColor(new ImagickPixel('transparent'));
+
         $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $dstX, $dstY);
         $logo->clear();
 
         // Border radius mask
         if ($radius > 0) {
-            $r    = min($radius, (int)($w/2), (int)($h/2));
+            $r = min($radius, (int)($w/2), (int)($h/2));
+
+            // Create mask: white rounded rect on black
             $mask = new Imagick();
             $mask->newImage($w, $h, new ImagickPixel('black'));
             $mask->setImageFormat('png');
@@ -209,14 +225,17 @@ class Templateengine_lib
             $md->roundRectangle(0, 0, $w, $h, $r, $r);
             $mask->drawImage($md);
             $md->clear();
-            $canvas->compositeImage($mask, Imagick::COMPOSITE_DSTIN, 0, 0);
+
+            // Convert mask to grayscale and use as alpha
+            $mask->setImageColorspace(Imagick::COLORSPACE_GRAY);
+            $canvas->compositeImage($mask, Imagick::COMPOSITE_COPYOPACITY, 0, 0);
             $mask->clear();
         }
 
         // Border
         if ($borderWidth > 0) {
             $bd = new ImagickDraw();
-            $bd->setFillColor('transparent');
+            $bd->setFillColor('none');
             $bd->setStrokeColor($this->hexToPixel($borderColor));
             $bd->setStrokeWidth($borderWidth);
             $half = $borderWidth / 2;
@@ -230,8 +249,14 @@ class Templateengine_lib
             $bd->clear();
         }
 
+        // Opacity
         if ($opacity < 1.0) {
             $canvas->evaluateImage(Imagick::EVALUATE_MULTIPLY, $opacity, Imagick::CHANNEL_ALPHA);
+        }
+
+        // Ensure base has alpha channel before compositing
+        if (!$base->getImageAlphaChannel()) {
+            $base->setImageAlphaChannel(Imagick::ALPHACHANNEL_SET);
         }
 
         $base->compositeImage($canvas, Imagick::COMPOSITE_OVER, $x, $y);
@@ -251,8 +276,11 @@ class Templateengine_lib
                   ? $this->fontBold : $this->fontRegular;
         if (!file_exists($fontFile)) return;
 
-        // 98% width safety margin prevents character-spacing overflow
-        $safeW    = (int)floor($w * 0.98);
+        // Browser's Open Sans renders ~8% wider per character than Imagick's
+        // so browser wraps sooner producing more lines and a smaller font.
+        // We reduce wrap width by the same factor so Imagick produces
+        // the same line breaks and font size as the browser preview.
+        $safeW    = (int)floor($w * 0.92);
         $fontSize = $this->imkAutoFit($base, $text, $safeW, $h, $fontFile, $lhMult);
 
         $draw = new ImagickDraw();

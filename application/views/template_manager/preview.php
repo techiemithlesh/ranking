@@ -217,21 +217,25 @@
        @param {number}      boxH - inner height (box height - padding*2)
     ── */
     function autoFitText(el, boxW, boxH) {
-        const MIN = 6;
-        const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
-        let size  = MAX;
-        // Set explicit px width so scrollWidth measures exactly boxW
-        // (width:100% inherits the padded parent width and breaks measurement)
-        el.style.width      = boxW + 'px';
-        el.style.maxWidth   = boxW + 'px';
+        const MIN   = 6;
+        // Wrap at 0.92 * boxW — matches Imagick's safeW = 0.92 * naturalW
+        // so line breaks and font size are identical between preview and download
+        const wrapW = Math.floor(boxW * 0.92);
+        const MAX   = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
+        let size    = MAX;
+        el.style.width      = wrapW + 'px';
+        el.style.maxWidth   = wrapW + 'px';
         el.style.whiteSpace = 'normal';
         el.style.wordBreak  = 'break-word';
         el.style.overflow   = 'hidden';
         el.style.fontSize   = size + 'px';
-        while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
+        while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
             size--;
             el.style.fontSize = size + 'px';
         }
+        // Restore full visual width after size is found
+        el.style.width    = boxW + 'px';
+        el.style.maxWidth = boxW + 'px';
     }
 
     /* Apply ratio-based positions AND trigger auto-fit for text boxes */
