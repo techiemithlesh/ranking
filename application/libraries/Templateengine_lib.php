@@ -109,6 +109,115 @@ class Templateengine_lib
     }
 
     /* ================================================================
+       PUBLIC: renderPreview — same as renderImage but outputs base64
+       Returns a base64 PNG string to embed directly in <img src="...">
+       Guaranteed identical to download since it uses the same code path.
+    ================================================================ */
+    public function renderPreview($templatePath, $logoUrl, $overlays, $branchTextMap)
+    {
+        $basePath = $this->toFilePath($templatePath);
+        $logoPath = $this->toFilePath($logoUrl);
+
+        if (!file_exists($basePath)) return '';
+        if (!file_exists($logoPath)) return '';
+
+        if ($this->useImagick) {
+            return $this->previewImagick($basePath, $logoPath, $overlays, $branchTextMap);
+        } else {
+            return $this->previewGD($basePath, $logoPath, $overlays, $branchTextMap);
+        }
+    }
+
+    private function previewImagick($basePath, $logoPath, $overlays, $branchTextMap)
+    {
+        $base  = new Imagick($basePath);
+        $base->setImageFormat('png');
+        $baseW = $base->getImageWidth();
+        $baseH = $base->getImageHeight();
+
+        foreach ($overlays as $ov) {
+            $settings = $this->decodeSettings($ov['settings'] ?? '');
+            $bg       = $settings['bg'] ?? [];
+            $type     = $ov['overlay_type'] ?? 'logo';
+
+            $x = (int)round((float)$ov['x']      * $baseW);
+            $y = (int)round((float)$ov['y']      * $baseH);
+            $w = (int)round((float)$ov['width']  * $baseW);
+            $h = (int)round((float)$ov['height'] * $baseH);
+            if ($w <= 0 || $h <= 0) continue;
+
+            if ($type === 'text' && !empty($bg['enabled'])) {
+                $this->imkBackground($base, $x, $y, $w, $h,
+                    $bg['color'] ?? '#ffffff', (int)($bg['radius'] ?? 0));
+            }
+
+            if ($type === 'logo') {
+                $this->imkLogo($base, $logoPath, $x, $y, $w, $h,
+                    (float)($settings['opacity']   ?? 1.0),
+                    (int)($settings['radius']      ?? 0),
+                    (int)($settings['borderWidth'] ?? 0),
+                    $settings['borderColor']       ?? '#ffffff',
+                    $settings['objectFit']         ?? 'contain');
+
+            } elseif ($type === 'text') {
+                $textKey = $settings['text_key'] ?? '';
+                $text    = $branchTextMap[$textKey] ?? '';
+                $padding = !empty($bg['enabled']) ? (int)($bg['padding'] ?? 0) : 0;
+                if ($text !== '') {
+                    $this->imkText($base, $text,
+                        $x + $padding, $y + $padding,
+                        $w - $padding * 2, $h - $padding * 2,
+                        $settings);
+                }
+            }
+        }
+
+        $blob = $base->getImageBlob();
+        $base->clear();
+        return 'data:image/png;base64,' . base64_encode($blob);
+    }
+
+    private function previewGD($basePath, $logoPath, $overlays, $branchTextMap)
+    {
+        $base  = $this->gdLoadImage($basePath);
+        if (!$base) return '';
+        $baseW = imagesx($base); $baseH = imagesy($base);
+
+        foreach ($overlays as $ov) {
+            $settings = $this->decodeSettings($ov['settings'] ?? '');
+            $bg       = $settings['bg'] ?? [];
+            $type     = $ov['overlay_type'] ?? 'logo';
+            $x = (int)round((float)$ov['x']      * $baseW);
+            $y = (int)round((float)$ov['y']      * $baseH);
+            $w = (int)round((float)$ov['width']  * $baseW);
+            $h = (int)round((float)$ov['height'] * $baseH);
+            if ($w <= 0 || $h <= 0) continue;
+
+            if ($type === 'text' && !empty($bg['enabled'])) {
+                $bgColor = $bg['color'] ?? '#ffffff'; $bgR = (int)($bg['radius'] ?? 0);
+                if ($bgR > 0) $this->drawRoundedRect($base, $x, $y, $w, $h, $bgColor, $bgR);
+                else          $this->drawBackground($base, $x, $y, $w, $h, $bgColor);
+            }
+            if ($type === 'logo') {
+                $this->drawLogo($base, $logoPath, $x, $y, $w, $h,
+                    (float)($settings['opacity']??1),(int)($settings['radius']??0),
+                    (int)($settings['borderWidth']??0),$settings['borderColor']??'#fff',
+                    $settings['objectFit']??'contain');
+            } elseif ($type === 'text') {
+                $tk=$settings['text_key']??''; $txt=$branchTextMap[$tk]??'';
+                $pad=!empty($bg['enabled'])?(int)($bg['padding']??0):0;
+                if ($txt!=='') $this->drawText($base,$txt,$x+$pad,$y+$pad,$w-$pad*2,$h-$pad*2,$settings);
+            }
+        }
+
+        ob_start();
+        imagepng($base, null, 6);
+        $blob = ob_get_clean();
+        imagedestroy($base);
+        return 'data:image/png;base64,' . base64_encode($blob);
+    }
+
+    /* ================================================================
        IMAGICK RENDERER — font sizes in pixels, exact match to browser
     ================================================================ */
     private function renderImagick($basePath, $logoPath, $overlays, $filename, $branchTextMap)
@@ -276,11 +385,9 @@ class Templateengine_lib
                   ? $this->fontBold : $this->fontRegular;
         if (!file_exists($fontFile)) return;
 
-        // Browser's Open Sans renders ~8% wider per character than Imagick's
-        // so browser wraps sooner producing more lines and a smaller font.
-        // We reduce wrap width by the same factor so Imagick produces
-        // the same line breaks and font size as the browser preview.
-        $safeW    = (int)floor($w * 0.92);
+        // Browser's Open Sans renders wider per character than Imagick's.
+        // Reduce wrap width so Imagick wraps at same points as the browser.
+        $safeW    = (int)floor($w * 0.85);
         $fontSize = $this->imkAutoFit($base, $text, $safeW, $h, $fontFile, $lhMult);
 
         $draw = new ImagickDraw();

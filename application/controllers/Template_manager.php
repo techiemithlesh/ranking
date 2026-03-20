@@ -419,7 +419,7 @@ class Template_manager extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    public function preview($template_id)
+    public function preview_($template_id)
     {
         // Branch admin only
         if (!is_loggedin() || is_superadmin_loggedin()) {
@@ -463,6 +463,66 @@ class Template_manager extends Admin_Controller
 
         $this->data['title'] = translate('preview_template');
         $this->data['sub_page'] = 'template_manager/preview';
+        $this->data['main_menu'] = 'Template_manager';
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    public function preview($template_id)
+    {
+        // Branch admin only
+        if (!is_loggedin() || is_superadmin_loggedin()) {
+            redirect(base_url('dashboard'));
+            return;
+        }
+
+        $template = $this->template_model->getById($template_id);
+        if (empty($template) || $template['status'] != 1) {
+            show_404();
+        }
+
+        // Image only for now
+        if ($template['type'] !== 'image') {
+            set_alert('info', 'Video preview coming soon.');
+            redirect(base_url('Template_manager/branch_templates'));
+            return;
+        }
+
+        $overlays = $this->templateOverlay_model->get_by_template($template_id);
+        $branch   = $this->db->select('*')->from('branch')
+            ->where('id', get_loggedin_branch_id())->get()->row_array();
+
+        $branchLogo = get_branch_logo(get_loggedin_branch_id());
+
+        if (empty($branchLogo)) {
+            set_alert('warning', 'Branch logo not uploaded.');
+            redirect(base_url('settings'));
+            return;
+        }
+
+        $branchTextMap = [
+            'branch_name'    => $branch['name']     ?? '',
+            'branch_address' => $branch['address']  ?? '',
+            'branch_contact' => $branch['mobileno'] ?? '',
+        ];
+
+        // Generate preview using same Imagick engine as download
+        // Returns base64 PNG — guaranteed identical to download output
+        $this->load->library('templateengine_lib');
+        $previewSrc = $this->templateengine_lib->renderPreview(
+            $template['file_path'],
+            $branchLogo,
+            $overlays,
+            $branchTextMap
+        );
+
+        $this->data['template']    = $template;
+        $this->data['overlays']    = $overlays;
+        $this->data['branch_logo'] = $branchLogo;
+        $this->data['preview_src'] = $previewSrc;  // base64 PNG for <img src="...">
+
+        $this->data['title']     = translate('preview_template');
+        $this->data['sub_page']  = 'template_manager/preview';
         $this->data['main_menu'] = 'Template_manager';
 
         $this->load->view('layout/index', $this->data);
