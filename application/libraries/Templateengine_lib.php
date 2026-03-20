@@ -251,7 +251,9 @@ class Templateengine_lib
                   ? $this->fontBold : $this->fontRegular;
         if (!file_exists($fontFile)) return;
 
-        $fontSize = $this->imkAutoFit($base, $text, $w, $h, $fontFile, $lhMult);
+        // 98% width safety margin prevents character-spacing overflow
+        $safeW    = (int)floor($w * 0.98);
+        $fontSize = $this->imkAutoFit($base, $text, $safeW, $h, $fontFile, $lhMult);
 
         $draw = new ImagickDraw();
         $draw->setFont($fontFile);
@@ -260,7 +262,8 @@ class Templateengine_lib
         $draw->setStrokeWidth(0);
         $draw->setStrokeColor('none');
 
-        $lines   = $this->imkWrap($base, $draw, $text, $w);
+        // Wrap at same safeW used during autoFit search
+        $lines   = $this->imkWrap($base, $draw, $text, $safeW);
         $metrics = $base->queryFontMetrics($draw, 'Ag', false);
         $lineH   = (int)ceil($metrics['textHeight'] * $lhMult);
         $totalH  = count($lines) * $lineH;
