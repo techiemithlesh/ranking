@@ -489,6 +489,15 @@ class Template_manager extends Admin_Controller
         }
 
         $overlays = $this->templateOverlay_model->get_by_template($template_id);
+
+        foreach ($overlays as $idx => $ov) {
+            $settings = is_array($ov['settings'])
+                ? $ov['settings']
+                : (json_decode($ov['settings'], true) ?? []);
+
+            log_message('debug', "Overlay $idx type={$ov['overlay_type']} settings=" . json_encode($settings));
+        }
+
         $branch   = $this->db->select('*')->from('branch')
             ->where('id', get_loggedin_branch_id())->get()->row_array();
 

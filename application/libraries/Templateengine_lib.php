@@ -152,12 +152,21 @@ class Templateengine_lib
             }
 
             if ($type === 'logo') {
+                $logoBg       = $settings['logoBg'] ?? [];
+                $logoBgOn     = !empty($logoBg['enabled']);
+                // Draw background color behind logo if enabled
+                if ($logoBgOn) {
+                    $this->imkBackground($base, $x, $y, $w, $h,
+                        $logoBg['color'] ?? '#ffffff',
+                        (int)($settings['radius'] ?? 0));
+                }
                 $this->imkLogo($base, $logoPath, $x, $y, $w, $h,
                     (float)($settings['opacity']   ?? 1.0),
                     (int)($settings['radius']      ?? 0),
                     (int)($settings['borderWidth'] ?? 0),
                     $settings['borderColor']       ?? '#ffffff',
-                    $settings['objectFit']         ?? 'contain');
+                    $settings['objectFit']         ?? 'contain',
+                    $logoBgOn);
 
             } elseif ($type === 'text') {
                 $textKey = $settings['text_key'] ?? '';
@@ -199,6 +208,12 @@ class Templateengine_lib
                 else          $this->drawBackground($base, $x, $y, $w, $h, $bgColor);
             }
             if ($type === 'logo') {
+                $logoBg = $settings['logoBg'] ?? [];
+                if (!empty($logoBg['enabled'])) {
+                    $rad = (int)($settings['radius'] ?? 0);
+                    if ($rad > 0) $this->drawRoundedRect($base,$x,$y,$w,$h,$logoBg['color']??'#ffffff',$rad);
+                    else          $this->drawBackground($base,$x,$y,$w,$h,$logoBg['color']??'#ffffff');
+                }
                 $this->drawLogo($base, $logoPath, $x, $y, $w, $h,
                     (float)($settings['opacity']??1),(int)($settings['radius']??0),
                     (int)($settings['borderWidth']??0),$settings['borderColor']??'#fff',
@@ -245,12 +260,20 @@ class Templateengine_lib
             }
 
             if ($type === 'logo') {
+                $logoBg   = $settings['logoBg'] ?? [];
+                $logoBgOn = !empty($logoBg['enabled']);
+                if ($logoBgOn) {
+                    $this->imkBackground($base, $x, $y, $w, $h,
+                        $logoBg['color'] ?? '#ffffff',
+                        (int)($settings['radius'] ?? 0));
+                }
                 $this->imkLogo($base, $logoPath, $x, $y, $w, $h,
                     (float)($settings['opacity']   ?? 1.0),
                     (int)($settings['radius']      ?? 0),
                     (int)($settings['borderWidth'] ?? 0),
                     $settings['borderColor']       ?? '#ffffff',
-                    $settings['objectFit']         ?? 'contain');
+                    $settings['objectFit']         ?? 'contain',
+                    $logoBgOn);
 
             } elseif ($type === 'text') {
                 $textKey = $settings['text_key'] ?? '';
@@ -290,16 +313,14 @@ class Templateengine_lib
     }
 
     private function imkLogo(Imagick $base, $logoPath, $x, $y, $w, $h,
-                              $opacity, $radius, $borderWidth, $borderColor, $objectFit)
+                              $opacity, $radius, $borderWidth, $borderColor, $objectFit,
+                              $logoBgEnabled = false)
     {
         $logo = new Imagick($logoPath);
         $logo->setImageFormat('png');
-
-        // Remove white background for JPEG logos (common for branch logos)
-        // by converting to PNG with alpha channel
         $logo->setImageBackgroundColor(new ImagickPixel('transparent'));
 
-        // Enable alpha channel on logo
+        // Enable alpha channel
         if (!$logo->getImageAlphaChannel()) {
             $logo->setImageAlphaChannel(Imagick::ALPHACHANNEL_SET);
         }
@@ -307,10 +328,35 @@ class Templateengine_lib
         $srcW = $logo->getImageWidth();
         $srcH = $logo->getImageHeight();
 
+        // Calculate destination geometry BEFORE resize
         [$dstX, $dstY, $dstW, $dstH] = $this->calcObjectFit($objectFit, $srcW, $srcH, $w, $h);
+
+        // Always resize with Lanczos for quality
         $logo->resizeImage($dstW, $dstH, Imagick::FILTER_LANCZOS, 1);
 
-        // Create transparent canvas with alpha channel explicitly enabled
+        // Remove background + apply alpha threshold ONLY when radius > 0.
+        // radius=0 + logoBg=off → raw logo placed as-is, original bg preserved.
+        // radius>0 → logo needs clean transparent edges for shape clipping.
+        if ($radius > 0) {
+            $quantum   = $logo->getQuantumRange()['quantumRangeLong'];
+            $fuzz      = $quantum * 0.22;
+            $w0        = $logo->getImageWidth();
+            $h0        = $logo->getImageHeight();
+            $fillColor = new ImagickPixel('none');
+            foreach ([
+                [0, 0], [$w0-1, 0], [0, $h0-1], [$w0-1, $h0-1],
+                [(int)($w0/2), 0], [(int)($w0/2), $h0-1],
+                [0, (int)($h0/2)], [$w0-1, (int)($h0/2)],
+            ] as [$fx, $fy]) {
+                $pixel = $logo->getImagePixelColor($fx, $fy);
+                $logo->floodfillPaintImage($fillColor, $fuzz,
+                    new ImagickPixel($pixel->getColorAsString()), $fx, $fy, false);
+            }
+            // Kill semi-transparent fringe pixels left by Lanczos resampling
+            $logo->thresholdImage($quantum * 0.5, Imagick::CHANNEL_ALPHA);
+        }
+
+        // Create transparent canvas
         $canvas = new Imagick();
         $canvas->newImage($w, $h, new ImagickPixel('none'));
         $canvas->setImageFormat('png');
@@ -320,25 +366,31 @@ class Templateengine_lib
         $canvas->compositeImage($logo, Imagick::COMPOSITE_OVER, $dstX, $dstY);
         $logo->clear();
 
-        // Border radius mask
+        // Border radius mask — clip canvas to rounded/circle shape.
+        // Most reliable approach: create a new clipped canvas from scratch.
+        // Draw the rounded rect shape, then composite original canvas onto it.
         if ($radius > 0) {
             $r = min($radius, (int)($w/2), (int)($h/2));
 
-            // Create mask: white rounded rect on black
-            $mask = new Imagick();
-            $mask->newImage($w, $h, new ImagickPixel('black'));
-            $mask->setImageFormat('png');
-            $md = new ImagickDraw();
-            $md->setFillColor('white');
-            $md->setStrokeWidth(0);
-            $md->roundRectangle(0, 0, $w, $h, $r, $r);
-            $mask->drawImage($md);
-            $md->clear();
+            // 1. Create shape canvas: fully transparent
+            $shaped = new Imagick();
+            $shaped->newImage($w, $h, new ImagickPixel('none'));
+            $shaped->setImageFormat('png');
+            $shaped->setImageAlphaChannel(Imagick::ALPHACHANNEL_SET);
 
-            // Convert mask to grayscale and use as alpha
-            $mask->setImageColorspace(Imagick::COLORSPACE_GRAY);
-            $canvas->compositeImage($mask, Imagick::COMPOSITE_COPYOPACITY, 0, 0);
-            $mask->clear();
+            // 2. Draw solid white rounded rect (this becomes the visible area)
+            $sd = new ImagickDraw();
+            $sd->setFillColor(new ImagickPixel('white'));
+            $sd->setStrokeWidth(0);
+            $sd->roundRectangle(0, 0, $w - 1, $h - 1, $r, $r);
+            $shaped->drawImage($sd);
+            $sd->clear();
+
+            // 3. Composite canvas ONTO shaped using DstIn:
+            //    Result = canvas pixels, but only within the white rounded rect area
+            $shaped->compositeImage($canvas, Imagick::COMPOSITE_SRCIN, 0, 0);
+            $canvas->clear();
+            $canvas = $shaped;
         }
 
         // Border
@@ -496,6 +548,12 @@ class Templateengine_lib
             }
 
             if ($type === 'logo') {
+                $logoBg = $settings['logoBg'] ?? [];
+                if (!empty($logoBg['enabled'])) {
+                    $rad = (int)($settings['radius'] ?? 0);
+                    if ($rad > 0) $this->drawRoundedRect($base,$x,$y,$w,$h,$logoBg['color']??'#ffffff',$rad);
+                    else          $this->drawBackground($base,$x,$y,$w,$h,$logoBg['color']??'#ffffff');
+                }
                 $this->drawLogo($base, $logoPath, $x, $y, $w, $h,
                     (float)($settings['opacity']   ?? 1.0),
                     (int)($settings['radius']      ?? 0),
@@ -695,10 +753,19 @@ class Templateengine_lib
     ================================================================ */
     private function decodeSettings($raw)
     {
-        if (is_array($raw)) return $raw;
-        if (empty($raw))    return [];
-        $d = json_decode($raw, true);
-        return is_array($d) ? $d : [];
+        if (is_array($raw)) $s = $raw;
+        elseif (empty($raw)) $s = [];
+        else { $d = json_decode($raw, true); $s = is_array($d) ? $d : []; }
+
+        // Ensure logoBg exists with defaults (for overlays saved before this feature)
+        if (!isset($s['logoBg']) || !is_array($s['logoBg'])) {
+            $s['logoBg'] = ['enabled' => false, 'color' => '#ffffff'];
+        }
+        if (!isset($s['logoBg']['enabled'])) $s['logoBg']['enabled'] = false;
+        if (!isset($s['logoBg']['color']))   $s['logoBg']['color']   = '#ffffff';
+        if (!isset($s['radius']))            $s['radius']            = 0;
+
+        return $s;
     }
 
     private function calcObjectFit($fit, $srcW, $srcH, $boxW, $boxH)

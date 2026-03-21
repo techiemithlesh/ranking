@@ -18,13 +18,19 @@
     border: 2px solid #0d6efd;
     box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
 }
-/* Logo wrapper: invisible, styles on <img> */
+/* Logo wrapper: outer box keeps overflow:visible for resize handles */
 .overlay-box.type-logo {
-    background: transparent !important;
     padding: 0 !important;
-    border-radius: 0 !important;
+    /* background and border-radius set via JS — no !important override */
 }
-.overlay-box.type-logo img {
+/* Inner clip div: clips logo+bg to radius shape without affecting handles */
+.overlay-box.type-logo .logo-clip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    /* border-radius set via JS to match radius setting */
+}
+.overlay-box.type-logo .logo-clip img {
     display: block; width: 100%; height: 100%; pointer-events: none;
 }
 /* Text inner */
@@ -314,9 +320,16 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             <!-- LOGO TOOLS -->
             <div id="logoTools" style="display:none;">
                 <div class="section-title">Image Styling</div>
+                <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:5px;
+                            padding:7px 10px;margin-bottom:10px;font-size:11px;color:#7a6000;">
+                    💡 <strong>Tip:</strong> For best results use a <strong>PNG with transparent background</strong>.
+                    White backgrounds are auto-removed but may not be perfect for all logos.
+                </div>
 
                 <div class="form-group">
-                    <label>Border Radius (px)</label>
+                    <label>Border Radius (px)
+                        <small style="color:#888;font-weight:normal;">— set 300 for circle</small>
+                    </label>
                     <div class="range-row">
                         <input type="range" id="imgRadius" min="0" max="300" step="1" value="0">
                         <small id="imgRadiusVal">0px</small>
@@ -340,6 +353,22 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 </div>
 
                 <hr>
+                <div class="section-title">Background</div>
+                <div class="form-group">
+                    <label>Background</label>
+                    <select id="logoBgEnabled" class="form-control">
+                        <option value="0">None (transparent)</option>
+                        <option value="1">Enabled</option>
+                    </select>
+                </div>
+                <div id="logoBgOptions" style="display:none;">
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="color" id="logoBgColor" value="#ffffff">
+                    </div>
+                </div>
+
+                <hr>
                 <div class="section-title">Border</div>
                 <div class="form-group">
                     <label>Width (px)</label>
@@ -349,40 +378,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                     <label>Color</label>
                     <input type="color" id="imgBorderColor" value="#ffffff">
                 </div>
-                <div class="form-group">
-                    <label>Style</label>
-                    <select id="imgBorderStyle" class="form-control">
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                        <option value="double">Double</option>
-                    </select>
-                </div>
-
-                <hr>
-                <div class="section-title">Effects</div>
-                <div class="form-group">
-                    <label>Box Shadow</label>
-                    <select id="imgShadow" class="form-control">
-                        <option value="none">None</option>
-                        <option value="0 2px 8px rgba(0,0,0,0.3)">Small</option>
-                        <option value="0 4px 16px rgba(0,0,0,0.4)">Medium</option>
-                        <option value="0 8px 30px rgba(0,0,0,0.5)">Large</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Image Filter</label>
-                    <select id="imgFilter" class="form-control">
-                        <option value="none">None</option>
-                        <option value="grayscale(100%)">Grayscale</option>
-                        <option value="sepia(80%)">Sepia</option>
-                        <option value="brightness(1.3)">Brighter</option>
-                        <option value="brightness(0.7)">Darker</option>
-                        <option value="contrast(1.5)">High Contrast</option>
-                        <option value="blur(2px)">Blur</option>
-                        <option value="drop-shadow(2px 4px 6px black)">Drop Shadow</option>
-                    </select>
-                </div>
+                <!-- borderStyle / shadow / filter removed — not supported in image render -->
             </div>
 
             <!-- TEXT TOOLS — font size slider REMOVED, auto-fit handles sizing -->
@@ -487,7 +483,10 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             </div>
         </div>
         <div id="previewModalFooter">
-            <span style="color:#aaa;font-size:13px;"><i class="fas fa-info-circle"></i> This is exactly how your template will appear.</span>
+            <span style="color:#aaa;font-size:13px;"><i class="fas fa-info-circle"></i> This is a super-admin preview using sample data. Branch admins see their own data.</span>
+            <span id="previewSaveWarning" style="display:none;color:#c0392b;font-size:12px;font-weight:600;margin-left:8px;">
+                ⚠️ Save your changes first — branch preview loads from saved data.
+            </span>
             <button id="previewCloseBtn" class="btn btn-default btn-sm" style="margin-left:auto;">Close</button>
         </div>
     </div>
@@ -502,7 +501,21 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
     /* ── CONFIG ── */
     const saveUrl  = "<?= base_url('Template_manager/saveOverlays/' . $template['id']) ?>";
-    const demoLogo = "<?= base_url('assets/images/logo.jpg') ?>";
+    // Square logo placeholder — flat square, no inner shapes.
+    // Border Radius slider reshapes it: 0=square, 300=circle.
+    const demoLogo = "data:image/svg+xml," + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+          <rect width="200" height="200" fill="none"/>
+          <rect x="1" y="1" width="198" height="198" fill="rgba(66,133,244,0.08)"
+                stroke="#4285f4" stroke-width="2" stroke-dasharray="8 4"/>
+          <text x="100" y="88" text-anchor="middle" font-family="Arial,sans-serif"
+                font-size="24" font-weight="bold" fill="#4285f4">BRANCH</text>
+          <text x="100" y="118" text-anchor="middle" font-family="Arial,sans-serif"
+                font-size="20" font-weight="bold" fill="#4285f4">LOGO</text>
+          <line x1="40" y1="140" x2="160" y2="140" stroke="#4285f4" stroke-width="1" opacity="0.4"/>
+          <text x="100" y="158" text-anchor="middle" font-family="Arial,sans-serif"
+                font-size="10" fill="#4285f4">Use radius slider to reshape</text>
+        </svg>`);
 
     /* ── DOM ── */
     const overlayLayer   = document.getElementById('overlayLayer');
@@ -536,9 +549,10 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     const imgObjectFit   = document.getElementById('imgObjectFit');
     const imgBorderWidth = document.getElementById('imgBorderWidth');
     const imgBorderColor = document.getElementById('imgBorderColor');
-    const imgBorderStyle = document.getElementById('imgBorderStyle');
-    const imgShadow      = document.getElementById('imgShadow');
-    const imgFilter      = document.getElementById('imgFilter');
+    // imgBorderStyle / imgShadow / imgFilter removed — not in image renderer
+    const logoBgEnabled  = document.getElementById('logoBgEnabled');
+    const logoBgOptions  = document.getElementById('logoBgOptions');
+    const logoBgColor    = document.getElementById('logoBgColor');
 
     // Text controls (NO fontSize/fontSizeVal — removed for auto-fit)
     const textColor      = document.getElementById('textColor');
@@ -621,8 +635,8 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         const MIN = 6;
         const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
         let size  = MAX;
-        el.style.width      = '100%';
-        el.style.maxWidth   = '';
+        el.style.width      = boxW + 'px';
+        el.style.maxWidth   = boxW + 'px';
         el.style.whiteSpace = 'normal';
         el.style.wordBreak  = 'break-word';
         el.style.overflow   = 'hidden';
@@ -642,8 +656,8 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         if (ov.overlay_type === 'logo') {
             ov.settings = Object.assign({
                 radius: 0, opacity: 1, objectFit: 'contain',
-                borderWidth: 0, borderColor: '#ffffff', borderStyle: 'solid',
-                shadow: 'none', filter: 'none'
+                borderWidth: 0, borderColor: '#ffffff',
+                logoBg: { enabled: false, color: '#ffffff' }
             }, ov.settings);
         } else {
             const existingBg = ov.settings.bg || {};
@@ -704,14 +718,20 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
         img.style.borderRadius  = s.radius + 'px';
         img.style.opacity       = s.opacity;
         img.style.objectFit     = s.objectFit;
-        img.style.boxShadow     = s.shadow;
-        img.style.filter        = s.filter;
         img.style.border        = (+s.borderWidth > 0)
-            ? `${s.borderWidth}px ${s.borderStyle} ${s.borderColor}` : 'none';
+            ? `${s.borderWidth}px solid ${s.borderColor}` : 'none';
         img.style.width         = '100%';
         img.style.height        = '100%';
         img.style.display       = 'block';
+        img.style.background    = 'transparent';
         img.style.pointerEvents = 'none';
+        // Update clip div (parent of img) background + radius
+        const clip = img.parentElement;
+        if (clip && clip.classList.contains('logo-clip')) {
+            const lb = s.logoBg || {};
+            clip.style.background   = lb.enabled ? (lb.color || '#ffffff') : 'transparent';
+            clip.style.borderRadius = s.radius + 'px';
+        }
     }
 
     /* ── RENDER EDITOR ── */
@@ -807,16 +827,23 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 requestAnimationFrame(() => autoFitText(t, innerW, innerH));
 
             } else {
-                // Logo placeholder — show a clear "LOGO" box so super admin
-                // can see the exact position/size without needing a real logo file
+                const lb = ov.settings.logoBg || {};
+                const r  = ov.settings.radius || 0;
+
+                // Inner clip div — clips bg+img to radius, keeps outer box overflow:visible for handles
+                const clip = document.createElement('div');
+                clip.className        = 'logo-clip';
+                clip.style.borderRadius = r + 'px';
+                clip.style.background   = lb.enabled ? (lb.color || '#ffffff') : 'transparent';
+
                 const img = document.createElement('img');
                 img.src = demoLogo;
                 img.onerror = function() {
-                    // Fallback: SVG placeholder if logo file missing
                     this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8f0fe' rx='8'/%3E%3Crect x='2' y='2' width='196' height='196' fill='none' stroke='%234285f4' stroke-width='2' stroke-dasharray='6 3' rx='6'/%3E%3Ctext x='100' y='90' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%234285f4'%3ELOGO%3C/text%3E%3Ctext x='100' y='120' text-anchor='middle' font-family='Arial' font-size='13' fill='%23888'%3EBranch logo here%3C/text%3E%3C/svg%3E";
                 };
                 applyImgStyles(img, ov.settings);
-                box.appendChild(img);
+                clip.appendChild(img);
+                box.appendChild(clip);
             }
 
             /* ── Inject 8 resize handles + 1 move handle into every box ──
@@ -1004,24 +1031,23 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
                 requestAnimationFrame(() => autoFitText(t, innerW, innerH));
 
             } else {
-                const img   = document.createElement('img');
                 const s     = ov.settings;
                 const scale = W / overlayLayer.clientWidth;
+                const lb    = s.logoBg || {};
+                const r     = s.radius || 0;
+
+                // Inner clip div handles radius + bg — box has no overflow constraint
+                const clip = document.createElement('div');
+                clip.style.cssText = `position:absolute;inset:0;overflow:hidden;border-radius:${r}px;background:${lb.enabled ? (lb.color||'#ffffff') : 'transparent'};`;
+
+                const img = document.createElement('img');
                 img.src = demoLogo;
                 img.onerror = function() {
                     this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8f0fe' rx='8'/%3E%3Crect x='2' y='2' width='196' height='196' fill='none' stroke='%234285f4' stroke-width='2' stroke-dasharray='6 3' rx='6'/%3E%3Ctext x='100' y='90' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%234285f4'%3ELOGO%3C/text%3E%3Ctext x='100' y='120' text-anchor='middle' font-family='Arial' font-size='13' fill='%23888'%3EBranch logo here%3C/text%3E%3C/svg%3E";
                 };
-                img.style.borderRadius = s.radius + 'px';
-                img.style.opacity      = s.opacity;
-                img.style.objectFit    = s.objectFit;
-                img.style.boxShadow    = s.shadow;
-                img.style.filter       = s.filter;
-                img.style.border       = (+s.borderWidth > 0)
-                    ? `${Math.round(s.borderWidth * scale)}px ${s.borderStyle} ${s.borderColor}` : 'none';
-                img.style.width        = '100%';
-                img.style.height       = '100%';
-                img.style.display      = 'block';
-                box.appendChild(img);
+                img.style.cssText = `display:block;width:100%;height:100%;border-radius:${r}px;opacity:${s.opacity};object-fit:${s.objectFit};background:transparent;border:${+s.borderWidth>0?`${Math.round(s.borderWidth*scale)}px solid ${s.borderColor}`:'none'};pointer-events:none;`;
+                clip.appendChild(img);
+                box.appendChild(clip);
 
                 previewOverlayLayer.appendChild(box);
             }
@@ -1065,9 +1091,11 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             imgObjectFit.value      = s.objectFit;
             imgBorderWidth.value    = s.borderWidth;
             imgBorderColor.value    = s.borderColor;
-            imgBorderStyle.value    = s.borderStyle;
-            imgShadow.value         = s.shadow;
-            imgFilter.value         = s.filter;
+            // borderStyle / shadow / filter not loaded — removed from UI
+            const lb = s.logoBg || { enabled: false, color: '#ffffff' };
+            logoBgEnabled.value          = lb.enabled ? '1' : '0';
+            logoBgColor.value            = lb.color || '#ffffff';
+            logoBgOptions.style.display  = lb.enabled ? 'block' : 'none';
         } else {
             const s = ov.settings, bg = s.bg;
             // NO font_size to load — auto-fit handles it
@@ -1098,9 +1126,13 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             objectFit:   imgObjectFit.value,
             borderWidth: +imgBorderWidth.value,
             borderColor: imgBorderColor.value,
-            borderStyle: imgBorderStyle.value,
-            shadow:      imgShadow.value,
-            filter:      imgFilter.value
+            borderStyle: 'solid',
+            shadow:      'none',
+            filter:      'none',
+            logoBg: {
+                enabled: logoBgEnabled.value === '1',
+                color:   logoBgColor.value
+            }
         });
         const img = getSelectedImg();
         if (img) applyImgStyles(img, overlays[selectedIndex].settings);
@@ -1111,8 +1143,17 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
     imgRadius.onchange = snapshot;
     imgOpacity.oninput  = () => { imgOpacityVal.innerText = Math.round(+imgOpacity.value * 100) + '%'; syncLogoSettings(); };
     imgOpacity.onchange = snapshot;
-    [imgObjectFit, imgBorderWidth, imgBorderColor, imgBorderStyle, imgShadow, imgFilter]
+    [imgObjectFit, imgBorderWidth, imgBorderColor]
         .forEach(el => { el.oninput = syncLogoSettings; el.onchange = syncLogoAndSnapshot; });
+
+    logoBgEnabled.onchange = () => {
+        logoBgOptions.style.display = logoBgEnabled.value === '1' ? 'block' : 'none';
+        syncLogoSettings();
+        snapshot();
+        render(); // immediately update canvas so designer sees the change
+    };
+    logoBgColor.oninput  = () => { syncLogoSettings(); render(); };
+    logoBgColor.onchange = () => { syncLogoSettings(); snapshot(); };
 
     /* ── TEXT CONTROLS ── */
     textColor.oninput  = () => {
@@ -1231,6 +1272,10 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
 
     /* ── PREVIEW ── */
     btnPreview.onclick = () => {
+        // Show/hide save warning based on dirty state
+        const warn = document.getElementById('previewSaveWarning');
+        if (warn) warn.style.display = isDirty ? 'inline' : 'none';
+
         previewModal.classList.add('open');
         requestAnimationFrame(() => {
             previewOverlayLayer.style.width  = previewBaseImg.clientWidth  + 'px';
@@ -1287,7 +1332,7 @@ input[type="color"] { padding:2px; height:32px; width:100%; cursor:pointer; bord
             .then(j => {
                 if (j.status === 'success') {
                     isDirty = false;
-                    msg.innerHTML = '<span style="color:green">✅ Saved</span>';
+                    msg.innerHTML = '<span style="color:green">✅ Saved — branch preview updated</span>';
                 } else {
                     msg.innerHTML = '<span style="color:red">❌ ' + j.message + '</span>';
                 }
