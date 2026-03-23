@@ -24,19 +24,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function autoFitText(el, boxW, boxH) {
     if (!el || boxW <= 0 || boxH <= 0) return;
     const MIN = 8;
-    // GD wraps at 0.75 × box width (pt/px correction).
-    // Constrain element width to match so line breaks are identical.
-    const wrapW = Math.floor(boxW * 0.75);
-    el.style.maxWidth   = wrapW + "px";
-    el.style.width      = wrapW + "px";
+    const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, boxW * 0.3)));
+    let size  = MAX;
+    el.style.width      = boxW + "px";
+    el.style.maxWidth   = boxW + "px";
     el.style.whiteSpace = "normal";
     el.style.wordBreak  = "break-word";
     el.style.overflow   = "hidden";
-
-    const MAX = Math.max(MIN, Math.floor(Math.max(boxH * 0.85, wrapW * 0.3)));
-    let size  = MAX;
-    el.style.fontSize = size + "px";
-    while (size > MIN && (el.scrollWidth > wrapW + 1 || el.scrollHeight > boxH + 1)) {
+    el.style.fontSize   = size + "px";
+    while (size > MIN && (el.scrollWidth > boxW + 1 || el.scrollHeight > boxH + 1)) {
       size--;
       el.style.fontSize = size + "px";
     }
@@ -449,13 +445,14 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    // Wire number inputs
+    // Wire number inputs — capture THIS overlay in closure, not selectedOverlay reference
+    const thisOverlay = selectedOverlay; // snapshot — prevents stale reference bug
     document.getElementById("startTime").onchange = (e) => {
-      selectedOverlay.start_time = Math.max(0, parseFloat(e.target.value) || 0);
+      thisOverlay.start_time = Math.max(0, Math.min(duration, parseFloat(e.target.value) || 0));
       updateMiniTimeline();
     };
     document.getElementById("endTime").onchange = (e) => {
-      selectedOverlay.end_time = Math.min(duration, parseFloat(e.target.value) || 0);
+      thisOverlay.end_time = Math.max(0, Math.min(duration, parseFloat(e.target.value) || 0));
       updateMiniTimeline();
     };
 
@@ -483,13 +480,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     dragHandle(handleIn, (t) => {
-      selectedOverlay.start_time = parseFloat(Math.min(t, selectedOverlay.end_time - 0.1).toFixed(1));
-      document.getElementById("startTime").value = selectedOverlay.start_time.toFixed(1);
+      thisOverlay.start_time = parseFloat(Math.min(t, thisOverlay.end_time - 0.1).toFixed(1));
+      const si = document.getElementById("startTime");
+      if (si) si.value = thisOverlay.start_time.toFixed(1);
     });
 
     dragHandle(handleOut, (t) => {
-      selectedOverlay.end_time = parseFloat(Math.max(t, selectedOverlay.start_time + 0.1).toFixed(1));
-      document.getElementById("endTime").value = selectedOverlay.end_time.toFixed(1);
+      thisOverlay.end_time = parseFloat(Math.max(t, thisOverlay.start_time + 0.1).toFixed(1));
+      const ei = document.getElementById("endTime");
+      if (ei) ei.value = thisOverlay.end_time.toFixed(1);
     });
 
     updateMiniTimeline();
@@ -666,13 +665,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const id        = "ov_" + Date.now();
       const startTime = parseFloat(video.currentTime.toFixed(1));
 
+      const isLogo = type === "logo";
       const overlay = {
         id,
-        overlay_type: type === "logo" ? "logo" : "text",
+        overlay_type: isLogo ? "logo" : "text",
+        variable: isLogo ? null : type,   // branch_name / branch_address / branch_contact
         settings: {
-          text_key: type,
+          text_key: isLogo ? null : type,  // used by backend to map branch data
           color: "#ffffff",
           bg: { enabled: false, color: "#000000", padding: 5, radius: 4 },
+          ...(isLogo ? {
+            radius: 0, opacity: 1, objectFit: "contain",
+            borderWidth: 0, borderColor: "#ffffff", borderStyle: "solid",
+            shadow: "none", filter: "none"
+          } : {})
         },
         x: 0.1, y: 0.1, width: 0.3, height: 0.1,
         start_time: startTime,
