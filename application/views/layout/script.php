@@ -76,155 +76,217 @@
 <?php if (is_new_design() && !is_superadmin_loggedin()): ?>
 
 	<script>
-		const menu = <?= json_encode(get_menu_by_role()) ?>;
-		const baseURL = '<?= base_url() ?>';
-		let currentMenu = menu;
+    const menu = <?= json_encode(get_menu_by_role()) ?>;
+    const baseURL = '<?= base_url() ?>';
+    let currentMenu = menu;
 
-		const breadcrumbNav = document.getElementById('breadcrumbTrail');
-		const menuGrid = document.getElementById('menuGrid');
+    const breadcrumbNav = document.getElementById('breadcrumbTrail');
+    const menuGrid = document.getElementById('menuGrid');
 
-		// Storage helpers
-		function getTrail() {
-			return JSON.parse(sessionStorage.getItem('breadcrumbTrail') || '[]');
-		}
+    // Storage helpers
+    function getTrail() {
+        return JSON.parse(sessionStorage.getItem('breadcrumbTrail') || '[]');
+    }
 
-		function setTrail(trail) {
-			sessionStorage.setItem('breadcrumbTrail', JSON.stringify(trail));
-		}
+    function setTrail(trail) {
+        sessionStorage.setItem('breadcrumbTrail', JSON.stringify(trail));
+    }
 
-		function pushCrumb(item) {
-			const trail = getTrail();
-			const existing = trail.find(t => t.url === item.url);
+    function pushCrumb(item) {
+        const trail = getTrail();
+        // Match by label (more reliable for parents that share urls with children)
+        const existing = trail.find(t => t.label === item.label && t.isParent === item.isParent);
 
-			if (!existing) {
-				trail.push(item);
-			} else if (existing.label !== item.label) {
-				existing.label = item.label;
-			}
+        if (!existing) {
+            trail.push(item);
+        }
+        else {
+            // Update url/menuPath if changed
+            existing.url = item.url;
+            if (item.menuPath) existing.menuPath = item.menuPath;
+        }
 
-			setTrail(trail);
-		}
+        setTrail(trail);
+    }
 
-		// Build menu grid
-		function renderMenu(list) {
-			if (!menuGrid) return;
+    /**
+     * Walk the menu tree using a path of indices and return the children at that level.
+     * e.g. menuPath [0, 1] means menu[0].children[1].children
+     */
+    function getMenuAtPath(path) {
+        let node = { children: menu };
+        for (let i = 0; i < path.length; i++) {
+            if (!node.children || !node.children[path[i]]) return menu;
+            node = node.children[path[i]];
+        }
+        return node.children || [];
+    }
 
-			menuGrid.innerHTML = '';
+    /**
+     * Build the menuPath for the current crumb based on the trail so far.
+     * Each parent crumb stores its index relative to its parent's children.
+     */
+    function buildMenuPath(trail) {
+        return trail.filter(t => t.isParent).map(t => t.parentIndex);
+    }
 
-			list.forEach((item, idx) => {
-				const hasKids = Array.isArray(item.children) && item.children.length;
-				const icon = item.icon || 'icon-folder';
-				const label = item.label.replace(/'/g, "\\'");
-				const url = item.url ? baseURL + item.url : '';
+    // Build menu grid
+    function renderMenu(list) {
+        if (!menuGrid) return;
 
-				if (hasKids) {
-					menuGrid.innerHTML += `
+        menuGrid.innerHTML = '';
+
+        list.forEach((item, idx) => {
+            const hasKids = Array.isArray(item.children) && item.children.length;
+            const icon = item.icon || 'icon-folder';
+            const label = item.label.replace(/'/g, "\\'");
+            const url = item.url ? baseURL + item.url : '';
+
+            if (hasKids) {
+                menuGrid.innerHTML += `
                     <div class="dashboard-card common-card MenuDive"
                          onclick="onParentClick(${idx})">
                         <div class="card-icon"><i class="icons ${icon}"></i></div>
                         <h4>${item.label}</h4>
                     </div>`;
-				} else if (item.url) {
-					menuGrid.innerHTML += `
+            }
+            else if (item.url) {
+                menuGrid.innerHTML += `
                     <div class="dashboard-card common-card MenuDive">
                         <div class="card-icon"><i class="icons ${icon}"></i></div>
                         <h4>${item.label}</h4>
                         <a class="card-link" href="${url}"
                            onclick="onLeafClick(event,'${label}','${url}')"></a>
                     </div>`;
-				}
-			});
-		}
+            }
+        });
+    }
 
-		// Breadcrumb renderer
-		function renderBreadcrumb() {
-			if (!breadcrumbNav) return;
+    // Breadcrumb renderer
+    function renderBreadcrumb() {
+        if (!breadcrumbNav) return;
 
-			const trail = getTrail();
+        const trail = getTrail();
 
-			breadcrumbNav.innerHTML = `
-            <a href="${baseURL}dashboard" class="breadcrumb-home">
+        breadcrumbNav.innerHTML = `
+            <a href="${baseURL}dashboard" class="breadcrumb-home"
+               onclick="onHomeClick(event)">
                 <i class="fas fa-home"></i>
             </a>`;
 
-			trail.forEach(({
-				label,
-				url
-			}) => {
-				breadcrumbNav.insertAdjacentHTML('beforeend', `
+        trail.forEach(({ label, url, isParent }, idx) => {
+            breadcrumbNav.insertAdjacentHTML('beforeend', `
                 <span class="breadcrumb-sep">›</span>
             `);
 
-				if (url) {
-					breadcrumbNav.insertAdjacentHTML('beforeend', `
-                    <a href="${url}" class="breadcrumb-item">${label}</a>
+            // For parent crumbs, the href goes to dashboard (we handle drill-down via JS)
+            const href = isParent ? (baseURL + 'dashboard') : url;
+
+            if (href) {
+                breadcrumbNav.insertAdjacentHTML('beforeend', `
+                    <a href="${href}" class="breadcrumb-item"
+                       data-crumb-index="${idx}"
+                       data-is-parent="${isParent ? '1' : '0'}">${label}</a>
                 `);
-				} else {
-					breadcrumbNav.insertAdjacentHTML('beforeend', `
-                    <span class="breadcrumb-item">${label}</span>
+            } else {
+                breadcrumbNav.insertAdjacentHTML('beforeend', `
+                    <span class="breadcrumb-item" data-crumb-index="${idx}">${label}</span>
                 `);
-				}
-			});
-		}
+            }
+        });
+    }
 
-		// Parent click
-		function onParentClick(idx) {
-			const sel = currentMenu[idx];
-			const url = sel.url ? baseURL + sel.url : window.location.href;
+    // Home click — clear trail and go to dashboard
+    function onHomeClick(evt) {
+        evt.preventDefault();
+        setTrail([]);
+        window.location.href = baseURL + 'dashboard';
+    }
 
-			pushCrumb({
-				label: sel.label,
-				url
-			});
+    // Parent click (from menu grid card)
+    function onParentClick(idx) {
+        const sel = currentMenu[idx];
 
-			currentMenu = sel.children || [];
-			renderMenu(currentMenu);
-			renderBreadcrumb();
-		}
+        pushCrumb({
+            label: sel.label,
+            url: baseURL + 'dashboard',
+            isParent: true,
+            parentIndex: idx
+        });
 
-		// Leaf click
-		function onLeafClick(evt, label, url) {
-			evt.preventDefault();
-			pushCrumb({
-				label,
-				url
-			});
-			renderBreadcrumb();
-			window.location.href = url;
-		}
+        currentMenu = sel.children || [];
+        renderMenu(currentMenu);
+        renderBreadcrumb();
+    }
 
-		// Initialize ON PAGES WHERE menuGrid exists
-		document.addEventListener('DOMContentLoaded', () => {
+    // Leaf click (from menu grid card)
+    function onLeafClick(evt, label, url) {
+        evt.preventDefault();
+        pushCrumb({ label, url, isParent: false });
+        renderBreadcrumb();
+        window.location.href = url;
+    }
 
-			if (menuGrid) {
-				renderMenu(menu);
-			}
+    // Initialize ON PAGES WHERE menuGrid exists
+    document.addEventListener('DOMContentLoaded', () => {
 
-			if (breadcrumbNav) {
-				renderBreadcrumb();
-			}
-		});
+        if (menuGrid) {
+            // If we have a trail with parent crumbs, restore the drill-down
+            const trail = getTrail();
+            const parentCrumbs = trail.filter(t => t.isParent);
 
-		// Breadcrumb click
-		if (breadcrumbNav) {
-			breadcrumbNav.addEventListener('click', function(evt) {
-				if (!evt.target.classList.contains('breadcrumb-item')) return;
+            if (parentCrumbs.length > 0) {
+                // Walk the menu tree following the parent indices
+                let node = { children: menu };
+                for (let i = 0; i < parentCrumbs.length; i++) {
+                    const pIdx = parentCrumbs[i].parentIndex;
+                    if (node.children && node.children[pIdx]) {
+                        node = node.children[pIdx];
+                    } else {
+                        // Path is invalid, reset
+                        node = { children: menu };
+                        setTrail([]);
+                        break;
+                    }
+                }
+                currentMenu = node.children || [];
+            }
 
-				const href = evt.target.getAttribute('href');
-				if (!href) return;
+            renderMenu(currentMenu);
+        }
 
-				evt.preventDefault();
-				const allCrumbs = Array.from(breadcrumbNav.querySelectorAll('.breadcrumb-item'));
-				const clickedIndex = allCrumbs.indexOf(evt.target);
+        if (breadcrumbNav) {
+            renderBreadcrumb();
+        }
+    });
 
-				const oldTrail = getTrail();
-				const newTrail = oldTrail.slice(0, clickedIndex + 1);
+    // Breadcrumb click
+    if (breadcrumbNav) {
+        breadcrumbNav.addEventListener('click', function(evt) {
+            const target = evt.target.closest('.breadcrumb-item');
+            if (!target) return;
 
-				setTrail(newTrail);
-				renderBreadcrumb();
-				window.location.href = href;
-			});
-		}
-	</script>
+            evt.preventDefault();
+
+            const crumbIndex = parseInt(target.getAttribute('data-crumb-index'));
+            const isParent = target.getAttribute('data-is-parent') === '1';
+
+            const oldTrail = getTrail();
+            const newTrail = oldTrail.slice(0, crumbIndex + 1);
+            setTrail(newTrail);
+
+            if (isParent) {
+                // Navigate to dashboard — the init code will restore the menu drill-down
+                window.location.href = baseURL + 'dashboard';
+            } else {
+                // Leaf crumb — navigate to its actual URL
+                const href = target.getAttribute('href');
+                if (href) {
+                    window.location.href = href;
+                }
+            }
+        });
+    }
+</script>
 
 <?php endif; ?>
