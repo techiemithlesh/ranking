@@ -23,32 +23,45 @@ class Classes extends Admin_Controller
     /* class form validation rules */
     protected function class_validation($id = null)
     {
+        $branch_id = is_superadmin_loggedin() ? null : get_loggedin_branch_id();
+
         $this->form_validation->set_rules('name', translate('name'), [
             'trim',
             'required',
             [
                 'uniqueClassNameCheck',
-                function ($name) use ($id) {
+                function ($name) use ($id, $branch_id) {
+
                     $this->db->where('name', $name);
-                    if ($id)
+
+                    // branch wise check
+                    if ($branch_id === null) {
+                        $this->db->where('created_by_branch IS NULL', null, false);
+                    } else {
+                        $this->db->where('created_by_branch', $branch_id);
+                    }
+
+                    // ignore current record while edit
+                    if ($id) {
                         $this->db->where('id !=', $id);
-                    return $this->db->get('class')->num_rows() == 0;
+                    }
+
+                    $exists = $this->db->get('class')->num_rows();
+
+                    if ($exists > 0) {
+                        $this->form_validation->set_message(
+                            'uniqueClassNameCheck',
+                            translate('the_name_already_exists')
+                        );
+                        return false;
+                    }
+
+                    return true;
                 }
             ]
         ]);
     }
 
-    public function uniqueClassNameCheck($name = '')
-    {
-        $this->db->where('name', $name);
-        $exists = $this->db->get('class')->num_rows();
-
-        if ($exists > 0) {
-            $this->form_validation->set_message('uniqueClassNameCheck', translate('the_name_already_exists'));
-            return false;
-        }
-        return true;
-    }
 
 
     public function index()
