@@ -66,13 +66,21 @@ class Classes extends Admin_Controller
 
     public function index()
     {
+        ini_set('display_errors', 1);
+        error_reporting(E_ALL);
+
         if (!get_permission('classes', 'is_view')) {
             access_denied();
         }
+
         if ($_POST) {
+
             if (get_permission('classes', 'is_add')) {
+
                 $this->class_validation();
+
                 if ($this->form_validation->run() !== false) {
+
                     $arrayClass = array(
                         'name' => $this->input->post('name')
                     );
@@ -83,18 +91,88 @@ class Classes extends Admin_Controller
                         $arrayClass['created_by_branch'] = get_loggedin_branch_id();
                     }
 
-                    $this->db->insert('class', $arrayClass);
-                    $class_id = $this->db->insert_id();
+                    try {
 
-                    if ($class_id) {
-                        set_alert('success', translate('information_has_been_saved_successfully'));
-                        $url = base_url('classes');
-                        $array = array('status' => 'success', 'url' => $url, 'error' => '');
+                        // LOG INPUT DATA
+                        log_message('error', 'Class Insert Data: ' . json_encode($arrayClass));
+
+                        // INSERT
+                        $this->db->insert('class', $arrayClass);
+
+                        // LOG QUERY
+                        log_message('error', 'Last Query: ' . $this->db->last_query());
+
+                        // CHECK DB ERROR
+                        $db_error = $this->db->error();
+
+                        if ($db_error['code'] != 0) {
+
+                            log_message('error', 'DB Error: ' . json_encode($db_error));
+
+                            $array = array(
+                                'status' => 'fail',
+                                'url' => '',
+                                'error' => $db_error['message']
+                            );
+
+                        } else {
+
+                            $class_id = $this->db->insert_id();
+
+                            log_message('error', 'Inserted Class ID: ' . $class_id);
+
+                            if ($class_id) {
+
+                                set_alert(
+                                    'success',
+                                    translate('information_has_been_saved_successfully')
+                                );
+
+                                $array = array(
+                                    'status' => 'success',
+                                    'url' => base_url('classes'),
+                                    'error' => ''
+                                );
+                            } else {
+
+                                $array = array(
+                                    'status' => 'fail',
+                                    'url' => '',
+                                    'error' => 'Insert failed'
+                                );
+                            }
+                        }
+
+                    } catch (Throwable $e) {
+
+                        // LOG EXCEPTION
+                        log_message('error', 'Class Insert Exception: ' . $e->getMessage());
+
+                        log_message('error', 'Exception File: ' . $e->getFile());
+
+                        log_message('error', 'Exception Line: ' . $e->getLine());
+
+                        $array = array(
+                            'status' => 'fail',
+                            'url' => '',
+                            'error' => $e->getMessage()
+                        );
                     }
+
                 } else {
+
+                    // VALIDATION ERROR
                     $error = $this->form_validation->error_array();
-                    $array = array('status' => 'fail', 'url' => '', 'error' => $error);
+
+                    log_message('error', 'Validation Error: ' . json_encode($error));
+
+                    $array = array(
+                        'status' => 'fail',
+                        'url' => '',
+                        'error' => $error
+                    );
                 }
+
                 echo json_encode($array);
                 exit();
             }
@@ -105,10 +183,11 @@ class Classes extends Admin_Controller
         $this->data['title'] = translate('control_classes');
         $this->data['sub_page'] = 'classes/index';
         $this->data['main_menu'] = 'classes';
-        $this->load->view('layout/index', $this->data);
 
+        $this->load->view('layout/index', $this->data);
     }
 
+    
     public function edit($id = '')
     {
         $this->data['class'] = $this->app_lib->getTable('class', array('t.id' => $id), true);
