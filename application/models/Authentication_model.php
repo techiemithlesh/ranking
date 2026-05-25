@@ -168,4 +168,18 @@ class Authentication_model extends MY_Model
         }
         return false;
     }
+
+    public function save_registration_lead($data)
+    {
+        // Check if email already submitted a lead
+        $existing = $this->db->where('email', $data['email'])
+                            ->where('status', 'pending')
+                            ->get('register_leads')
+                            ->row();
+        if ($existing) {
+            return false; // Already has a pending request
+        }
+    
+        return $this->db->insert('register_leads', $data);
+    }
 }

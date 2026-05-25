@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="keywords" content="school management system, schoolxcel, login">
-    <meta name="description" content="Login to your account">
+    <meta name="keywords" content="school management system, schoolxcel, register">
+    <meta name="description" content="Create your account">
     <meta name="author" content="schoolexcel.tech">
-    <title>Login</title>
+    <title>Register</title>
     <link rel="shortcut icon" href="<?php echo base_url('assets/images/favicon.png'); ?>">
     
     <!-- Web Fonts -->
@@ -85,15 +85,14 @@
             position: relative;
         }
         
-        .login-box {
+        .register-box {
             width: 100%;
-            margin-top: 170px;
+            margin-top: 100px;
             max-width: 450px;
             margin-left: 30px;
         }
-
         
-        .login-form h2 {
+        .register-form h2 {
             text-align: center;
             margin-bottom: 1.5rem;
             font-weight: bold;
@@ -128,42 +127,10 @@
             box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
         }
         
-        .password-field {
-            position: relative;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            top: 50%;
-            right: 10px;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #6c757d;
-            font-size: 1.2rem;
-        }
-        
-        .password-toggle:focus {
-            outline: none;
-        }
-        
         .form-control::placeholder {
             color: #6c757d;
             font-size: 1.3rem;
             opacity: 0.8;
-        }
-        
-        .form-check {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .form-check-label {
-            font-size: 1.2rem;
-            color: #ffffff;
         }
         
         .btn-primary {
@@ -212,7 +179,7 @@
             font-size: 14px;
         }
 
-        .support-link:hover{
+        .support-link:hover {
             color: yellow;
             text-decoration: none;
         }
@@ -235,7 +202,7 @@
                 width: 100%;
             }
             
-            .login-box {
+            .register-box {
                 margin-left: 0;
                 max-width: 500px;
                 width: 100%;
@@ -260,7 +227,7 @@
                 font-size: 26px;
             }
             
-            .login-form {
+            .register-form {
                 padding: 20px 15px;
             }
             
@@ -270,10 +237,6 @@
             
             .form-control {
                 font-size: 1.1rem;
-            }
-            
-            .form-check-label {
-                font-size: 1rem;
             }
         }
         
@@ -289,7 +252,7 @@
     <div class="main-container">
         <!-- Header text -->
         <div class="header-text">
-            <h1>Welcome Back to Your Learning Dashboard</h1>
+            <h1>Create Your Account</h1>
         </div>
         
         <div class="content-wrapper">
@@ -298,45 +261,50 @@
                
             </div>
             
-            <!-- Right side login form -->
+            <!-- Right side register form -->
             <div class="right-side">
-                <div class="login-box">
-                    <div class="login-form">
-                        <h2>Sign in to Your Account</h2>
-                        <?php echo form_open($this->uri->uri_string()); ?>
+                <div class="register-box">
+                    <div class="register-form">
+                        <h2>Register</h2>
+                        <p style="text-align:center;color:#ffffffcc;margin-bottom:1.5rem;font-size:1.1rem;">
+                            Submit your details and our team will get back to you shortly.
+                        </p>
+                        <?php echo form_open('authentication/register'); ?>
+                            <div class="form-group">
+                                <label for="name"><?php echo translate('name'); ?></label>
+                                <input type="text" class="form-control" name="name" id="name" 
+                                    value="<?php echo set_value('name'); ?>"
+                                    placeholder="Enter your full name" required>
+                                <span class="text-danger"><?php echo form_error('name'); ?></span>
+                            </div>
                             <div class="form-group">
                                 <label for="email"><?php echo translate('email'); ?></label>
-                                <input type="text" class="form-control" name="email" id="email" 
+                                <input type="email" class="form-control" name="email" id="email" 
                                     value="<?php echo set_value('email'); ?>"
                                     placeholder="<?php echo translate('email'); ?>" required>
                                 <span class="text-danger"><?php echo form_error('email'); ?></span>
                             </div>
                             <div class="form-group">
-                                <label for="password"><?php echo translate('password'); ?></label>
-                                <div class="password-field">
-                                    <input type="password" class="form-control" name="password" id="password"
-                                        placeholder="<?php echo translate('password'); ?>" required>
-                                    <button type="button" class="password-toggle" id="passwordToggle">
-                                        <i class="fa fa-eye"></i>
-                                    </button>
-                                </div>
-                                <span class="text-danger"><?php echo form_error('password'); ?></span>
+                                <label for="mobile_no"><?php echo translate('phone'); ?></label>
+                                <input type="tel" class="form-control" name="mobile_no" id="mobile_no" 
+                                    value="<?php echo set_value('mobile_no'); ?>"
+                                    placeholder="Enter your phone number">
+                                <span class="text-danger"><?php echo form_error('mobile_no'); ?></span>
                             </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                                <label class="form-check-label" for="remember">
-                                    <?php echo translate('remember'); ?>
-                                </label>
+                            <div class="form-group">
+                                <label for="address"><?php echo translate('address'); ?></label>
+                                <textarea class="form-control" name="address" id="address" rows="2"
+                                    placeholder="Enter your address"><?php echo set_value('address'); ?></textarea>
+                                <span class="text-danger"><?php echo form_error('address'); ?></span>
                             </div>
 
                             <button type="submit" class="btn btn-primary">
-                                <?php echo translate('login'); ?>
+                                Submit Request
                             </button>
                             <div class="form-footer">
-                                <a href="<?php echo base_url('authentication/forgot'); ?>">
-                                    <?php echo translate('forgot_password'); ?>
+                                <a href="<?php echo base_url('authentication'); ?>">
+                                    Already have an account? Sign In
                                 </a>
-                                 <strong> <a style="color:white;" href="<?php echo base_url('authentication/register'); ?>">Don't have an account? Register</a></strong>
                             </div>
                         </form>
                     </div>
@@ -351,23 +319,6 @@
     </div>
 
     <script src="<?php echo base_url('assets/vendor/bootstrap/js/bootstrap.bundle.min.js'); ?>"></script>
-    <script>
-        $(document).ready(function() {
-            // Password toggle functionality
-            $('#passwordToggle').on('click', function() {
-                const passwordInput = $('#password');
-                const passwordIcon = $(this).find('i');
-                
-                if (passwordInput.attr('type') === 'password') {
-                    passwordInput.attr('type', 'text');
-                    passwordIcon.removeClass('fa-eye').addClass('fa-eye-slash');
-                } else {
-                    passwordInput.attr('type', 'password');
-                    passwordIcon.removeClass('fa-eye-slash').addClass('fa-eye');
-                }
-            });
-        });
-    </script>
     
     <!-- Alert Notification -->
     <?php

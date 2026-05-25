@@ -32,34 +32,6 @@ class Templateengine_lib
         return ['template' => $template, 'overlays' => $overlays];
     }
 
-    public function storeTemplate_()
-    {
-        $this->CI->db->trans_start();
-        $type = $this->CI->input->post('type');
-        $config = [
-            'upload_path'   => 'uploads/template-manager/' . $type . '/',
-            'allowed_types' => ($type == 'image' ? 'jpg|jpeg|png' : 'mp4'),
-            'encrypt_name'  => true
-        ];
-        if (!is_dir($config['upload_path'])) mkdir($config['upload_path'], 0755, true);
-        $this->CI->load->library('upload');
-        $this->CI->upload->initialize($config);
-        if ($this->CI->upload->do_upload('template_file')) {
-            $uploadData = $this->CI->upload->data();
-            $arrayData = [
-                'title'         => $this->CI->input->post('title'),
-                'type'          => $type,
-                'file_path'     => $config['upload_path'] . $uploadData['file_name'],
-                'upload_status' => 'completed',
-                'created_by'    => get_loggedin_user_id()
-            ];
-            return $this->CI->template_model->saveTemplate($arrayData);
-        } else {
-            $this->CI->db->rollback();
-            return ['error' => $this->CI->upload->display_errors('', '')];
-        }
-    }
-
     public function storeTemplate()
     {
         $this->CI->db->trans_start();

@@ -194,6 +194,70 @@ class Authentication extends Authentication_Controller
         // $this->load->view('authentication/login_new_bg', $this->data);
     }
 
+    public function register()
+    {
+        if (is_loggedin()) {
+            redirect(base_url('dashboard'));
+        }
+    
+        if ($_POST) {
+            $rules = array(
+                array(
+                    'field' => 'name',
+                    'label' => 'Name',
+                    'rules' => 'trim|required|min_length[2]|max_length[100]',
+                ),
+                array(
+                    'field' => 'email',
+                    'label' => 'Email',
+                    'rules' => 'trim|required|valid_email',
+                    'errors' => array(
+                        'valid_email' => 'Please enter a valid email address.',
+                    ),
+                ),
+                array(
+                    'field' => 'mobile_no',
+                    'label' => 'Phone',
+                    'rules' => 'trim|numeric|min_length[10]|max_length[15]',
+                    'errors' => array(
+                        'numeric'    => 'Phone number must contain only digits.',
+                        'min_length' => 'Phone number must be at least 10 digits.',
+                    ),
+                ),
+                array(
+                    'field' => 'address',
+                    'label' => 'Address',
+                    'rules' => 'trim|min_length[5]|max_length[500]',
+                ),
+            );
+    
+            $this->form_validation->set_rules($rules);
+    
+            if ($this->form_validation->run() !== false) {
+                $data = array(
+                    'name'       => $this->input->post('name'),
+                    'email'      => $this->input->post('email'),
+                    'mobile_no'  => $this->input->post('mobile_no'),
+                    'address'    => $this->input->post('address'),
+                    'status'     => 'pending',
+                    'created_at' => date('Y-m-d H:i:s'),
+                );
+    
+                $result = $this->authentication_model->save_registration_lead($data);
+    
+                if ($result) {
+                    set_alert('success', 'Your request has been submitted successfully! Our team will review and contact you soon.');
+                    redirect(base_url('authentication'));
+                } else {
+                    set_alert('error', 'Something went wrong. Please try again.');
+                    redirect(base_url('authentication/register'));
+                }
+            }
+        }
+    
+        $this->load->view('authentication/register', $this->data);
+    }
+
     // Helper function to set up login session
     private function _setup_login_session($login_credential)
     {
