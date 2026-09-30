@@ -38,6 +38,12 @@ class Design_queue_lib
 
     public function run()
     {
+        // files made by root can't be written by the cron worker (www-data) or served by the site
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->log('refusing to run as root — use: sudo -u www-data php ' . FCPATH . 'index.php design_worker run');
+            return;
+        }
+
         $dir = $this->storageDir();
         if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
             $this->log('cannot create storage dir ' . $dir);
@@ -251,7 +257,10 @@ class Design_queue_lib
 
     protected function heartbeat()
     {
-        @touch($this->storageDir() . '.heartbeat');
+        $file = $this->storageDir() . '.heartbeat';
+        if (!@touch($file)) {
+            $this->log('cannot update ' . $file . ' (wrong owner?) — the page will think the worker is down. Fix: chown -R www-data:www-data ' . $this->storageDir());
+        }
     }
 
     protected function removeDir($dir)
