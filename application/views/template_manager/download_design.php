@@ -234,6 +234,7 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
     .dd-badge-processing, .dd-badge-packaging { background: #ebf4ff; color: #3182ce; }
     .dd-badge-done { background: #e6fffa; color: #2c7a7b; }
     .dd-badge-failed { background: #fff5f5; color: #c53030; }
+    .dd-badge-partial { background: #fffaf0; color: #c05621; }
     .dd-badge-expired, .dd-badge-cancelled { background: #f7f7f7; color: #999; }
     .dd-job-bar { height: 8px; background: #edf2f7; border-radius: 6px; overflow: hidden; margin: 10px 0 6px; }
     .dd-job-bar span { display: block; height: 100%; background: linear-gradient(90deg, #00b4d8, #4a6cf7); transition: width .4s ease; }
@@ -277,7 +278,9 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
         create:   "<?= base_url('Template_manager/design_job_create') ?>",
         jobs:     "<?= base_url('Template_manager/design_jobs') ?>",
         branches: "<?= base_url('Template_manager/design_job_branches') ?>/",
-        cancel:   "<?= base_url('Template_manager/design_job_cancel') ?>"
+        cancel:   "<?= base_url('Template_manager/design_job_cancel') ?>",
+        retry:    "<?= base_url('Template_manager/design_job_retry') ?>",
+        remove:   "<?= base_url('Template_manager/design_job_delete') ?>"
     };
     const CSRF = { name: "<?= $this->security->get_csrf_token_name() ?>", hash: "<?= $this->security->get_csrf_hash() ?>" };
     const ACTIVE = ['pending', 'processing', 'packaging'];
@@ -490,6 +493,7 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
 
     function statusLabel(job) {
         if (job.status === 'done' && job.cancel_requested) return ['done', 'Cancelled · partial ZIP'];
+        if (job.status === 'done' && job.failed) return ['partial', 'Ready · ' + job.failed + ' failed'];
         if (job.cancel_requested && ACTIVE.includes(job.status)) return ['processing', 'Cancelling'];
         return ({
             pending:    ['pending', 'Queued'],
@@ -519,12 +523,23 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
         if (job.download_url) {
             actions += '<a class="btn btn-success btn-sm" href="' + job.download_url + '"><i class="fas fa-file-archive"></i> Download ZIP</a>';
         }
+        if (job.retry === 'all') {
+            actions += '<button type="button" class="btn btn-warning btn-sm js-retry" data-id="' + job.id + '" data-mode="all">' +
+                '<i class="fas fa-redo"></i> Retry</button>';
+        } else if (job.retry === 'failed') {
+            actions += '<button type="button" class="btn btn-default btn-sm js-retry" data-id="' + job.id + '" data-mode="failed">' +
+                '<i class="fas fa-redo"></i> Retry failed (' + (job.failed + job.cancelled) + ')</button>';
+        }
         if (live && !job.cancel_requested && job.status !== 'packaging') {
             actions += '<button type="button" class="btn btn-default btn-sm js-cancel" data-id="' + job.id + '">Cancel</button>';
         }
         if (job.status !== 'expired') {
             actions += '<button type="button" class="btn btn-default btn-sm js-details" data-id="' + job.id + '">' +
                 (openDetails.has(job.id) ? 'Hide branches' : 'Branches') + '</button>';
+        }
+        if (job.can_delete) {
+            actions += '<button type="button" class="btn btn-default btn-sm js-delete" data-id="' + job.id + '" title="Remove from the list">' +
+                '<i class="fas fa-trash-alt"></i></button>';
         }
 
         return '<div class="dd-job" id="job-' + job.id + '">' +
@@ -609,6 +624,31 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
         $(this).prop('disabled', true);
         const res = await postJson(URLS.cancel, { job_id: this.dataset.id });
         if (res.status !== 'success') alert(res.message || 'Could not cancel.');
+        loadJobs();
+    });
+
+    $('#jobsList').on('click', '.js-retry', async function() {
+        const msg = this.dataset.mode === 'all'
+            ? 'Generate this download again from the start?'
+            : 'Try the failed designs again? They will be added to the existing ZIP.';
+        if (!confirm(msg)) return;
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Retrying...');
+        const res = await postJson(URLS.retry, { job_id: this.dataset.id });
+        if (res.status !== 'success') alert(res.message || 'Could not retry.');
+        loadJobs();
+    });
+
+    $('#jobsList').on('click', '.js-delete', async function() {
+        if (!confirm('Delete this download from the list? Its ZIP file will be removed from the server.')) return;
+        const id = +this.dataset.id;
+        $(this).prop('disabled', true);
+        const res = await postJson(URLS.remove, { job_id: id });
+        if (res.status !== 'success') {
+            alert(res.message || 'Could not delete.');
+        } else {
+            openDetails.delete(id);
+            problemsOnly.delete(id);
+        }
         loadJobs();
     });
 

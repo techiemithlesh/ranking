@@ -175,13 +175,16 @@ class Design_queue_lib
 
     protected function packageJob($jobId)
     {
+        $job     = $this->CI->queue->getJob($jobId);
         $jobDir  = $this->storageDir() . 'job_' . $jobId . '/';
         $zipPath = $this->storageDir() . 'designs_' . $jobId . '.zip';
         $done    = $this->CI->queue->jobItems($jobId, 'done');
         $failed  = $this->CI->queue->jobItems($jobId, 'failed');
 
+        // "retry failed" keeps the ZIP: designs made earlier are already inside, new ones are added
+        $appending = !empty($job['zip_path']) && is_file($zipPath);
+
         if (!$done) {
-            $job = $this->CI->queue->getJob($jobId);
             $this->CI->queue->finishJob($jobId, [
                 'status' => 'failed',
                 'error'  => !empty($job['cancel_requested']) ? 'Cancelled before any design was finished' : 'No designs could be generated',
@@ -191,20 +194,25 @@ class Design_queue_lib
         }
 
         $zip = new ZipArchive();
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        $mode = $appending ? ZipArchive::CREATE : (ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($zip->open($zipPath, $mode) !== true) {
             $this->CI->queue->finishJob($jobId, ['status' => 'failed', 'error' => 'Could not create ZIP file']);
             return;
         }
+        if ($appending) {
+            $zip->deleteName('_failed.txt'); // rewritten below with the current failures
+        }
 
-        $count = 0;
+        $added = 0;
         foreach ($done as $item) {
             $file = $jobDir . $item['file_path'];
-            if (!is_file($file)) continue;
+            if (!is_file($file)) continue; // on a retry, earlier designs are already in the ZIP
             $zip->addFile($file, $item['file_path']);
             // PNG/MP4 are already compressed — storing is much faster and barely larger
             $zip->setCompressionName($item['file_path'], ZipArchive::CM_STORE);
-            $count++;
+            $added++;
         }
+        $count = $appending ? count($done) : $added;
         if ($failed) {
             $lines = array_map(fn($f) => ($f['branch_name'] ?: 'Branch #' . $f['branch_id']) . ' — '
                 . ($f['template_title'] ?: 'Template #' . $f['template_id']) . ($f['error'] ? ' (' . $f['error'] . ')' : ''), $failed);
@@ -230,13 +238,19 @@ class Design_queue_lib
 
     /* ── housekeeping ───────────────────────────────────────── */
 
+    // removes a job's ZIP and any half-finished files (used by delete and full retry)
+    public function deleteJobFiles(array $job)
+    {
+        if (!empty($job['zip_path'])) {
+            @unlink($this->storageDir() . basename($job['zip_path']));
+        }
+        $this->removeDir($this->storageDir() . 'job_' . (int) $job['id']);
+    }
+
     protected function cleanup()
     {
         foreach ($this->CI->queue->expiredJobs((int) $this->cfg['design_queue_retention_days']) as $job) {
-            if (!empty($job['zip_path'])) {
-                @unlink($this->storageDir() . basename($job['zip_path']));
-            }
-            $this->removeDir($this->storageDir() . 'job_' . (int) $job['id']);
+            $this->deleteJobFiles($job);
             $this->CI->queue->expireJob($job['id']);
         }
     }

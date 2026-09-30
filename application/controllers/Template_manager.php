@@ -497,7 +497,7 @@ class Template_manager extends Admin_Controller
 
         $this->json([
             'status' => 'success',
-            'jobs'   => array_map(fn($j) => $this->jobSummary($j, $counts[(int) $j['id']] ?? []), $jobs),
+            'jobs'   => array_map(fn($j) => $this->jobSummary($j, $counts[(int) $j['id']] ?? [], $this->design_queue_lib->storageDir()), $jobs),
             'worker' => ['last_seen' => $seen, 'alive' => $seen !== null && $seen < 150],
         ]);
     }
@@ -539,6 +539,63 @@ class Template_manager extends Admin_Controller
         $this->json(['status' => 'success']);
     }
 
+    // re-queue a failed job, or only the failed/cancelled designs of a finished one
+    public function design_job_retry()
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+        $this->load->library('design_queue_lib');
+        $this->config->load('design_queue', true);
+        $cfg = $this->config->item('design_queue');
+
+        $userId = get_loggedin_user_id();
+        $job = $this->queue->getJob($this->input->post('job_id'), $userId);
+        if (!$job || !in_array($job['status'], ['done', 'failed'], true)) {
+            $this->json(['status' => 'error', 'message' => 'This download cannot be retried. Create a new one instead.']);
+        }
+        if ($this->queue->countActiveJobs($userId) >= (int) $cfg['design_queue_max_active_jobs']) {
+            $this->json(['status' => 'error', 'message' => 'You already have ' . $cfg['design_queue_max_active_jobs'] . ' downloads in progress. Wait for one to finish first.']);
+        }
+
+        // with a good ZIP only the missing designs are regenerated and added to it; otherwise everything is redone
+        $zipOk = $job['status'] === 'done' && $this->jobZipExists($job, $this->design_queue_lib->storageDir());
+        if ($zipOk) {
+            $counts = $this->queue->itemCounts([$job['id']])[(int) $job['id']] ?? [];
+            if (!(($counts['failed'] ?? 0) + ($counts['cancelled'] ?? 0))) {
+                $this->json(['status' => 'error', 'message' => 'Nothing to retry — every design was generated.']);
+            }
+        } else {
+            $this->design_queue_lib->deleteJobFiles($job);
+        }
+
+        $this->queue->retryJob($job['id'], $zipOk);
+        $this->json(['status' => 'success']);
+    }
+
+    public function design_job_delete()
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+        $this->load->library('design_queue_lib');
+
+        $job = $this->queue->getJob($this->input->post('job_id'), get_loggedin_user_id());
+        if (!$job) {
+            $this->json(['status' => 'error', 'message' => 'Download not found']);
+        }
+        if (in_array($job['status'], ['pending', 'processing', 'packaging'], true)) {
+            $this->json(['status' => 'error', 'message' => 'This download is still running. Cancel it first, then delete it.']);
+        }
+
+        $this->design_queue_lib->deleteJobFiles($job);
+        $this->queue->deleteJob($job['id']);
+        $this->json(['status' => 'success']);
+    }
+
+    private function jobZipExists(array $job, $storageDir)
+    {
+        return !empty($job['zip_path']) && is_file($storageDir . basename($job['zip_path']));
+    }
+
     // normal link (not fetch) so the browser streams a large ZIP straight to disk
     public function design_job_download($jobId = 0)
     {
@@ -574,8 +631,18 @@ class Template_manager extends Admin_Controller
         exit;
     }
 
-    private function jobSummary(array $job, array $counts)
+    private function jobSummary(array $job, array $counts, $storageDir)
     {
+        $status = $job['status'];
+        $error  = $job['error'];
+
+        // "done" is only real if the ZIP is still on disk
+        $zipOk = $status === 'done' && $this->jobZipExists($job, $storageDir);
+        if ($status === 'done' && !$zipOk) {
+            $status = 'failed';
+            $error  = 'The ZIP file is missing on the server — retry to generate it again.';
+        }
+
         $done      = $counts['done'] ?? 0;
         $failed    = $counts['failed'] ?? 0;
         $cancelled = $counts['cancelled'] ?? 0;
@@ -592,7 +659,7 @@ class Template_manager extends Admin_Controller
 
         return [
             'id'               => (int) $job['id'],
-            'status'           => $job['status'],
+            'status'           => $status,
             'cancel_requested' => (bool) $job['cancel_requested'],
             'branch_count'     => (int) $job['branch_count'],
             'template_count'   => (int) $job['template_count'],
@@ -606,8 +673,11 @@ class Template_manager extends Admin_Controller
             'created_at'       => date('d M Y, h:i A', strtotime($job['created_at'])),
             'zip_size'         => $job['zip_size'] !== null ? (int) $job['zip_size'] : null,
             'zip_count'        => $job['zip_count'] !== null ? (int) $job['zip_count'] : null,
-            'error'            => $job['error'],
-            'download_url'     => $job['status'] === 'done' ? base_url('Template_manager/design_job_download/' . (int) $job['id']) : null,
+            'error'            => $error,
+            'download_url'     => $zipOk ? base_url('Template_manager/design_job_download/' . (int) $job['id']) : null,
+            // failed job → retry everything; finished job with some failures → retry just those
+            'retry'            => $status === 'failed' ? 'all' : (($zipOk && ($failed + $cancelled) > 0) ? 'failed' : null),
+            'can_delete'       => !in_array($status, ['pending', 'processing', 'packaging'], true),
         ];
     }
 

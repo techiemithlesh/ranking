@@ -117,6 +117,44 @@ class Design_queue_model extends CI_Model
             ->update(self::ITEMS, ['status' => 'cancelled']);
     }
 
+    /**
+     * Puts a finished job back in the queue.
+     * $onlyFailed: regenerate just failed/cancelled designs (the worker adds them to the existing ZIP);
+     * otherwise every design is regenerated from scratch.
+     */
+    public function retryJob($jobId, $onlyFailed)
+    {
+        $this->db->trans_start();
+
+        $this->db->where('job_id', (int) $jobId);
+        if ($onlyFailed) {
+            $this->db->where_in('status', ['failed', 'cancelled']);
+        }
+        $this->db->update(self::ITEMS, [
+            'status' => 'pending', 'attempts' => 0, 'error' => null,
+            'worker_id' => null, 'locked_at' => null, 'file_path' => null,
+        ]);
+
+        $job = [
+            'status' => 'pending', 'cancel_requested' => 0, 'error' => null,
+            'started_at' => null, 'finished_at' => null,
+        ];
+        if (!$onlyFailed) {
+            $job += ['zip_path' => null, 'zip_size' => null, 'zip_count' => null];
+        }
+        $this->db->where('id', (int) $jobId)->update(self::JOBS, $job);
+
+        $this->db->trans_complete();
+    }
+
+    public function deleteJob($jobId)
+    {
+        $this->db->trans_start();
+        $this->db->where('job_id', (int) $jobId)->delete(self::ITEMS);
+        $this->db->where('id', (int) $jobId)->delete(self::JOBS);
+        $this->db->trans_complete();
+    }
+
     /* ── worker side ────────────────────────────────────────── */
 
     // items left "processing" by a crashed worker go back to the queue (or fail after max attempts)
