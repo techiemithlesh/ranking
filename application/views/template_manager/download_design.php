@@ -149,7 +149,7 @@ $noLogoCount = count(array_filter($branches, fn($b) => !$b['has_logo']));
             <span class="text-muted" id="sumHint"></span>
         </div>
         <button type="button" class="btn btn-primary" id="startDownload" disabled>
-            <i class="fas fa-download"></i> Download
+            <i class="fas fa-download"></i> Generate Template
         </button>
     </div>
 

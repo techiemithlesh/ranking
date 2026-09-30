@@ -265,7 +265,7 @@ class Template_manager extends Admin_Controller
             . "-of default=noprint_wrappers=1:nokey=1 "
             . escapeshellarg($path);
 
-        log_message('info', "Running ffprobe command: $cmd");
+        // log_message('info', "Running ffprobe command: $cmd");
 
         return round((float)shell_exec($cmd), 2);
     }
@@ -333,7 +333,7 @@ class Template_manager extends Admin_Controller
             if ($this->db->affected_rows() <= 0) {
                 $ok = false;
                 // log_message('error', 'Overlay insert failed: ' . json_encode($this->db->error()));
-                log_message('error', 'Overlay insert last_query: ' . $this->db->last_query());
+                // log_message('error', 'Overlay insert last_query: ' . $this->db->last_query());
                 break;
             }
         }
@@ -420,7 +420,7 @@ class Template_manager extends Admin_Controller
         $this->load->view('layout/index', $this->data);
     }
 
-    // super admin: generate & download edited templates personalised for one or many branches
+    
     public function download_design()
     {
         $this->superAdminOnly();
