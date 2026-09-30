@@ -410,13 +410,223 @@ class Template_manager extends Admin_Controller
             redirect(base_url('dashboard'), 'refresh');
         }
 
-        $templates = $this->template_model->getActiveTemplates();
+        // raw templates (no placements saved yet) are hidden from branches
+        $templates = $this->template_model->getEditedActiveTemplates();
         $this->data['templates'] = $templates;
         $this->data['title'] = translate('marketing_templates');
         $this->data['sub_page'] = 'template_manager/branch_templates';
         $this->data['main_menu'] = 'Template_manager';
 
         $this->load->view('layout/index', $this->data);
+    }
+
+    // super admin: generate & download edited templates personalised for one or many branches
+    public function download_design()
+    {
+        $this->superAdminOnly();
+
+        $branches = $this->db->select('id, name, logo')->order_by('name', 'ASC')->get('branch')->result_array();
+        foreach ($branches as &$b) {
+            $b['has_logo'] = !empty($b['logo']) && file_exists(FCPATH . $b['logo']);
+            unset($b['logo']);
+        }
+        unset($b);
+
+        $this->data['branches']  = $branches;
+        $this->data['templates'] = $this->template_model->getEditedActiveTemplates();
+        $this->data['title']     = translate('download_design');
+        $this->data['sub_page']  = 'template_manager/download_design';
+        $this->data['main_menu'] = 'Template_manager';
+
+        $this->load->view('layout/index', $this->data);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       DOWNLOAD DESIGN QUEUE (super admin)
+       The page queues a job; the cron worker (Design_worker) renders it in the
+       background, so it keeps going when the tab is closed.
+    ───────────────────────────────────────────────────────── */
+    public function design_job_create()
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+        $this->config->load('design_queue', true);
+        $cfg = $this->config->item('design_queue');
+
+        $branchIds   = array_values(array_unique(array_filter(array_map('intval', (array) $this->input->post('branch_ids')))));
+        $templateIds = array_values(array_unique(array_filter(array_map('intval', (array) $this->input->post('template_ids')))));
+        if (!$branchIds || !$templateIds) {
+            $this->json(['status' => 'error', 'message' => 'Select at least one branch and one template.']);
+        }
+
+        // only real branches and edited, active templates
+        $branchIds = array_map('intval', array_column(
+            $this->db->select('id')->where_in('id', $branchIds)->get('branch')->result_array(), 'id'
+        ));
+        $templates = array_values(array_filter(
+            $this->template_model->getEditedActiveTemplates(),
+            fn($t) => in_array((int) $t['id'], $templateIds, true)
+        ));
+        if (!$branchIds || !$templates) {
+            $this->json(['status' => 'error', 'message' => 'Selected branches or templates are no longer available.']);
+        }
+
+        $userId = get_loggedin_user_id();
+        if ($this->queue->countActiveJobs($userId) >= (int) $cfg['design_queue_max_active_jobs']) {
+            $this->json(['status' => 'error', 'message' => 'You already have ' . $cfg['design_queue_max_active_jobs'] . ' downloads in progress. Wait for one to finish or cancel it.']);
+        }
+
+        $jobId = $this->queue->createJob($userId, $branchIds, $templates);
+        if (!$jobId) {
+            $this->json(['status' => 'error', 'message' => 'Could not queue the download. Try again.']);
+        }
+
+        $this->json(['status' => 'success', 'job_id' => $jobId]);
+    }
+
+    // list of this user's downloads with live progress (polled by the page)
+    public function design_jobs()
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+        $this->load->library('design_queue_lib');
+
+        $jobs   = $this->queue->listJobs(get_loggedin_user_id(), 15);
+        $counts = $this->queue->itemCounts(array_column($jobs, 'id'));
+        $seen   = $this->design_queue_lib->workerLastSeen();
+
+        $this->json([
+            'status' => 'success',
+            'jobs'   => array_map(fn($j) => $this->jobSummary($j, $counts[(int) $j['id']] ?? []), $jobs),
+            'worker' => ['last_seen' => $seen, 'alive' => $seen !== null && $seen < 150],
+        ]);
+    }
+
+    // per-branch progress of one job
+    public function design_job_branches($jobId = 0)
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+
+        if (!$this->queue->getJob($jobId, get_loggedin_user_id())) {
+            $this->json(['status' => 'error', 'message' => 'Download not found']);
+        }
+
+        $rows = array_map(fn($r) => [
+            'id'        => (int) $r['branch_id'],
+            'name'      => $r['name'] ?: 'Branch #' . $r['branch_id'],
+            'done'      => (int) $r['done'],
+            'failed'    => (int) $r['failed'],
+            'cancelled' => (int) $r['cancelled'],
+            'active'    => (int) $r['active'],
+            'total'     => (int) $r['total'],
+        ], $this->queue->branchProgress($jobId));
+
+        $this->json(['status' => 'success', 'branches' => $rows]);
+    }
+
+    public function design_job_cancel()
+    {
+        $this->superAdminOnly(true);
+        $this->load->model('design_queue_model', 'queue');
+
+        $job = $this->queue->getJob($this->input->post('job_id'), get_loggedin_user_id());
+        if (!$job || !in_array($job['status'], ['pending', 'processing'], true)) {
+            $this->json(['status' => 'error', 'message' => 'This download can no longer be cancelled.']);
+        }
+
+        $this->queue->cancelJob($job['id']);
+        $this->json(['status' => 'success']);
+    }
+
+    // normal link (not fetch) so the browser streams a large ZIP straight to disk
+    public function design_job_download($jobId = 0)
+    {
+        $this->superAdminOnly();
+        $this->load->model('design_queue_model', 'queue');
+        $this->load->library('design_queue_lib');
+
+        $job  = $this->queue->getJob($jobId, get_loggedin_user_id());
+        $path = ($job && $job['status'] === 'done' && $job['zip_path'])
+            ? $this->design_queue_lib->storageDir() . basename($job['zip_path'])
+            : '';
+        if (!$path || !is_file($path)) {
+            show_error('This download is not available. It may have expired — please generate it again.', 404);
+        }
+
+        session_write_close();
+        @set_time_limit(0);
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="template_designs_' . (int) $job['id'] . '_' . date('Ymd', strtotime($job['created_at'])) . '.zip"');
+        header('Content-Length: ' . filesize($path));
+        header('Cache-Control: no-cache');
+
+        $fp = fopen($path, 'rb');
+        while (!feof($fp) && !connection_aborted()) {
+            echo fread($fp, 1048576);
+            flush();
+        }
+        fclose($fp);
+        exit;
+    }
+
+    private function jobSummary(array $job, array $counts)
+    {
+        $done      = $counts['done'] ?? 0;
+        $failed    = $counts['failed'] ?? 0;
+        $cancelled = $counts['cancelled'] ?? 0;
+        $active    = $counts['processing'] ?? 0;
+        $remaining = ($counts['pending'] ?? 0) + $active;
+        $total     = (int) $job['total_items'];
+        $finished  = $done + $failed + $cancelled;
+
+        $eta = null;
+        if ($job['started_at'] && $remaining > 0 && ($done + $failed) > 0) {
+            $elapsed = max(1, (int) $job['elapsed_seconds']); // measured by MySQL, same clock as started_at
+            $eta = (int) round($elapsed / ($done + $failed) * $remaining);
+        }
+
+        return [
+            'id'               => (int) $job['id'],
+            'status'           => $job['status'],
+            'cancel_requested' => (bool) $job['cancel_requested'],
+            'branch_count'     => (int) $job['branch_count'],
+            'template_count'   => (int) $job['template_count'],
+            'total'            => $total,
+            'done'             => $done,
+            'failed'           => $failed,
+            'cancelled'        => $cancelled,
+            'active'           => $active,
+            'percent'          => $total ? (int) floor($finished / $total * 100) : 0,
+            'eta_seconds'      => $eta,
+            'created_at'       => date('d M Y, h:i A', strtotime($job['created_at'])),
+            'zip_size'         => $job['zip_size'] !== null ? (int) $job['zip_size'] : null,
+            'zip_count'        => $job['zip_count'] !== null ? (int) $job['zip_count'] : null,
+            'error'            => $job['error'],
+            'download_url'     => $job['status'] === 'done' ? base_url('Template_manager/design_job_download/' . (int) $job['id']) : null,
+        ];
+    }
+
+    private function superAdminOnly($json = false)
+    {
+        if (is_superadmin_loggedin()) {
+            return;
+        }
+        if ($json) {
+            $this->json(['status' => 'error', 'message' => 'Not authorised']);
+        }
+        redirect(base_url('dashboard'), 'refresh');
+    }
+
+    private function json(array $data)
+    {
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
     }
 
     public function preview_($template_id)
@@ -548,16 +758,21 @@ class Template_manager extends Admin_Controller
             show_404();
         }
 
+        $branchId = resolve_template_branch_id();
+        if (empty($branchId)) {
+            show_error('Please select a branch to generate the design.', 400);
+        }
+
         $overlays = $this->templateOverlay_model->get_by_template($template_id);
 
         $branch = $this->db
             ->select('*')
             ->from('branch')
-            ->where('id', get_loggedin_branch_id())
+            ->where('id', $branchId)
             ->get()
             ->row_array();
 
-        $branchLogoUrl = get_branch_logo(get_loggedin_branch_id());
+        $branchLogoUrl = get_branch_logo($branchId);
         if (empty($branchLogoUrl)) {
             show_error('Branch logo not found');
         }

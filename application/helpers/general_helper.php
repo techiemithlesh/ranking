@@ -575,6 +575,14 @@ if (!function_exists("printVar")) {
         echo "</pre>";
     }
 }
+if ( ! function_exists('dd')) {
+    function dd($data) {
+        echo '<pre>';
+        var_dump($data);
+        echo '</pre>';
+        die();
+    }
+}
 
 
 if (!function_exists("sendWhatsAppMsg")) {
@@ -742,21 +750,44 @@ if (!function_exists('month_list')) {
     }
 }
 
-function get_branch_logo()
+// branch used to generate a marketing template: super admin picks one via ?branch_id=, others use their own
+function resolve_template_branch_id()
+{
+    $CI = &get_instance();
+    if (!is_superadmin_loggedin()) {
+        return get_loggedin_branch_id();
+    }
+
+    $branch_id = (int) $CI->input->get('branch_id');
+    if ($branch_id <= 0) {
+        return null;
+    }
+
+    $exists = $CI->db->where('id', $branch_id)->count_all_results('branch');
+    return $exists ? $branch_id : null;
+}
+
+// branch logo as a path relative to FCPATH (falls back to the app logo); safe to use from CLI
+function get_branch_logo_file($branch_id = null)
 {
     $CI = &get_instance();
 
-
-    // Select only the logo column to make the query faster
-    $CI->db->select('logo');
-    $CI->db->where('id', get_loggedin_branch_id());
-    $branch = $CI->db->get('branch')->row_array();
-
-    $logoPath = ($branch['logo'] ?? '');
-
-    if (!empty($branch['logo']) && file_exists(FCPATH . $logoPath)) {
-        return base_url($logoPath);
+    if (empty($branch_id)) {
+        $branch_id = get_loggedin_branch_id();
     }
 
-    return base_url('uploads/app_image/logo.png');
+    // Select only the logo column to make the query faster
+    $branch = $CI->db->select('logo')->where('id', $branch_id)->get('branch')->row_array();
+    $logoPath = $branch['logo'] ?? '';
+
+    if (!empty($logoPath) && file_exists(FCPATH . $logoPath)) {
+        return $logoPath;
+    }
+
+    return 'uploads/app_image/logo.png';
+}
+
+function get_branch_logo($branch_id = null)
+{
+    return base_url(get_branch_logo_file($branch_id));
 }

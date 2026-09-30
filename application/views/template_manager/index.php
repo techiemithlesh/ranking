@@ -124,19 +124,6 @@
                                     </div>
                                     <div class="card-footer text-right">
 
-                                        <?php if ($item['type'] === 'video') : ?>
-                                            <!-- <a href="<?= base_url('Video_editor/download/' . $item['id']) ?>"
-                                                class="btn btn-success mt-3">
-                                                <i class="fas fa-download"></i> Download
-                                            </a> -->
-                                        <?php elseif ($item['type'] == 'image') : ?>
-                                            <a href="<?= $filePath ?>" class="btn btn-primary text-right" download target="_blank">
-                                                <i class="fas fa-download"></i> Download
-                                            </a>
-                                        <?php endif; ?>
-
-
-
                                         <?php if ($item['type'] == 'image') : ?>
                                             <a href="<?= base_url('Template_manager/edit/' . $item['id']) ?>" class="btn btn-info ml-2">
                                                 <i class="fas fa-edit"></i> Edit

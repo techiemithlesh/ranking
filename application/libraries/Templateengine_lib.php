@@ -100,6 +100,17 @@ class Templateengine_lib
         }
     }
 
+    /* ================================================================
+       PUBLIC: renderImageBlob — raw PNG bytes (for bulk ZIP export)
+       Returns '' when the base image or logo is missing.
+    ================================================================ */
+    public function renderImageBlob($templatePath, $logoUrl, $overlays, $branchTextMap)
+    {
+        $dataUri = $this->renderPreview($templatePath, $logoUrl, $overlays, $branchTextMap);
+        if ($dataUri === '') return '';
+        return base64_decode(substr($dataUri, strlen('data:image/png;base64,')));
+    }
+
     private function previewImagick($basePath, $logoPath, $overlays, $branchTextMap)
     {
         $base  = new Imagick($basePath);

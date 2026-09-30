@@ -117,6 +117,26 @@ class Template_model extends MY_Model
         return $this->db->get()->result_array();
     }
 
+    // active templates that have logo/text placements saved (images: template_overlays, videos: template_video_overlays)
+    public function getEditedActiveTemplates()
+    {
+        return $this->db
+            ->where('status', 1)
+            ->group_start()
+                ->group_start()
+                    ->where('type', 'image')
+                    ->where('EXISTS (SELECT 1 FROM template_overlays o WHERE o.template_id = ' . $this->table . '.id)', null, false)
+                ->group_end()
+                ->or_group_start()
+                    ->where('type', 'video')
+                    ->where('EXISTS (SELECT 1 FROM template_video_overlays v WHERE v.template_id = ' . $this->table . '.id)', null, false)
+                ->group_end()
+            ->group_end()
+            ->order_by('id', 'DESC')
+            ->get($this->table)
+            ->result_array();
+    }
+
     public function getActiveTemplates()
     {
         return $this->db

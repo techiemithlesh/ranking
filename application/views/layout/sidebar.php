@@ -62,6 +62,11 @@
                                             <span><?= translate('Template_manager') ?></span>
                                         </a>
                                     </li>
+                                    <li class="<?php if ($sub_page == 'template_manager/download_design') echo 'nav-active'; ?>">
+                                        <a href="<?= base_url('Template_manager/download_design') ?>">
+                                            <span><?= translate('download_design') ?></span>
+                                        </a>
+                                    </li>
                                 <?php endif; ?>
 
                                 <?php if (is_admin_loggedin()): ?>
