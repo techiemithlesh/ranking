@@ -50,8 +50,8 @@ class Template_manager extends Admin_Controller
         $config['total_rows'] = $total;
         $config['per_page'] = $perPage;
 
-        // We are using custom page param: ?page=
         $config['page_query_string'] = true;
+        $config['use_page_numbers'] = true;
         $config['query_string_segment'] = 'page';
         $config['reuse_query_string'] = true;
 
@@ -75,8 +75,6 @@ class Template_manager extends Admin_Controller
         $this->pagination->initialize($config);
 
         $this->data['templateData'] = $rows;
-        // printVar($rows);
-        // die;
         $this->data['pagination_links'] = $this->pagination->create_links();
         $this->data['filters'] = [
             'template_type' => $templateType,
