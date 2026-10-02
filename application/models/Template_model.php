@@ -70,49 +70,35 @@ class Template_model extends MY_Model
             ->result_array();
     }
 
-    public function countTemplatesWithOverlayCount($templateType = '', $editStatus = '', $status = '')
+    // placements live in different tables per type: images → template_overlays, videos → template_video_overlays
+    const OVERLAY_COUNT_SQL = "(CASE WHEN ta.type = 'video'
+        THEN (SELECT COUNT(*) FROM template_video_overlays v WHERE v.template_id = ta.id)
+        ELSE (SELECT COUNT(*) FROM template_overlays o WHERE o.template_id = ta.id) END)";
+
+    // shared by the count and the page query so the pager always matches the rows
+    private function applyTemplateListFilters($templateType, $editStatus, $status)
     {
-        $dbType = '';
-        if ($templateType === '1') $dbType = 'image';
-        if ($templateType === '2') $dbType = 'video';
-
-        $this->db->select('ta.id', false);
         $this->db->from($this->table . ' ta');
-        $this->db->join('template_overlays to1', 'to1.template_id = ta.id', 'left');
-        $this->db->group_by('ta.id');
 
-        if ($dbType !== '') $this->db->where('ta.type', $dbType);
+        if ($templateType === '1') $this->db->where('ta.type', 'image');
+        if ($templateType === '2') $this->db->where('ta.type', 'video');
         if ($status !== '' && $status !== null) $this->db->where('ta.status', (int)$status);
 
-        if ($editStatus !== '' && $editStatus !== null) {
-            if ((string)$editStatus === '1') $this->db->having('COUNT(to1.id) >', 0);
-            if ((string)$editStatus === '0') $this->db->having('COUNT(to1.id) =', 0);
-        }
+        if ((string)$editStatus === '1') $this->db->where(self::OVERLAY_COUNT_SQL . ' > 0', null, false);
+        if ((string)$editStatus === '0') $this->db->where(self::OVERLAY_COUNT_SQL . ' = 0', null, false);
+    }
 
-        // count groups (CI3 workaround)
-        return $this->db->get()->num_rows();
+    public function countTemplatesWithOverlayCount($templateType = '', $editStatus = '', $status = '')
+    {
+        $this->applyTemplateListFilters($templateType, $editStatus, $status);
+        return $this->db->count_all_results();
     }
 
     public function getTemplatesWithOverlayCountPaged($templateType = '', $editStatus = '', $status = '', $limit = 12, $offset = 0)
     {
-        $dbType = '';
-        if ($templateType === '1') $dbType = 'image';
-        if ($templateType === '2') $dbType = 'video';
-
-        $this->db->select('ta.*, COUNT(to1.id) AS overlay_count', false);
-        $this->db->from($this->table . ' ta');
-        $this->db->join('template_overlays to1', 'to1.template_id = ta.id', 'left');
-        $this->db->group_by('ta.id');
+        $this->db->select('ta.*, ' . self::OVERLAY_COUNT_SQL . ' AS overlay_count', false);
+        $this->applyTemplateListFilters($templateType, $editStatus, $status);
         $this->db->order_by('ta.id', 'DESC');
-
-        if ($dbType !== '') $this->db->where('ta.type', $dbType);
-        if ($status !== '' && $status !== null) $this->db->where('ta.status', (int)$status);
-
-        if ($editStatus !== '' && $editStatus !== null) {
-            if ((string)$editStatus === '1') $this->db->having('overlay_count >', 0);
-            if ((string)$editStatus === '0') $this->db->having('overlay_count =', 0);
-        }
-
         $this->db->limit((int)$limit, (int)$offset);
         return $this->db->get()->result_array();
     }
