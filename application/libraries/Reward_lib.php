@@ -213,11 +213,17 @@ class Reward_lib
         }
 
         // 4️⃣ Remarks
-        $label = match ($basis) {
-            'rank'       => "Rank {$value}",
-            'percentile' => "{$value} Percentile",
-            default      => "{$value}% Score",
-        };
+        // switch instead of match() so this runs on PHP 7.4
+        switch ($basis) {
+            case 'rank':
+                $label = "Rank {$value}";
+                break;
+            case 'percentile':
+                $label = "{$value} Percentile";
+                break;
+            default:
+                $label = "{$value}% Score";
+        }
 
         $remarks = "Rewarded for {$basis} ({$label}) in {$exam_type}" .
             ($scope === 'session' ? " [Session: {$session_code}]" : '');

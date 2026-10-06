@@ -46,6 +46,8 @@
                     }
                     if ((is_parent_loggedin() && !empty(get_activeChildren_id())) || is_student_loggedin()) {
                         ?>
+                        <?php // Student login shows only Online Exam, Live Exam, Reports and Coins; items below are hidden for students only.
+                        if (!is_student_loggedin()) { ?>
                         <!-- teachers -->
                         <li class="<?php if ($main_menu == 'teachers')
                             echo 'nav-active'; ?>">
@@ -134,6 +136,7 @@
                                 <i class="icons icon-note"></i><span><?= translate('homework') ?></span>
                             </a>
                         </li>
+                        <?php } // end hidden for students ?>
 
                         <!-- exam master -->
                         <li class="nav-parent <?php if ($main_menu == 'exam')
@@ -143,6 +146,7 @@
                                     aria-hidden="true"></i><span><?= translate('exam_master') ?></span>
                             </a>
                             <ul class="nav nav-children">
+                                <?php if (!is_student_loggedin()) { ?>
                                 <!-- exam schedule -->
                                 <li class="<?php if ($sub_page == 'userrole/exam_schedule')
                                     echo 'nav-active'; ?> ">
@@ -182,6 +186,7 @@
                                         <i class="fas fa-clipboard-list"></i> <span><?= translate('skill_report') ?></span>
                                     </a>
                                 </li>
+                                <?php } // end hidden for students: offline exam reports ?>
 
                                 <!-- Online Exam Progress -->
                                 <li class="<?php if ($sub_page == 'userrole/report/online_exam_progress_filter')
@@ -201,6 +206,17 @@
                                         <span><?= translate('subject_wise_exam_progress') ?></span>
                                     </a>
                                 </li>
+
+                                <?php if (is_student_loggedin()) { ?>
+                                <!-- Live Exam Reports -->
+                                <li class="<?php if ($main_menu == 'Live_exam')
+                                    echo 'nav-active'; ?>">
+                                    <a href="<?= base_url('Liveexam_student/myReports') ?>">
+                                        <i class="fas fa-users"></i>
+                                        <span><?= translate('live_exam') ?></span>
+                                    </a>
+                                </li>
+                                <?php } ?>
                             </ul>
                         </li>
 
@@ -221,7 +237,17 @@
                                 </a>
                             </li>
 
+                            <!-- coins -->
+                            <li class="<?php if ($sub_page == 'userrole/reward')
+                                echo ' nav-active'; ?>">
+                                <a href="<?= base_url('userrole/my_rewards') ?>">
+                                    <i class="fas fa-coins"></i><span><?= translate('my_coins') ?></span>
+                                </a>
+                            </li>
+
                         <?php } ?>
+
+                        <?php if (!is_student_loggedin()) { // hidden for students ?>
 
                         <!-- supervision -->
                         <li class="nav-parent <?php if ($main_menu == 'supervision')
@@ -322,6 +348,7 @@
                                 <i class="icons icon-envelope-open"></i><span><?= translate('message') ?></span>
                             </a>
                         </li>
+                        <?php } // end hidden for students ?>
                     </ul>
                 </nav>
             </div>

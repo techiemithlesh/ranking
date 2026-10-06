@@ -17,6 +17,11 @@ $config['menus'] = [
 
     // MENU FOR STUDENT LOGIN
     'student' => [
+        // Student login trimmed to Online Exam, Live Exam, Reports (My Progress) and Coins.
+        // Other menus are commented out below; uncomment to restore.
+        ['label' => 'Online Exam', 'icon' => 'icon-screen-desktop', 'url' => 'userrole/online_exam'],
+        ['label' => 'Live Exam', 'icon' => 'fas fa-users', 'url' => 'Liveexam_student'],
+        /*
         [
             'label' => 'My Learning Kit',
             'icon' => 'icon-book-open',
@@ -86,21 +91,26 @@ $config['menus'] = [
             ]
         ],
         ['label' => 'Live Classroom', 'icon' => 'fas fa-chalkboard-teacher', 'url' => 'userrole/live_class'],
+        */
         [
             'label' => 'My Progress',
             'icon' => 'icon-graph',
             'children' => [
-                ['label' => 'Progress Report', 'icon' => 'fas fa-marker', 'url' => 'userrole/report_card'],
-                ['label' => 'Smart Progress', 'icon' => 'fas fa-tasks', 'url' => 'userrole/progress'],
-                ['label' => 'Progress Tracker', 'icon' => 'fas fa-chart-line', 'url' => 'userrole/my_progress'],
-                ['label' => 'Skill Report', 'icon' => 'fas fa-clipboard-list', 'url' => 'userrole/skillBasedReport'],
+                // Offline exam reports hidden for this build; only online/live exam reports are shown.
+                // ['label' => 'Progress Report', 'icon' => 'fas fa-marker', 'url' => 'userrole/report_card'],
+                // ['label' => 'Smart Progress', 'icon' => 'fas fa-tasks', 'url' => 'userrole/progress'],
+                // ['label' => 'Progress Tracker', 'icon' => 'fas fa-chart-line', 'url' => 'userrole/my_progress'],
+                // ['label' => 'Skill Report', 'icon' => 'fas fa-clipboard-list', 'url' => 'userrole/skillBasedReport'],
 
                 ['label' => 'Online Exam', 'icon' => 'fas fa-laptop-code', 'children' => [
                     ['label' => 'Smart Progress', 'icon' => 'fas fa-globe', 'url' => 'userrole/online_exam_progress'],
                     ['label' => 'Progress Tracker', 'icon' => 'fas fa-file-alt', 'url' => 'userrole/exam_progress_subjectwise'],
-                ]]
+                ]],
+                ['label' => 'Live Exam', 'icon' => 'fas fa-users', 'url' => 'Liveexam_student/myReports'],
             ]
         ],
+        ['label' => 'My Coins', 'icon' => 'fas fa-coins', 'url' => 'userrole/my_rewards'],
+        /*
         ['label' => 'My Gallery', 'icon' => 'fas fa-images', 'url' => 'userrole/my_gallery'],
         [
             'label' => 'Parents',
@@ -110,6 +120,7 @@ $config['menus'] = [
                 ['label' => 'Message', 'icon' => 'icons icon-envelope-open', 'url' => 'communication/mailbox/inbox']
             ]
         ],
+        */
 
     ],
 

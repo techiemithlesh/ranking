@@ -1,0 +1,54 @@
+# Local Docker setup for rankers (PHP 8.1 + MySQL 8.0)
+#   App:   http://localhost:8081
+#   MySQL: 127.0.0.1:3307  (user rankers / rankers, db futurecampus)
+name: rankers
+
+services:
+  app:
+    build: ./docker/php
+    container_name: rankers-app
+    ports:
+      - "8081:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_USER: rankers
+      DB_PASS: rankers
+      DB_NAME: futurecampus
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    container_name: rankers-db
+    # Same settings as a Linux MySQL server (case-sensitive table names), so case bugs show up locally
+    command:
+      - --lower_case_table_names=0
+      - --sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: futurecampus
+      MYSQL_USER: rankers
+      MYSQL_PASSWORD: rankers
+      TZ: Asia/Kolkata
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # *.sql files here are imported once, on the first start of an empty volume
+      - ./docker/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+volumes:
+  db_data:
