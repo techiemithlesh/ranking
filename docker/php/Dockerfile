@@ -1,5 +1,5 @@
-# PHP 8.1 + Apache, matching production (cPanel ea-php81)
-FROM php:8.1-apache
+# PHP 8.3 + Apache, matching the VPS (Ubuntu 24.04, PHP 8.3)
+FROM php:8.3-apache
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \

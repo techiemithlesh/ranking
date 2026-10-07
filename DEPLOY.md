@@ -1,8 +1,8 @@
 # Deploying rankers to the VPS (Apache2, no Docker)
 
 Target: **https://rankers.futurecampus.in**, served from `/var/www/rankers` by
-**PHP 8.1-FPM**. The two existing sites on the server are not touched: only this
-site's vhost points at PHP 8.1.
+the server's existing **PHP 8.3**, the same PHP the two other sites use. Tested in
+Docker on PHP 8.3 + MySQL 8.0 (case-sensitive tables).
 
 Commands assume Ubuntu/Debian and a sudo user. Replace `CHANGE_ME` values.
 
@@ -17,26 +17,36 @@ Commands assume Ubuntu/Debian and a sudo user. Replace `CHANGE_ME` values.
   apache2ctl -M | grep -i php   # mod_php in use?
   ```
 
-## 1. PHP 8.1-FPM (installed next to the existing PHP)
+## 1. PHP 8.3 extensions
+
+PHP 8.3 is already installed. Add any extensions rankers needs that are missing
+(apt skips ones already installed; adding extensions doesn't change the other sites):
 
 ```bash
 sudo apt update
-sudo apt install -y software-properties-common
-sudo add-apt-repository -y ppa:ondrej/php     # Debian: use packages.sury.org instead
-sudo apt update
-sudo apt install -y php8.1-fpm php8.1-mysql php8.1-gd php8.1-zip php8.1-intl \
-  php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath
-sudo cp deploy/php-rankers.ini /etc/php/8.1/fpm/conf.d/99-rankers.ini   # after step 3
-sudo systemctl enable --now php8.1-fpm
-sudo a2enmod proxy_fcgi setenvif rewrite headers
+sudo apt install -y php8.3-mysql php8.3-gd php8.3-zip php8.3-intl \
+  php8.3-mbstring php8.3-curl php8.3-xml php8.3-bcmath
+sudo a2enmod rewrite headers
 ```
 
-`a2enmod proxy_fcgi` only loads a module. It doesn't change how the existing
-sites run PHP.
+Then check how Apache runs PHP:
+
+```bash
+apache2ctl -M | grep -iE "php|proxy_fcgi"
+```
+
+- `php_module` listed: **mod_php**. The vhost already sets rankers' PHP limits. Nothing more to do here.
+- Only `proxy_fcgi_module`: **PHP-FPM**. Uncomment the `FilesMatch` block in
+  `deploy/rankers.futurecampus.in.conf`, and optionally copy
+  `deploy/php-rankers.ini` to `/etc/php/8.3/fpm/conf.d/99-rankers.ini` (read its note first).
 
 ## 2. Database (on the server's existing MySQL)
 
 Use a separate database and user. Don't share futurecampus's database.
+
+MySQL's root user has a password here, so plain `sudo mysql` is refused. Use
+`mysql -u root -p` if you know it. Otherwise use Ubuntu's maintenance login
+`mysql --defaults-file=/etc/mysql/debian.cnf` in place of `sudo mysql` below.
 
 ```bash
 sudo mysql -e "
@@ -132,7 +142,8 @@ Add them with `crontab -e`, for example:
 ## Updating later
 
 ```bash
-cd /var/www/rankers && sudo git pull && sudo systemctl reload php8.1-fpm
+cd /var/www/rankers && sudo git pull
+sudo systemctl reload apache2      # mod_php (use: sudo systemctl reload php8.3-fpm if on FPM)
 ```
 
 Test changes in Docker first (`DOCKER.md`). Its PHP/MySQL versions, extensions and

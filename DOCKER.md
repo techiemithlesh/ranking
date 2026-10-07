@@ -1,6 +1,6 @@
 # Running rankers locally with Docker
 
-PHP 8.1 + Apache (same PHP as production) and MySQL 8.0, without touching the
+PHP 8.3 + Apache and MySQL 8.0 (same as the VPS), without touching the
 machine's own Apache/PHP 7.4 setup.
 
 | What  | Where |

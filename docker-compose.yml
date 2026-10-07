@@ -1,4 +1,4 @@
-# Local Docker setup for rankers (PHP 8.1 + MySQL 8.0)
+# Local Docker setup for rankers (PHP 8.3 + MySQL 8.0, same as the VPS)
 #   App:   http://localhost:8081
 #   MySQL: 127.0.0.1:3307  (user rankers / rankers, db futurecampus)
 name: rankers
